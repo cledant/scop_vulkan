@@ -15,11 +15,15 @@ Engine::Engine()
 void
 Engine::init(EngineOptions const &opts)
 {
+    IOManagerWindowCreationOption win_opts = {
+        1, 0, opts.fullscreen, 0, DEFAULT_WIN_SIZE, "scop"
+    };
+
     _event_handler.setCamera(&_camera);
     _event_handler.setIOManager(&_io_manager);
     _event_handler.setPerspectiveData(&_perspective_data);
     _event_handler.setInvertYAxis(opts.invert_y_axis);
-    _io_manager.createWindow("scop");
+    _io_manager.createWindow(std::move(win_opts));
     _perspective_data.near_far = DEFAULT_NEAR_FAR;
     _perspective_data.fov = DEFAULT_FOV;
     _perspective_data.ratio = _io_manager.getWindowRatio();

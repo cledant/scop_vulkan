@@ -46,7 +46,6 @@ EventHandler::processEvents(IOEvents const &events)
     assert(_camera);
     assert(_io_manager);
     assert(_perspective);
-    assert(_ui);
 
     // Resetting movement tracking
     _movements = glm::ivec3(0);

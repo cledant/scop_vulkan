@@ -12,12 +12,11 @@ IOManager::IOManager()
   , _win(nullptr)
   , _fullscreen(0)
   , _resized(0)
-  , _w(0)
-  , _h(0)
-  , _w_viewport(0)
-  , _h_viewport(0)
+  , _size()
+  , _viewport_size()
   , _win_name()
   , _mouse_exclusive(0)
+  , _cursor_hidden_on_window(0)
 {
     if (!glfwInit()) {
         throw std::runtime_error("Glfw : failed to init");
@@ -31,29 +30,28 @@ IOManager::~IOManager()
 
 // Window related
 void
-IOManager::createWindow(std::string &&name)
+IOManager::createWindow(IOManagerWindowCreationOption &&opts)
 {
     if (!_win) {
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-        _win_name = name;
-        _win = glfwCreateWindow(640, 480, _win_name.c_str(), nullptr, nullptr);
+        _size = opts.size;
+        _mouse_exclusive = opts.mouse_exclusive;
+        _cursor_hidden_on_window = opts.cursor_hidden_on_window;
+        _win_name = std::move(opts.name);
+        glfwWindowHint(GLFW_RESIZABLE, opts.resizable);
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        _win = glfwCreateWindow(
+          _size.x, _size.y, _win_name.c_str(), nullptr, nullptr);
         if (!_win) {
             throw std::runtime_error("Glfw : failed to create window");
         }
-        glfwSetInputMode(_win, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-        glfwSetWindowPos(_win, 100, 100);
         glfwSetWindowUserPointer(_win, this);
         _initCallbacks();
-        glfwMakeContextCurrent(_win);
+        glfwSetWindowPos(_win, 100, 100);
         glfwSwapInterval(0);
-        glfwSetWindowSize(_win, WIN_W, WIN_H);
-        _w = WIN_W;
-        _h = WIN_H;
-        _initCallbacks();
-#ifdef NDEBUG
-        toggleMouseExclusive();
-        toggleFullscreen();
-#endif
+        if (opts.fullscreen) {
+            toggleFullscreen();
+        }
+        _apply_mouse_visibility();
     }
 }
 
@@ -92,7 +90,7 @@ IOManager::toggleFullscreen()
           _win, monitor, 0, 0, mode->width, mode->height, GLFW_DONT_CARE);
     } else {
         glfwSetWindowMonitor(
-          _win, nullptr, 100, 100, WIN_W, WIN_H, GLFW_DONT_CARE);
+          _win, nullptr, 100, 100, _size.x, _size.y, GLFW_DONT_CARE);
     }
 }
 
@@ -112,9 +110,14 @@ void
 IOManager::toggleMouseExclusive()
 {
     _mouse_exclusive = !_mouse_exclusive;
-    (_mouse_exclusive)
-      ? glfwSetInputMode(_win, GLFW_CURSOR, GLFW_CURSOR_DISABLED)
-      : glfwSetInputMode(_win, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    _apply_mouse_visibility();
+}
+
+void
+IOManager::toggleMouseVisibility()
+{
+    _cursor_hidden_on_window = !_cursor_hidden_on_window;
+    _apply_mouse_visibility();
 }
 
 uint8_t
@@ -126,13 +129,13 @@ IOManager::isMouseExclusive() const
 float
 IOManager::getWindowRatio() const
 {
-    return (static_cast<float>(_w) / static_cast<float>(_h));
+    return (static_cast<float>(_size.x) / static_cast<float>(_size.y));
 }
 
-glm::vec2
+glm::ivec2
 IOManager::getWindowSize() const
 {
-    return (glm::vec2(_w, _h));
+    return (_size);
 }
 
 // Keyboard / Mouse Input related
@@ -236,17 +239,27 @@ IOManager::_initCallbacks()
 
     // Window
     auto window_size_callback = [](GLFWwindow *win, int w, int h) {
-        THIS_WIN_PTR->_h = h;
-        THIS_WIN_PTR->_w = w;
+        THIS_WIN_PTR->_size = glm::ivec2(w, h);
         THIS_WIN_PTR->_resized = 1;
     };
     glfwSetWindowSizeCallback(_win, window_size_callback);
 
     // Framebuffer
     auto framebuffer_size_callback = [](GLFWwindow *win, int w, int h) {
-        THIS_WIN_PTR->_w_viewport = w;
-        THIS_WIN_PTR->_h_viewport = h;
+        THIS_WIN_PTR->_viewport_size = glm::ivec2(w, h);
         // glViewport(0, 0, w, h);
     };
     glfwSetFramebufferSizeCallback(_win, framebuffer_size_callback);
+}
+
+void
+IOManager::_apply_mouse_visibility() const
+{
+    if (_mouse_exclusive) {
+        glfwSetInputMode(_win, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    } else if (_cursor_hidden_on_window) {
+        glfwSetInputMode(_win, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+    } else {
+        glfwSetInputMode(_win, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
 }

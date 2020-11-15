@@ -24,6 +24,7 @@ displayHelp(EngineOptions &opts, std::string_view arg)
     (void)opts;
     std::cout << "./scop options:" << std::endl;
     std::cout << "\t --invertMouseY to invert mouse Y axis" << std::endl;
+    std::cout << "\t --fullscreen to set fullscreen mode" << std::endl;
     std::cout << "\t -h | --help to display help" << std::endl;
     exit(0);
 }
@@ -53,6 +54,13 @@ setSeed(EngineOptions &opts, std::string_view arg)
     }
 }
 
+void
+setFullscreen(EngineOptions &opts, std::string_view arg)
+{
+    (void)arg;
+    opts.fullscreen = 1;
+}
+
 EngineOptions
 parseArgs(int32_t argc, const char **argv)
 {
@@ -60,7 +68,7 @@ parseArgs(int32_t argc, const char **argv)
     opts.seed = generate_seed();
     static void (*func[NB_POSSIBLE_OPTIONS])(EngineOptions &,
                                              std::string_view) = {
-        displayHelp, displayHelp, setInvertMouseY, setSeed
+        displayHelp, displayHelp, setInvertMouseY, setFullscreen
     };
 
     for (int i = 1; i < argc; ++i) {
