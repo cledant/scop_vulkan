@@ -1,8 +1,17 @@
-#include <iostream>
+#include "ArgsParsing.hpp"
+#include "Engine.hpp"
 
 int
-main()
+main(int argc, char const **argv)
 {
-    std::cout << "SCOP" << std::endl;
+    try {
+        auto options = parseArgs(argc, argv);
+        Engine engine;
+
+        engine.init(options);
+        engine.run();
+    } catch (std::exception const &e) {
+        std::cout << e.what() << std::endl;
+    }
     return (0);
 }

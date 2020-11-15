@@ -43,9 +43,6 @@ endif ()
 
 #Setup glm
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/glm ${CMAKE_BINARY_DIR}/external/glm/build)
-#add_library(glm INTERFACE IMPORTED)
-#set_target_properties(glm PROPERTIES
-#        INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/external/glm)
 
 #Setup GLFW
 option(GLFW_BUILD_EXAMPLES "" OFF)
@@ -55,12 +52,18 @@ option(BUILD_SHARED_LIBS "" OFF)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/glfw ${CMAKE_BINARY_DIR}/external/glfw/build)
 
 #Projet libs
-#add_subdirectory(libraries/io_manager)
+add_subdirectory(libraries/io_manager)
+add_subdirectory(libraries/engine)
 
 #Main binary
-add_executable(scop binary/private/scop.cpp)
-#target_link_libraries(scop iomanager)
-#add_dependencies(scop iomanager)
+add_executable(scop
+        ${CMAKE_CURRENT_SOURCE_DIR}/binary/private/scop.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/binary/private/ArgsParsing.cpp)
+target_include_directories(scop
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/binary/private)
+target_link_libraries(scop iomanager engine)
+add_dependencies(scop iomanager engine)
 set_target_properties(scop PROPERTIES
         CXX_STANDARD 17
         CXX_STANDARD_REQUIRED YES
