@@ -14,7 +14,10 @@ IOManager::IOManager()
   , _resized(0)
   , _size()
   , _viewport_size()
-  , _win_name()
+  , _app_name()
+  , _engine_name()
+  , _app_version()
+  , _engine_version()
   , _mouse_exclusive(0)
   , _cursor_hidden_on_window(0)
 {
@@ -25,6 +28,7 @@ IOManager::IOManager()
 
 IOManager::~IOManager()
 {
+    _vk_renderer.clear();
     glfwTerminate();
 }
 
@@ -36,11 +40,14 @@ IOManager::createWindow(IOManagerWindowCreationOption &&opts)
         _size = opts.size;
         _mouse_exclusive = opts.mouse_exclusive;
         _cursor_hidden_on_window = opts.cursor_hidden_on_window;
-        _win_name = std::move(opts.name);
+        _app_name = std::move(opts.app_name);
+        _engine_name = std::move(opts.engine_name);
+        _app_version = opts.app_version;
+        _engine_version = opts.engine_version;
         glfwWindowHint(GLFW_RESIZABLE, opts.resizable);
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         _win = glfwCreateWindow(
-          _size.x, _size.y, _win_name.c_str(), nullptr, nullptr);
+          _size.x, _size.y, _app_name.c_str(), nullptr, nullptr);
         if (!_win) {
             throw std::runtime_error("Glfw : failed to create window");
         }
@@ -52,6 +59,10 @@ IOManager::createWindow(IOManagerWindowCreationOption &&opts)
             toggleFullscreen();
         }
         _apply_mouse_visibility();
+        _vk_renderer.init(_app_name.c_str(),
+                          _engine_name.c_str(),
+                          _app_version,
+                          _engine_version);
     }
 }
 
@@ -142,7 +153,7 @@ IOManager::getWindowSize() const
 IOEvents
 IOManager::getEvents() const
 {
-    IOEvents io = {};
+    IOEvents io{};
 
     glfwPollEvents();
     io.events[MOUSE_EXCLUSIVE] = _keys[GLFW_KEY_P];

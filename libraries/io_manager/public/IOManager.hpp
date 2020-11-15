@@ -11,6 +11,7 @@
 
 #include "IOManagerWindowCreationOption.hpp"
 #include "IOEvents.hpp"
+#include "VkRenderer.hpp"
 
 class IOManager final
 {
@@ -60,9 +61,15 @@ class IOManager final
     uint8_t _resized;
     glm::ivec2 _size;
     glm::ivec2 _viewport_size;
-    std::string _win_name;
+    std::string _app_name;
+    std::string _engine_name;
+    uint32_t _app_version;
+    uint32_t _engine_version;
     uint8_t _mouse_exclusive;
     uint8_t _cursor_hidden_on_window;
+
+    // Vulkan Renderer
+    VkRenderer _vk_renderer;
 
     // Callbacks
     inline void _initCallbacks();

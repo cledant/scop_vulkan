@@ -64,7 +64,7 @@ setFullscreen(EngineOptions &opts, std::string_view arg)
 EngineOptions
 parseArgs(int32_t argc, const char **argv)
 {
-    EngineOptions opts = {};
+    EngineOptions opts{};
     opts.seed = generate_seed();
     static void (*func[NB_POSSIBLE_OPTIONS])(EngineOptions &,
                                              std::string_view) = {

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.16)
 project(scop_vulkan)
 
 #Detecting + setting global LTO
@@ -13,6 +13,9 @@ if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug" AND lto_supported)
 else ()
     message("LTO not supported")
 endif ()
+
+#Checking Vulkan
+find_package(Vulkan REQUIRED FATAL_ERROR)
 
 #Setting global C/CXX compile options
 set(OPTIMIZATION_TYPE NATIVE CACHE STRING "")
@@ -42,7 +45,9 @@ else ()
 endif ()
 
 #Setup glm
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/glm ${CMAKE_BINARY_DIR}/external/glm/build)
+add_library(glm INTERFACE IMPORTED)
+set_target_properties(glm PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/external/glm)
 
 #Setup GLFW
 option(GLFW_BUILD_EXAMPLES "" OFF)
@@ -62,10 +67,10 @@ add_executable(scop
 target_include_directories(scop
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/binary/private)
-target_link_libraries(scop iomanager engine)
+target_link_libraries(scop iomanager engine vulkan)
 add_dependencies(scop iomanager engine)
 set_target_properties(scop PROPERTIES
-        CXX_STANDARD 17
+        CXX_STANDARD 20
         CXX_STANDARD_REQUIRED YES
         CXX_EXTENSIONS NO)
 target_compile_options(scop PRIVATE -Wall -Wextra -Werror)

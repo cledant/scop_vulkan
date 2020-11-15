@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.16)
 project(lib_engine)
 
 add_library(engine STATIC
@@ -13,7 +13,7 @@ target_include_directories(engine
 add_dependencies(engine iomanager)
 target_link_libraries(engine PUBLIC iomanager)
 set_target_properties(engine PROPERTIES
-        CXX_STANDARD 17
+        CXX_STANDARD 20
         CXX_STANDARD_REQUIRED YES
         CXX_EXTENSIONS NO)
 target_compile_options(engine PRIVATE -Wall -Wextra -Werror)

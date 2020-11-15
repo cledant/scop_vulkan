@@ -15,7 +15,10 @@ struct IOManagerWindowCreationOption final
     uint8_t fullscreen;
     uint8_t mouse_exclusive;
     glm::ivec2 size;
-    std::string name;
+    std::string app_name;
+    uint32_t app_version;
+    std::string engine_name;
+    uint32_t engine_version;
 };
 
 #endif // SCOP_VULKAN_IOMANAGERWINDOWCREATIONOPTION_HPP
