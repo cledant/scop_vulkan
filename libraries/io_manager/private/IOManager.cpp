@@ -20,6 +20,7 @@ IOManager::IOManager()
   , _engine_version()
   , _mouse_exclusive(0)
   , _cursor_hidden_on_window(0)
+  , _vk_renderer()
 {
     if (!glfwInit()) {
         throw std::runtime_error("Glfw : failed to init");
@@ -37,6 +38,9 @@ void
 IOManager::createWindow(IOManagerWindowCreationOption &&opts)
 {
     if (!_win) {
+        if (!glfwVulkanSupported()) {
+            throw std::runtime_error("Glfw: Vulkan not supported !");
+        }
         _size = opts.size;
         _mouse_exclusive = opts.mouse_exclusive;
         _cursor_hidden_on_window = opts.cursor_hidden_on_window;
