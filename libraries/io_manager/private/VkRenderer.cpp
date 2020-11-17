@@ -115,7 +115,7 @@ std::vector<char const *>
 VkRenderer::_get_required_extensions()
 {
     uint32_t nb_glfw_extension = 0;
-    const char **glfw_extensions =
+    char const **glfw_extensions =
       glfwGetRequiredInstanceExtensions(&nb_glfw_extension);
     std::vector<char const *> extensions(glfw_extensions,
                                          glfw_extensions + nb_glfw_extension);

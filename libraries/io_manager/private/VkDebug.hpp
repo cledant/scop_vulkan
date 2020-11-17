@@ -18,5 +18,7 @@ VkResult createDebugUtilsMessengerEXT(
 void destroyDebugUtilsMessengerEXT(VkInstance instance,
                                    VkDebugUtilsMessengerEXT debugMessenger,
                                    VkAllocationCallbacks const *pAllocator);
+char const *getDbgSeverityStr(VkDebugUtilsMessageSeverityFlagBitsEXT severity);
+char const *getDbgMessageTypeStr(VkDebugUtilsMessageTypeFlagsEXT type);
 
 #endif // SCOP_VULKAN_VKDEBUG_HPP

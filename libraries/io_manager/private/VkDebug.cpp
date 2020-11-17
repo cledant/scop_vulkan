@@ -29,7 +29,9 @@ VkDebugMsgCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     static_cast<void>(messageSeverity);
     static_cast<void>(messageType);
     static_cast<void>(pUserData);
-    std::cerr << "VULKAN DEBUG: " << pCallbackData->pMessage << std::endl;
+    std::cerr << "VK DBG | " << getDbgSeverityStr(messageSeverity) << " | "
+              << getDbgMessageTypeStr(messageType) << " | "
+              << pCallbackData->pMessage << std::endl;
 
     return (VK_FALSE);
 }
@@ -59,5 +61,37 @@ destroyDebugUtilsMessengerEXT(VkInstance instance,
       instance, "vkDestroyDebugUtilsMessengerEXT");
     if (func != nullptr) {
         func(instance, debugMessenger, pAllocator);
+    }
+}
+
+char const *
+getDbgSeverityStr(VkDebugUtilsMessageSeverityFlagBitsEXT severity)
+{
+    switch (severity) {
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+            return ("Verbose");
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+            return ("Info");
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+            return ("Warning");
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+            return ("Error");
+        default:
+            return ("Unknown severity");
+    }
+}
+
+char const *
+getDbgMessageTypeStr(VkDebugUtilsMessageTypeFlagsEXT type)
+{
+    switch (type) {
+        case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT:
+            return ("General");
+        case VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT:
+            return ("Validation");
+        case VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT:
+            return ("Performance");
+        default:
+            return ("Unknown type");
     }
 }
