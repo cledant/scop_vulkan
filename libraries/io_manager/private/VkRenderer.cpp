@@ -4,7 +4,8 @@
 #include <stdexcept>
 #include <cassert>
 #include <cstring>
-#include <iostream>
+
+#include "VkDebug.hpp"
 
 void
 VkRenderer::init(char const *app_name,
@@ -16,12 +17,18 @@ VkRenderer::init(char const *app_name,
     assert(engine_name);
 
     _create_instance(app_name, engine_name, app_version, engine_version);
+    if constexpr (ENABLE_VALIDATION_LAYER) {
+        _setup_vk_debug_msg();
+    }
 }
 
 void
 VkRenderer::clear()
 {
-    vkDestroyInstance(instance, nullptr);
+    if constexpr (ENABLE_VALIDATION_LAYER) {
+        destroyDebugUtilsMessengerEXT(_instance, _debug_messenger, nullptr);
+    }
+    vkDestroyInstance(_instance, nullptr);
 }
 
 void
@@ -30,7 +37,7 @@ VkRenderer::_create_instance(char const *app_name,
                              uint32_t app_version,
                              uint32_t engine_version)
 {
-    if (enable_validation_layer && !_check_validation_layer_support()) {
+    if (ENABLE_VALIDATION_LAYER && !_check_validation_layer_support()) {
         throw std::runtime_error("VkRenderer: Validation layer not available");
     }
 
@@ -52,8 +59,8 @@ VkRenderer::_create_instance(char const *app_name,
     create_info.ppEnabledExtensionNames = extentions.data();
 
     VkDebugUtilsMessengerCreateInfoEXT debug_create_info{};
-    if (enable_validation_layer) {
-        _setup_debug_info(debug_create_info);
+    if constexpr (ENABLE_VALIDATION_LAYER) {
+        setupVkDebugInfo(debug_create_info);
         create_info.enabledLayerCount =
           static_cast<uint32_t>(VALIDATION_LAYERS.size());
         create_info.ppEnabledLayerNames = VALIDATION_LAYERS.data();
@@ -63,7 +70,7 @@ VkRenderer::_create_instance(char const *app_name,
         create_info.pNext = nullptr;
     }
 
-    if (vkCreateInstance(&create_info, nullptr, &instance) != VK_SUCCESS) {
+    if (vkCreateInstance(&create_info, nullptr, &_instance) != VK_SUCCESS) {
         throw std::runtime_error("failed to create instance!");
     }
 }
@@ -94,6 +101,16 @@ VkRenderer::_check_validation_layer_support()
     return (true);
 }
 
+void
+VkRenderer::_setup_vk_debug_msg()
+{
+    VkDebugUtilsMessengerCreateInfoEXT dbg_info{};
+    setupVkDebugInfo(dbg_info);
+
+    createDebugUtilsMessengerEXT(
+      _instance, &dbg_info, nullptr, &_debug_messenger);
+}
+
 std::vector<char const *>
 VkRenderer::_get_required_extensions()
 {
@@ -103,41 +120,8 @@ VkRenderer::_get_required_extensions()
     std::vector<char const *> extensions(glfw_extensions,
                                          glfw_extensions + nb_glfw_extension);
 
-    if (enable_validation_layer) {
+    if constexpr (ENABLE_VALIDATION_LAYER) {
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
     return (extensions);
-}
-
-void
-VkRenderer::_setup_debug_info(VkDebugUtilsMessengerCreateInfoEXT &create_info)
-{
-    create_info = {};
-    create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    create_info.messageSeverity =
-      VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-      VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
-      VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-      VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    create_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-                              VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-                              VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-    create_info.pfnUserCallback = _debug_callback;
-    create_info.pUserData = nullptr;
-    create_info.pNext = nullptr;
-}
-
-VKAPI_ATTR VkBool32 VKAPI_CALL
-VkRenderer::_debug_callback(
-  VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-  VkDebugUtilsMessageTypeFlagsEXT messageType,
-  VkDebugUtilsMessengerCallbackDataEXT const *pCallbackData,
-  void *pUserData)
-{
-    static_cast<void>(messageSeverity);
-    static_cast<void>(messageType);
-    static_cast<void>(pUserData);
-    std::cerr << "VULKAN DEBUG: " << pCallbackData->pMessage << std::endl;
-
-    return (VK_FALSE);
 }

@@ -3,7 +3,8 @@ project(lib_iomanager)
 
 add_library(iomanager STATIC
         private/IOManager.cpp
-        private/VkRenderer.cpp)
+        private/VkRenderer.cpp
+        private/VkDebug.cpp)
 target_include_directories(iomanager
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/public

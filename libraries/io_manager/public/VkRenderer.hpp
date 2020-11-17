@@ -24,33 +24,28 @@ class VkRenderer final
     void clear();
 
   private:
-    // Validation layers related
-#ifdef NDEBUG
-    static constexpr bool const enable_validation_layer = false;
-#else
-    static constexpr bool const enable_validation_layer = true;
-#endif
-    static constexpr std::array const VALIDATION_LAYERS{
-        "VK_LAYER_KHRONOS_validation",
-    };
-
-    VkInstance instance;
+    VkInstance _instance;
+    VkDebugUtilsMessengerEXT _debug_messenger;
 
     inline void _create_instance(char const *app_name,
                                  char const *engine_name,
                                  uint32_t app_version,
                                  uint32_t engine_version);
 
+    // Validation layers related
+#ifdef NDEBUG
+    static constexpr bool const ENABLE_VALIDATION_LAYER = false;
+#else
+    static constexpr bool const ENABLE_VALIDATION_LAYER = true;
+#endif
+    static constexpr std::array const VALIDATION_LAYERS{
+        "VK_LAYER_KHRONOS_validation",
+    };
     static inline bool _check_validation_layer_support();
-    static inline std::vector<char const *> _get_required_extensions();
+    inline void _setup_vk_debug_msg();
 
-    static inline void _setup_debug_info(
-      VkDebugUtilsMessengerCreateInfoEXT &create_info);
-    static VKAPI_ATTR VkBool32 VKAPI_CALL
-    _debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                    VkDebugUtilsMessageTypeFlagsEXT messageType,
-                    VkDebugUtilsMessengerCallbackDataEXT const *pCallbackData,
-                    void *pUserData);
+    // Extension related
+    static inline std::vector<char const *> _get_required_extensions();
 };
 
 #endif // SCOP_VULKAN_VKRENDERER_HPP
