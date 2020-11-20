@@ -4,8 +4,10 @@
 #include <stdexcept>
 #include <cassert>
 #include <cstring>
+#include <iostream>
 
 #include "VkDebug.hpp"
+#include "VkPhysicalDevice.hpp"
 
 void
 VkRenderer::init(char const *app_name,
@@ -17,9 +19,8 @@ VkRenderer::init(char const *app_name,
     assert(engine_name);
 
     _create_instance(app_name, engine_name, app_version, engine_version);
-    if constexpr (ENABLE_VALIDATION_LAYER) {
-        _setup_vk_debug_msg();
-    }
+    _setup_vk_debug_msg();
+    _select_physical_device();
 }
 
 void
@@ -71,8 +72,41 @@ VkRenderer::_create_instance(char const *app_name,
     }
 
     if (vkCreateInstance(&create_info, nullptr, &_instance) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create instance!");
+        throw std::runtime_error("VkRenderer: Failed to create instance");
     }
+}
+
+void
+VkRenderer::_setup_vk_debug_msg()
+{
+    if constexpr (!ENABLE_VALIDATION_LAYER) {
+        return;
+    }
+    VkDebugUtilsMessengerCreateInfoEXT dbg_info{};
+    setupVkDebugInfo(dbg_info);
+
+    createDebugUtilsMessengerEXT(
+      _instance, &dbg_info, nullptr, &_debug_messenger);
+}
+
+void
+VkRenderer::_select_physical_device()
+{
+    uint32_t nb_physical_device = 0;
+    vkEnumeratePhysicalDevices(_instance, &nb_physical_device, nullptr);
+    if (!nb_physical_device) {
+        throw std::runtime_error("VkRenderer: No physical device");
+    }
+
+    std::vector<VkPhysicalDevice> devices(nb_physical_device);
+    vkEnumeratePhysicalDevices(_instance, &nb_physical_device, devices.data());
+
+    _physical_device = selectBestDevice(devices);
+    if (_physical_device == VK_NULL_HANDLE) {
+        throw std::runtime_error("VkRenderer: No Suitable device found");
+    }
+    getDeviceName(_device_name, _physical_device);
+    std::cout << "Device: " << _device_name << std::endl;
 }
 
 bool
@@ -99,16 +133,6 @@ VkRenderer::_check_validation_layer_support()
     }
 
     return (true);
-}
-
-void
-VkRenderer::_setup_vk_debug_msg()
-{
-    VkDebugUtilsMessengerCreateInfoEXT dbg_info{};
-    setupVkDebugInfo(dbg_info);
-
-    createDebugUtilsMessengerEXT(
-      _instance, &dbg_info, nullptr, &_debug_messenger);
 }
 
 std::vector<char const *>

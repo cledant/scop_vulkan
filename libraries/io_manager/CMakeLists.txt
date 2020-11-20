@@ -4,6 +4,7 @@ project(lib_iomanager)
 add_library(iomanager STATIC
         private/IOManager.cpp
         private/VkRenderer.cpp
+        private/VkPhysicalDevice.cpp
         private/VkDebug.cpp)
 target_include_directories(iomanager
         PUBLIC
