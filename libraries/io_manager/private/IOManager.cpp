@@ -65,6 +65,7 @@ IOManager::createWindow(IOManagerWindowCreationOption &&opts)
         _apply_mouse_visibility();
         _vk_renderer.init(_app_name.c_str(),
                           _engine_name.c_str(),
+                          _win,
                           _app_version,
                           _engine_version);
     }

@@ -12,15 +12,22 @@
 void
 VkRenderer::init(char const *app_name,
                  char const *engine_name,
+                 GLFWwindow *win,
                  uint32_t app_version,
                  uint32_t engine_version)
 {
     assert(app_name);
     assert(engine_name);
+    assert(win);
 
     _create_instance(app_name, engine_name, app_version, engine_version);
+    if (glfwCreateWindowSurface(_instance, win, nullptr, &_surface) !=
+        VK_SUCCESS) {
+        throw std::runtime_error("VkRenderer: Failed to create window surface");
+    }
     _setup_vk_debug_msg();
     _select_physical_device();
+    _create_graphic_queue();
 }
 
 void
@@ -29,6 +36,7 @@ VkRenderer::clear()
     if constexpr (ENABLE_VALIDATION_LAYER) {
         destroyDebugUtilsMessengerEXT(_instance, _debug_messenger, nullptr);
     }
+    vkDestroySurfaceKHR(_instance, _surface, nullptr);
     vkDestroyDevice(_device, nullptr);
     vkDestroyInstance(_instance, nullptr);
 }
@@ -102,7 +110,7 @@ VkRenderer::_select_physical_device()
     std::vector<VkPhysicalDevice> devices(nb_physical_device);
     vkEnumeratePhysicalDevices(_instance, &nb_physical_device, devices.data());
 
-    _physical_device = selectBestDevice(devices);
+    _physical_device = selectBestDevice(devices, _surface);
     if (_physical_device == VK_NULL_HANDLE) {
         throw std::runtime_error("VkRenderer: No Suitable device found");
     }
@@ -113,12 +121,13 @@ VkRenderer::_select_physical_device()
 void
 VkRenderer::_create_graphic_queue()
 {
+    auto dfr = getDeviceFeatureRequirement(_physical_device, _surface);
+
     // Graphic queue info
     VkDeviceQueueCreateInfo queue_create_info{};
     float queue_priority = 1.0f;
     queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queue_create_info.queueFamilyIndex =
-      getGraphicQueueIndex(_physical_device).value();
+    queue_create_info.queueFamilyIndex = dfr.graphic_queue_index.value();
     queue_create_info.queueCount = 1;
     queue_create_info.pQueuePriorities = &queue_priority;
 
@@ -145,10 +154,8 @@ VkRenderer::_create_graphic_queue()
         VK_SUCCESS) {
         throw std::runtime_error("VkRenderer: Failed to create logical device");
     }
-    vkGetDeviceQueue(_device,
-                     getGraphicQueueIndex(_physical_device).value(),
-                     0,
-                     &_graphic_queue);
+    vkGetDeviceQueue(
+      _device, dfr.graphic_queue_index.value(), 0, &_graphic_queue);
 }
 
 bool

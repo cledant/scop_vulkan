@@ -5,13 +5,14 @@
 #include <cassert>
 
 VkPhysicalDevice
-selectBestDevice(std::vector<VkPhysicalDevice> const &devices)
+selectBestDevice(std::vector<VkPhysicalDevice> const &devices,
+                 VkSurfaceKHR surface)
 {
     auto best_device = std::make_pair<VkPhysicalDevice, int>(VK_NULL_HANDLE, 0);
     std::multimap<VkPhysicalDevice, int> rating;
 
     for (auto const &it : devices) {
-        auto score = rateDevice(it);
+        auto score = rateDevice(it, surface);
         rating.insert(std::make_pair(it, score));
     }
 
@@ -24,9 +25,11 @@ selectBestDevice(std::vector<VkPhysicalDevice> const &devices)
 }
 
 int
-rateDevice(VkPhysicalDevice device)
+rateDevice(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
-    if (!hasDeviceGeometryShader(device) || !hasDeviceGraphicQueue(device)) {
+    auto dfr = getDeviceFeatureRequirement(device, surface);
+
+    if (!dfr.isValid()) {
         return (0);
     }
 
@@ -76,43 +79,18 @@ getDeviceName(char *dst, VkPhysicalDevice device)
     return (dst);
 }
 
-bool
-hasDeviceGeometryShader(VkPhysicalDevice device)
+DeviceFeatureRequirement
+getDeviceFeatureRequirement(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
+    DeviceFeatureRequirement dfr{};
     VkPhysicalDeviceFeatures features;
     vkGetPhysicalDeviceFeatures(device, &features);
-
     if (features.geometryShader) {
-        return (true);
+        dfr.geometry_shader = VK_TRUE;
     }
-    return (false);
-}
 
-bool
-hasDeviceGraphicQueue(VkPhysicalDevice device)
-{
     uint32_t nb_family_queue;
     vkGetPhysicalDeviceQueueFamilyProperties(device, &nb_family_queue, nullptr);
-
-    std::vector<VkQueueFamilyProperties> families(nb_family_queue);
-    vkGetPhysicalDeviceQueueFamilyProperties(
-      device, &nb_family_queue, families.data());
-
-    for (auto const &it : families) {
-        if (it.queueFlags & VK_QUEUE_GRAPHICS_BIT && it.queueCount > 0) {
-            return (true);
-        }
-    }
-    return (false);
-}
-
-std::optional<uint32_t>
-getGraphicQueueIndex(VkPhysicalDevice device)
-{
-    std::optional<uint32_t> g_index;
-    uint32_t nb_family_queue;
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &nb_family_queue, nullptr);
-
     std::vector<VkQueueFamilyProperties> families(nb_family_queue);
     vkGetPhysicalDeviceQueueFamilyProperties(
       device, &nb_family_queue, families.data());
@@ -120,10 +98,28 @@ getGraphicQueueIndex(VkPhysicalDevice device)
     uint32_t index = 0;
     for (auto const &it : families) {
         if (it.queueFlags & VK_QUEUE_GRAPHICS_BIT && it.queueCount > 0) {
-            g_index = index;
-            return (g_index);
+            dfr.graphic_queue_index = index;
+        }
+
+        VkBool32 present_support = false;
+        vkGetPhysicalDeviceSurfaceSupportKHR(
+          device, index, surface, &present_support);
+        if (present_support) {
+            dfr.present_queue_index = index;
+        }
+
+        if (dfr.graphic_queue_index.has_value() &&
+            dfr.present_queue_index.has_value()) {
+            break;
         }
         ++index;
     }
-    return (g_index);
+    return (dfr);
+}
+
+bool
+DeviceFeatureRequirement::isValid() const
+{
+    return (graphic_queue_index.has_value() &&
+            present_queue_index.has_value() && geometry_shader);
 }

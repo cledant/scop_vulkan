@@ -19,6 +19,7 @@ class VkRenderer final
 
     void init(char const *app_name,
               char const *engine_name,
+              GLFWwindow *win,
               uint32_t app_version,
               uint32_t engine_version);
     void clear();
@@ -34,9 +35,11 @@ class VkRenderer final
     };
     VkInstance _instance;
     VkDebugUtilsMessengerEXT _debug_messenger;
+    VkSurfaceKHR _surface;
     VkPhysicalDevice _physical_device;
     VkDevice _device;
     VkQueue _graphic_queue;
+    VkQueue _present_queue;
     char _device_name[VK_MAX_PHYSICAL_DEVICE_NAME_SIZE];
 
     inline void _create_instance(char const *app_name,
