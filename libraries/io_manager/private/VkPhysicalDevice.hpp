@@ -10,5 +10,7 @@
 VkPhysicalDevice selectBestDevice(std::vector<VkPhysicalDevice> const &devices);
 int rateDevice(VkPhysicalDevice device);
 char *getDeviceName(char *dst, VkPhysicalDevice device);
+bool hasDeviceGeometryShader(VkPhysicalDevice device);
+bool hasDeviceGraphicQueue(VkPhysicalDevice device);
 
 #endif // SCOP_VULKAN_VKPHYSICALDEVICE_HPP

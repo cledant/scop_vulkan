@@ -4,7 +4,6 @@
 #include <optional>
 #include <cstring>
 #include <cassert>
-#include <iostream>
 
 VkPhysicalDevice
 selectBestDevice(std::vector<VkPhysicalDevice> const &devices)
@@ -28,21 +27,13 @@ selectBestDevice(std::vector<VkPhysicalDevice> const &devices)
 int
 rateDevice(VkPhysicalDevice device)
 {
-    VkPhysicalDeviceProperties properties;
-    vkGetPhysicalDeviceProperties(device, &properties);
-
-    VkPhysicalDeviceFeatures features;
-    vkGetPhysicalDeviceFeatures(device, &features);
-
-    VkPhysicalDeviceMemoryProperties mem;
-    vkGetPhysicalDeviceMemoryProperties(device, &mem);
-
-    int score = 0;
-
-    if (!features.geometryShader) {
-        return (score);
+    if (!hasDeviceGeometryShader(device) || !hasDeviceGraphicQueue(device)) {
+        return (0);
     }
 
+    int score = 0;
+    VkPhysicalDeviceProperties properties;
+    vkGetPhysicalDeviceProperties(device, &properties);
     switch (properties.deviceType) {
         case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
             score += 1000000;
@@ -58,6 +49,8 @@ rateDevice(VkPhysicalDevice device)
             break;
     }
 
+    VkPhysicalDeviceMemoryProperties mem;
+    vkGetPhysicalDeviceMemoryProperties(device, &mem);
     std::optional<uint32_t> index_local_memory;
     for (uint32_t i = 0; i < mem.memoryTypeCount; ++i) {
         if (mem.memoryTypes[i].propertyFlags &
@@ -66,7 +59,6 @@ rateDevice(VkPhysicalDevice device)
             break;
         }
     }
-
     if (!index_local_memory.has_value()) {
         return (0);
     }
@@ -83,4 +75,34 @@ getDeviceName(char *dst, VkPhysicalDevice device)
     vkGetPhysicalDeviceProperties(device, &prop);
     std::strncpy(dst, prop.deviceName, VK_MAX_PHYSICAL_DEVICE_NAME_SIZE);
     return (dst);
+}
+
+bool
+hasDeviceGeometryShader(VkPhysicalDevice device)
+{
+    VkPhysicalDeviceFeatures features;
+    vkGetPhysicalDeviceFeatures(device, &features);
+
+    if (features.geometryShader) {
+        return (true);
+    }
+    return (false);
+}
+
+bool
+hasDeviceGraphicQueue(VkPhysicalDevice device)
+{
+    uint32_t nb_family_queue;
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &nb_family_queue, nullptr);
+
+    std::vector<VkQueueFamilyProperties> families(nb_family_queue);
+    vkGetPhysicalDeviceQueueFamilyProperties(
+      device, &nb_family_queue, families.data());
+
+    for (auto const &it : families) {
+        if (it.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+            return (true);
+        }
+    }
+    return (false);
 }
