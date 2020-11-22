@@ -29,6 +29,7 @@ VkRenderer::clear()
     if constexpr (ENABLE_VALIDATION_LAYER) {
         destroyDebugUtilsMessengerEXT(_instance, _debug_messenger, nullptr);
     }
+    vkDestroyDevice(_device, nullptr);
     vkDestroyInstance(_instance, nullptr);
 }
 
@@ -107,6 +108,47 @@ VkRenderer::_select_physical_device()
     }
     getDeviceName(_device_name, _physical_device);
     std::cout << "Device: " << _device_name << std::endl;
+}
+
+void
+VkRenderer::_create_graphic_queue()
+{
+    // Graphic queue info
+    VkDeviceQueueCreateInfo queue_create_info{};
+    float queue_priority = 1.0f;
+    queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queue_create_info.queueFamilyIndex =
+      getGraphicQueueIndex(_physical_device).value();
+    queue_create_info.queueCount = 1;
+    queue_create_info.pQueuePriorities = &queue_priority;
+
+    // Device info
+    VkPhysicalDeviceFeatures physical_device_features{};
+    physical_device_features.geometryShader = VK_TRUE;
+    VkDeviceCreateInfo device_create_info{};
+    device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    device_create_info.pQueueCreateInfos = &queue_create_info;
+    device_create_info.queueCreateInfoCount = 1;
+    if constexpr (ENABLE_VALIDATION_LAYER) {
+        device_create_info.enabledLayerCount =
+          static_cast<uint32_t>(VALIDATION_LAYERS.size());
+        device_create_info.ppEnabledLayerNames = VALIDATION_LAYERS.data();
+    } else {
+        device_create_info.enabledLayerCount = 0;
+    }
+    device_create_info.pEnabledFeatures = &physical_device_features;
+    device_create_info.enabledExtensionCount = 0;
+
+    // Device creation
+    if (vkCreateDevice(
+          _physical_device, &device_create_info, nullptr, &_device) !=
+        VK_SUCCESS) {
+        throw std::runtime_error("VkRenderer: Failed to create logical device");
+    }
+    vkGetDeviceQueue(_device,
+                     getGraphicQueueIndex(_physical_device).value(),
+                     0,
+                     &_graphic_queue);
 }
 
 bool

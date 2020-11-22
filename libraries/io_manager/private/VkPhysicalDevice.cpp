@@ -1,7 +1,6 @@
 #include "VkPhysicalDevice.hpp"
 
 #include <map>
-#include <optional>
 #include <cstring>
 #include <cassert>
 
@@ -100,9 +99,31 @@ hasDeviceGraphicQueue(VkPhysicalDevice device)
       device, &nb_family_queue, families.data());
 
     for (auto const &it : families) {
-        if (it.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+        if (it.queueFlags & VK_QUEUE_GRAPHICS_BIT && it.queueCount > 0) {
             return (true);
         }
     }
     return (false);
+}
+
+std::optional<uint32_t>
+getGraphicQueueIndex(VkPhysicalDevice device)
+{
+    std::optional<uint32_t> g_index;
+    uint32_t nb_family_queue;
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &nb_family_queue, nullptr);
+
+    std::vector<VkQueueFamilyProperties> families(nb_family_queue);
+    vkGetPhysicalDeviceQueueFamilyProperties(
+      device, &nb_family_queue, families.data());
+
+    uint32_t index = 0;
+    for (auto const &it : families) {
+        if (it.queueFlags & VK_QUEUE_GRAPHICS_BIT && it.queueCount > 0) {
+            g_index = index;
+            return (g_index);
+        }
+        ++index;
+    }
+    return (g_index);
 }

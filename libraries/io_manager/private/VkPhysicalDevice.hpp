@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <optional>
 
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
@@ -12,5 +13,6 @@ int rateDevice(VkPhysicalDevice device);
 char *getDeviceName(char *dst, VkPhysicalDevice device);
 bool hasDeviceGeometryShader(VkPhysicalDevice device);
 bool hasDeviceGraphicQueue(VkPhysicalDevice device);
+std::optional<uint32_t> getGraphicQueueIndex(VkPhysicalDevice device);
 
 #endif // SCOP_VULKAN_VKPHYSICALDEVICE_HPP

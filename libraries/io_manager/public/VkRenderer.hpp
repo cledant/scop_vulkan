@@ -35,6 +35,8 @@ class VkRenderer final
     VkInstance _instance;
     VkDebugUtilsMessengerEXT _debug_messenger;
     VkPhysicalDevice _physical_device;
+    VkDevice _device;
+    VkQueue _graphic_queue;
     char _device_name[VK_MAX_PHYSICAL_DEVICE_NAME_SIZE];
 
     inline void _create_instance(char const *app_name,
@@ -43,6 +45,7 @@ class VkRenderer final
                                  uint32_t engine_version);
     inline void _setup_vk_debug_msg();
     inline void _select_physical_device();
+    inline void _create_graphic_queue();
 
     static inline bool _check_validation_layer_support();
     static inline std::vector<char const *> _get_required_extensions();
