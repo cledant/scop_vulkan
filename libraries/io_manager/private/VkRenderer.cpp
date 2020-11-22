@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cstring>
 #include <iostream>
+#include <set>
 
 #include "VkDebug.hpp"
 #include "VkPhysicalDevice.hpp"
@@ -122,22 +123,28 @@ void
 VkRenderer::_create_graphic_queue()
 {
     auto dfr = getDeviceFeatureRequirement(_physical_device, _surface);
+    std::set<uint32_t> queue_families = { dfr.graphic_queue_index.value(),
+                                          dfr.present_queue_index.value() };
+    std::vector<VkDeviceQueueCreateInfo> vec_queue_create_info;
 
     // Graphic queue info
-    VkDeviceQueueCreateInfo queue_create_info{};
     float queue_priority = 1.0f;
-    queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queue_create_info.queueFamilyIndex = dfr.graphic_queue_index.value();
-    queue_create_info.queueCount = 1;
-    queue_create_info.pQueuePriorities = &queue_priority;
+    for (auto const &it : queue_families) {
+        VkDeviceQueueCreateInfo queue_create_info{};
+        queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queue_create_info.queueFamilyIndex = it;
+        queue_create_info.queueCount = 1;
+        queue_create_info.pQueuePriorities = &queue_priority;
+        vec_queue_create_info.emplace_back(queue_create_info);
+    }
 
     // Device info
     VkPhysicalDeviceFeatures physical_device_features{};
     physical_device_features.geometryShader = VK_TRUE;
     VkDeviceCreateInfo device_create_info{};
     device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    device_create_info.pQueueCreateInfos = &queue_create_info;
-    device_create_info.queueCreateInfoCount = 1;
+    device_create_info.pQueueCreateInfos = vec_queue_create_info.data();
+    device_create_info.queueCreateInfoCount = vec_queue_create_info.size();
     if constexpr (ENABLE_VALIDATION_LAYER) {
         device_create_info.enabledLayerCount =
           static_cast<uint32_t>(VALIDATION_LAYERS.size());
@@ -156,6 +163,8 @@ VkRenderer::_create_graphic_queue()
     }
     vkGetDeviceQueue(
       _device, dfr.graphic_queue_index.value(), 0, &_graphic_queue);
+    vkGetDeviceQueue(
+      _device, dfr.present_queue_index.value(), 0, &_present_queue);
 }
 
 bool

@@ -28,7 +28,6 @@ int
 rateDevice(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
     auto dfr = getDeviceFeatureRequirement(device, surface);
-
     if (!dfr.isValid()) {
         return (0);
     }
