@@ -29,16 +29,18 @@ VkRenderer::init(char const *app_name,
     _setup_vk_debug_msg();
     _select_physical_device();
     _create_graphic_queue();
+    _create_swap_chain();
 }
 
 void
 VkRenderer::clear()
 {
+    //vkDestroySwapchainKHR(_device, _swap_chain, nullptr);
+    vkDestroyDevice(_device, nullptr);
     if constexpr (ENABLE_VALIDATION_LAYER) {
         destroyDebugUtilsMessengerEXT(_instance, _debug_messenger, nullptr);
     }
     vkDestroySurfaceKHR(_instance, _surface, nullptr);
-    vkDestroyDevice(_device, nullptr);
     vkDestroyInstance(_instance, nullptr);
 }
 
@@ -122,7 +124,7 @@ VkRenderer::_select_physical_device()
 void
 VkRenderer::_create_graphic_queue()
 {
-    auto dfr = getDeviceFeatureRequirement(_physical_device, _surface);
+    auto dfr = getDeviceRequirement(_physical_device, _surface);
     std::set<uint32_t> queue_families = { dfr.graphic_queue_index.value(),
                                           dfr.present_queue_index.value() };
     std::vector<VkDeviceQueueCreateInfo> vec_queue_create_info;
@@ -166,6 +168,10 @@ VkRenderer::_create_graphic_queue()
     vkGetDeviceQueue(
       _device, dfr.present_queue_index.value(), 0, &_present_queue);
 }
+
+void
+VkRenderer::_create_swap_chain()
+{}
 
 bool
 VkRenderer::_check_validation_layer_support()

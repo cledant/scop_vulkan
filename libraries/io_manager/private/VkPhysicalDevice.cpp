@@ -3,6 +3,16 @@
 #include <map>
 #include <cstring>
 #include <cassert>
+#include <set>
+#include <string>
+
+bool
+DeviceRequirement::isValid() const
+{
+    return (graphic_queue_index.has_value() &&
+            present_queue_index.has_value() && geometry_shader &&
+            all_extension_supported);
+}
 
 VkPhysicalDevice
 selectBestDevice(std::vector<VkPhysicalDevice> const &devices,
@@ -27,7 +37,7 @@ selectBestDevice(std::vector<VkPhysicalDevice> const &devices,
 int
 rateDevice(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
-    auto dfr = getDeviceFeatureRequirement(device, surface);
+    auto dfr = getDeviceRequirement(device, surface);
     if (!dfr.isValid()) {
         return (0);
     }
@@ -78,16 +88,51 @@ getDeviceName(char *dst, VkPhysicalDevice device)
     return (dst);
 }
 
-DeviceFeatureRequirement
-getDeviceFeatureRequirement(VkPhysicalDevice device, VkSurfaceKHR surface)
+DeviceRequirement
+getDeviceRequirement(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
-    DeviceFeatureRequirement dfr{};
+    DeviceRequirement dr{};
+
+    checkDeviceFeaturesSupport(device, dr);
+    checkDeviceExtensionSupport(device, dr);
+    getDeviceQueues(device, surface, dr);
+    return (dr);
+}
+
+void
+checkDeviceFeaturesSupport(VkPhysicalDevice device, DeviceRequirement &dr)
+{
     VkPhysicalDeviceFeatures features;
     vkGetPhysicalDeviceFeatures(device, &features);
     if (features.geometryShader) {
-        dfr.geometry_shader = VK_TRUE;
+        dr.geometry_shader = VK_TRUE;
     }
+}
 
+void
+checkDeviceExtensionSupport(VkPhysicalDevice device, DeviceRequirement &dr)
+{
+    uint32_t nb_extension;
+    vkEnumerateDeviceExtensionProperties(
+      device, nullptr, &nb_extension, nullptr);
+    std::vector<VkExtensionProperties> vec_ext_prop(nb_extension);
+    vkEnumerateDeviceExtensionProperties(
+      device, nullptr, &nb_extension, vec_ext_prop.data());
+
+    std::set<std::string> req_extension(DEVICE_EXTENSIONS.begin(),
+                                        DEVICE_EXTENSIONS.end());
+
+    for (auto const &supported_ext : vec_ext_prop) {
+        req_extension.erase(supported_ext.extensionName);
+    }
+    dr.all_extension_supported = (req_extension.empty()) ? VK_TRUE : VK_FALSE;
+}
+
+void
+getDeviceQueues(VkPhysicalDevice device,
+                VkSurfaceKHR surface,
+                DeviceRequirement &dr)
+{
     uint32_t nb_family_queue;
     vkGetPhysicalDeviceQueueFamilyProperties(device, &nb_family_queue, nullptr);
     std::vector<VkQueueFamilyProperties> families(nb_family_queue);
@@ -97,28 +142,20 @@ getDeviceFeatureRequirement(VkPhysicalDevice device, VkSurfaceKHR surface)
     uint32_t index = 0;
     for (auto const &it : families) {
         if (it.queueFlags & VK_QUEUE_GRAPHICS_BIT && it.queueCount > 0) {
-            dfr.graphic_queue_index = index;
+            dr.graphic_queue_index = index;
         }
 
         VkBool32 present_support = false;
         vkGetPhysicalDeviceSurfaceSupportKHR(
           device, index, surface, &present_support);
         if (present_support) {
-            dfr.present_queue_index = index;
+            dr.present_queue_index = index;
         }
 
-        if (dfr.graphic_queue_index.has_value() &&
-            dfr.present_queue_index.has_value()) {
+        if (dr.graphic_queue_index.has_value() &&
+            dr.present_queue_index.has_value()) {
             break;
         }
         ++index;
     }
-    return (dfr);
-}
-
-bool
-DeviceFeatureRequirement::isValid() const
-{
-    return (graphic_queue_index.has_value() &&
-            present_queue_index.has_value() && geometry_shader);
 }

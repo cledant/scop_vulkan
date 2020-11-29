@@ -35,12 +35,19 @@ class VkRenderer final
     };
     VkInstance _instance;
     VkDebugUtilsMessengerEXT _debug_messenger;
+
     VkSurfaceKHR _surface;
     VkPhysicalDevice _physical_device;
     VkDevice _device;
+    char _device_name[VK_MAX_PHYSICAL_DEVICE_NAME_SIZE];
+
     VkQueue _graphic_queue;
     VkQueue _present_queue;
-    char _device_name[VK_MAX_PHYSICAL_DEVICE_NAME_SIZE];
+
+    VkSwapchainKHR _swap_chain;
+    std::vector<VkImage> _swap_chain_images;
+    VkFormat _swap_chain_image_format;
+    VkExtent2D _swap_chain_extent;
 
     inline void _create_instance(char const *app_name,
                                  char const *engine_name,
@@ -49,6 +56,7 @@ class VkRenderer final
     inline void _setup_vk_debug_msg();
     inline void _select_physical_device();
     inline void _create_graphic_queue();
+    inline void _create_swap_chain();
 
     static inline bool _check_validation_layer_support();
     static inline std::vector<char const *> _get_required_extensions();
