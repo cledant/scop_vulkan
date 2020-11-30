@@ -45,9 +45,9 @@ class VkRenderer final
     VkQueue _present_queue;
 
     VkSwapchainKHR _swap_chain;
+
     VkFormat _swap_chain_image_format;
     VkExtent2D _swap_chain_extent;
-
     std::vector<VkImage> _swap_chain_images;
 
     inline void _create_instance(char const *app_name,

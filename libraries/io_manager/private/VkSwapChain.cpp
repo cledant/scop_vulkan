@@ -87,7 +87,7 @@ getSwapChainPresentMode(
 }
 
 VkExtent2D
-getSwapChainExtent(const VkSurfaceCapabilitiesKHR &capabilities,
+getSwapChainExtent(VkSurfaceCapabilitiesKHR const &capabilities,
                    VkExtent2D actual_extent)
 {
     if (capabilities.currentExtent.height != UINT32_MAX) {

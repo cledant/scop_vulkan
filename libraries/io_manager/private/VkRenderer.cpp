@@ -178,6 +178,7 @@ VkRenderer::_create_graphic_queue()
 void
 VkRenderer::_create_swap_chain(GLFWwindow *win)
 {
+    // Creating swap chain
     glm::ivec2 fb_resolution{};
     glfwGetFramebufferSize(win, &fb_resolution.x, &fb_resolution.y);
     VkExtent2D actual_extent = { static_cast<uint32_t>(fb_resolution.x),
@@ -198,6 +199,7 @@ VkRenderer::_create_swap_chain(GLFWwindow *win)
     create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     create_info.surface = _surface;
     create_info.minImageCount = nb_img;
+    create_info.imageFormat = scs.surface_format.value().format;
     create_info.imageColorSpace = scs.surface_format.value().colorSpace;
     create_info.imageExtent = scs.extent;
     create_info.imageArrayLayers = 1;
@@ -225,6 +227,15 @@ VkRenderer::_create_swap_chain(GLFWwindow *win)
         VK_SUCCESS) {
         throw std::runtime_error("VkRenderer: Failed to create swap chain");
     }
+
+    // Retrieving img buffer + keeping info
+    uint32_t nb_img_sc;
+    vkGetSwapchainImagesKHR(_device, _swap_chain, &nb_img_sc, nullptr);
+    _swap_chain_images.resize(nb_img_sc);
+    vkGetSwapchainImagesKHR(
+      _device, _swap_chain, &nb_img_sc, _swap_chain_images.data());
+    _swap_chain_extent = scs.extent;
+    _swap_chain_image_format = scs.surface_format.value().format;
 }
 
 bool
@@ -249,7 +260,6 @@ VkRenderer::_check_validation_layer_support()
             return (false);
         }
     }
-
     return (true);
 }
 
