@@ -20,7 +20,7 @@ struct DeviceRequirement
 };
 
 static constexpr std::array const DEVICE_EXTENSIONS{
-    "VK_KHR_swapchain",
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 };
 
 VkPhysicalDevice selectBestDevice(std::vector<VkPhysicalDevice> const &devices,

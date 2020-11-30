@@ -45,9 +45,10 @@ class VkRenderer final
     VkQueue _present_queue;
 
     VkSwapchainKHR _swap_chain;
-    std::vector<VkImage> _swap_chain_images;
     VkFormat _swap_chain_image_format;
     VkExtent2D _swap_chain_extent;
+
+    std::vector<VkImage> _swap_chain_images;
 
     inline void _create_instance(char const *app_name,
                                  char const *engine_name,
@@ -56,7 +57,7 @@ class VkRenderer final
     inline void _setup_vk_debug_msg();
     inline void _select_physical_device();
     inline void _create_graphic_queue();
-    inline void _create_swap_chain();
+    inline void _create_swap_chain(GLFWwindow *win);
 
     static inline bool _check_validation_layer_support();
     static inline std::vector<char const *> _get_required_extensions();

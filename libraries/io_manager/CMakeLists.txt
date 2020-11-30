@@ -5,7 +5,8 @@ add_library(iomanager STATIC
         private/IOManager.cpp
         private/VkRenderer.cpp
         private/VkPhysicalDevice.cpp
-        private/VkDebug.cpp)
+        private/VkDebug.cpp
+        private/VkSwapChain.cpp)
 target_include_directories(iomanager
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/public

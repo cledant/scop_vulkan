@@ -6,6 +6,8 @@
 #include <set>
 #include <string>
 
+#include "VkSwapChain.hpp"
+
 bool
 DeviceRequirement::isValid() const
 {
@@ -39,6 +41,10 @@ rateDevice(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
     auto dfr = getDeviceRequirement(device, surface);
     if (!dfr.isValid()) {
+        return (0);
+    }
+
+    if (!checkSwapChainSupport(device, surface)) {
         return (0);
     }
 

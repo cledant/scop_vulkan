@@ -7,8 +7,11 @@
 #include <iostream>
 #include <set>
 
+#include "glm/glm.hpp"
+
 #include "VkDebug.hpp"
 #include "VkPhysicalDevice.hpp"
+#include "VkSwapChain.hpp"
 
 void
 VkRenderer::init(char const *app_name,
@@ -29,13 +32,15 @@ VkRenderer::init(char const *app_name,
     _setup_vk_debug_msg();
     _select_physical_device();
     _create_graphic_queue();
-    _create_swap_chain();
+    _create_swap_chain(win);
 }
 
 void
 VkRenderer::clear()
 {
-    //vkDestroySwapchainKHR(_device, _swap_chain, nullptr);
+    if (_swap_chain) {
+        vkDestroySwapchainKHR(_device, _swap_chain, nullptr);
+    }
     vkDestroyDevice(_device, nullptr);
     if constexpr (ENABLE_VALIDATION_LAYER) {
         destroyDebugUtilsMessengerEXT(_instance, _debug_messenger, nullptr);
@@ -147,6 +152,8 @@ VkRenderer::_create_graphic_queue()
     device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     device_create_info.pQueueCreateInfos = vec_queue_create_info.data();
     device_create_info.queueCreateInfoCount = vec_queue_create_info.size();
+    device_create_info.ppEnabledExtensionNames = DEVICE_EXTENSIONS.data();
+    device_create_info.enabledExtensionCount = DEVICE_EXTENSIONS.size();
     if constexpr (ENABLE_VALIDATION_LAYER) {
         device_create_info.enabledLayerCount =
           static_cast<uint32_t>(VALIDATION_LAYERS.size());
@@ -155,7 +162,6 @@ VkRenderer::_create_graphic_queue()
         device_create_info.enabledLayerCount = 0;
     }
     device_create_info.pEnabledFeatures = &physical_device_features;
-    device_create_info.enabledExtensionCount = 0;
 
     // Device creation
     if (vkCreateDevice(
@@ -170,8 +176,56 @@ VkRenderer::_create_graphic_queue()
 }
 
 void
-VkRenderer::_create_swap_chain()
-{}
+VkRenderer::_create_swap_chain(GLFWwindow *win)
+{
+    glm::ivec2 fb_resolution{};
+    glfwGetFramebufferSize(win, &fb_resolution.x, &fb_resolution.y);
+    VkExtent2D actual_extent = { static_cast<uint32_t>(fb_resolution.x),
+                                 static_cast<uint32_t>(fb_resolution.y) };
+
+    auto scs = getSwapChainSupport(_physical_device, _surface, actual_extent);
+    if (!scs.isValid()) {
+        throw std::runtime_error("VkRenderer: SwapChain error");
+    }
+
+    uint32_t nb_img = scs.capabilities.minImageCount + 1;
+    if (scs.capabilities.maxImageCount > 0 &&
+        nb_img > scs.capabilities.maxImageCount) {
+        nb_img = scs.capabilities.maxImageCount;
+    }
+
+    VkSwapchainCreateInfoKHR create_info{};
+    create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    create_info.surface = _surface;
+    create_info.minImageCount = nb_img;
+    create_info.imageColorSpace = scs.surface_format.value().colorSpace;
+    create_info.imageExtent = scs.extent;
+    create_info.imageArrayLayers = 1;
+    create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    DeviceRequirement dr{};
+    getDeviceQueues(_physical_device, _surface, dr);
+    uint32_t queue_family_indices[] = { dr.present_queue_index.value(),
+                                        dr.graphic_queue_index.value() };
+    if (dr.present_queue_index.value() != dr.graphic_queue_index.value()) {
+        create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        create_info.queueFamilyIndexCount = 2;
+        create_info.pQueueFamilyIndices = queue_family_indices;
+    } else {
+        create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        create_info.queueFamilyIndexCount = 0;
+        create_info.pQueueFamilyIndices = nullptr;
+    }
+    create_info.preTransform = scs.capabilities.currentTransform;
+    create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    create_info.presentMode = scs.present_mode.value();
+    create_info.clipped = VK_TRUE;
+    create_info.oldSwapchain = nullptr;
+    if (vkCreateSwapchainKHR(_device, &create_info, nullptr, &_swap_chain) !=
+        VK_SUCCESS) {
+        throw std::runtime_error("VkRenderer: Failed to create swap chain");
+    }
+}
 
 bool
 VkRenderer::_check_validation_layer_support()
