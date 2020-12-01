@@ -33,11 +33,15 @@ VkRenderer::init(char const *app_name,
     _select_physical_device();
     _create_graphic_queue();
     _create_swap_chain(win);
+    _create_image_view();
 }
 
 void
 VkRenderer::clear()
 {
+    for (auto iv : _swap_chain_image_views) {
+        vkDestroyImageView(_device, iv, nullptr);
+    }
     if (_swap_chain) {
         vkDestroySwapchainKHR(_device, _swap_chain, nullptr);
     }
@@ -236,6 +240,36 @@ VkRenderer::_create_swap_chain(GLFWwindow *win)
       _device, _swap_chain, &nb_img_sc, _swap_chain_images.data());
     _swap_chain_extent = scs.extent;
     _swap_chain_image_format = scs.surface_format.value().format;
+}
+
+void
+VkRenderer::_create_image_view()
+{
+    _swap_chain_image_views.resize(_swap_chain_images.size());
+    for (size_t i = 0; i < _swap_chain_images.size(); ++i) {
+        VkImageViewCreateInfo iv_create_info{};
+
+        iv_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        iv_create_info.image = _swap_chain_images[i];
+        iv_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        iv_create_info.format = _swap_chain_image_format;
+        iv_create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        iv_create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        iv_create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        iv_create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+        iv_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        iv_create_info.subresourceRange.baseMipLevel = 0;
+        iv_create_info.subresourceRange.levelCount = 1;
+        iv_create_info.subresourceRange.baseArrayLayer = 0;
+        iv_create_info.subresourceRange.layerCount = 1;
+
+        if (vkCreateImageView(
+              _device, &iv_create_info, nullptr, &_swap_chain_image_views[i]) !=
+            VK_SUCCESS) {
+            throw std::runtime_error(
+              "VkRenderer: failed to create image views");
+        }
+    }
 }
 
 bool
