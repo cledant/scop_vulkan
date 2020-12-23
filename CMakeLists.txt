@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.17)
 project(scop_vulkan)
 
 #Detecting + setting global LTO
@@ -14,8 +14,12 @@ else ()
     message("LTO not supported")
 endif ()
 
+#Runtime resources
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
 #Checking Vulkan
 find_package(Vulkan REQUIRED FATAL_ERROR)
+find_program(glslc REQUIRED FATAL_ERROR)
 
 #Setting global C/CXX compile options
 set(OPTIMIZATION_TYPE NATIVE CACHE STRING "")
@@ -56,9 +60,12 @@ option(GLFW_INSTALL "" OFF)
 option(BUILD_SHARED_LIBS "" OFF)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/glfw ${CMAKE_BINARY_DIR}/external/glfw/build)
 
-#Projet libs
+#Project libs
 add_subdirectory(libraries/io_manager)
 add_subdirectory(libraries/engine)
+
+#Shaders
+add_subdirectory(shaders/trivial)
 
 #Main binary
 add_executable(scop
@@ -68,7 +75,7 @@ target_include_directories(scop
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/binary/private)
 target_link_libraries(scop iomanager engine vulkan)
-add_dependencies(scop iomanager engine)
+add_dependencies(scop iomanager engine trivial_shader)
 set_target_properties(scop PROPERTIES
         CXX_STANDARD 20
         CXX_STANDARD_REQUIRED YES
