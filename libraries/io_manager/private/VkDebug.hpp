@@ -1,8 +1,19 @@
 #ifndef SCOP_VULKAN_VKDEBUG_HPP
 #define SCOP_VULKAN_VKDEBUG_HPP
 
+#include <array>
+
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
+
+#ifdef NDEBUG
+inline constexpr bool const ENABLE_VALIDATION_LAYER = false;
+#else
+inline constexpr bool const ENABLE_VALIDATION_LAYER = true;
+#endif
+inline constexpr std::array const VALIDATION_LAYERS{
+  "VK_LAYER_KHRONOS_validation",
+};
 
 void setupVkDebugInfo(VkDebugUtilsMessengerCreateInfoEXT &create_info);
 VKAPI_ATTR VkBool32 VKAPI_CALL

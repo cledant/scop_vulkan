@@ -1,7 +1,6 @@
 #ifndef SCOP_VULKAN_VKRENDERER_HPP
 #define SCOP_VULKAN_VKRENDERER_HPP
 
-#include <array>
 #include <vector>
 
 #define GLFW_INCLUDE_VULKAN
@@ -25,14 +24,6 @@ class VkRenderer final
     void clear();
 
   private:
-#ifdef NDEBUG
-    static constexpr bool const ENABLE_VALIDATION_LAYER = false;
-#else
-    static constexpr bool const ENABLE_VALIDATION_LAYER = true;
-#endif
-    static constexpr std::array const VALIDATION_LAYERS{
-        "VK_LAYER_KHRONOS_validation",
-    };
     VkInstance _instance;
     VkDebugUtilsMessengerEXT _debug_messenger;
 
