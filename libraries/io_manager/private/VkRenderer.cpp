@@ -7,32 +7,41 @@
 #include <iostream>
 #include <set>
 
-#include "glm/glm.hpp"
-
 #include "VkDebug.hpp"
 #include "VkPhysicalDevice.hpp"
 #include "VkSwapChain.hpp"
 
 void
-VkRenderer::init(char const *app_name,
-                 char const *engine_name,
-                 GLFWwindow *win,
-                 uint32_t app_version,
-                 uint32_t engine_version)
+VkRenderer::createInstance(char const *app_name,
+                           char const *engine_name,
+                           uint32_t app_version,
+                           uint32_t engine_version,
+                           std::vector<char const *> &&required_extensions)
 {
     assert(app_name);
     assert(engine_name);
-    assert(win);
 
-    _create_instance(app_name, engine_name, app_version, engine_version);
-    if (glfwCreateWindowSurface(_instance, win, nullptr, &_surface) !=
-        VK_SUCCESS) {
-        throw std::runtime_error("VkRenderer: Failed to create window surface");
+    if constexpr (ENABLE_VALIDATION_LAYER) {
+        required_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
+    _create_instance(
+      app_name, engine_name, app_version, engine_version, required_extensions);
+}
+
+VkInstance
+VkRenderer::getVkInstance() const
+{
+    return (_instance);
+}
+
+void
+VkRenderer::initInstance(VkSurfaceKHR surface, uint32_t fb_w, uint32_t fb_h)
+{
+    _surface = surface;
     _setup_vk_debug_msg();
     _select_physical_device();
     _create_graphic_queue();
-    _create_swap_chain(win);
+    _create_swap_chain(fb_w, fb_h);
     _create_image_view();
 }
 
@@ -54,10 +63,12 @@ VkRenderer::clear()
 }
 
 void
-VkRenderer::_create_instance(char const *app_name,
-                             char const *engine_name,
-                             uint32_t app_version,
-                             uint32_t engine_version)
+VkRenderer::_create_instance(
+  char const *app_name,
+  char const *engine_name,
+  uint32_t app_version,
+  uint32_t engine_version,
+  std::vector<char const *> const &required_extension)
 {
     if (ENABLE_VALIDATION_LAYER && !_check_validation_layer_support()) {
         throw std::runtime_error("VkRenderer: Validation layer not available");
@@ -72,13 +83,12 @@ VkRenderer::_create_instance(char const *app_name,
     app_info.apiVersion = VK_API_VERSION_1_2;
 
     VkInstanceCreateInfo create_info{};
-    auto extentions = _get_required_extensions();
 
     create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     create_info.pApplicationInfo = &app_info;
     create_info.enabledExtensionCount =
-      static_cast<uint32_t>(extentions.size());
-    create_info.ppEnabledExtensionNames = extentions.data();
+      static_cast<uint32_t>(required_extension.size());
+    create_info.ppEnabledExtensionNames = required_extension.data();
 
     VkDebugUtilsMessengerCreateInfoEXT debug_create_info{};
     if constexpr (ENABLE_VALIDATION_LAYER) {
@@ -180,13 +190,10 @@ VkRenderer::_create_graphic_queue()
 }
 
 void
-VkRenderer::_create_swap_chain(GLFWwindow *win)
+VkRenderer::_create_swap_chain(uint32_t fb_w, uint32_t fb_h)
 {
     // Creating swap chain
-    glm::ivec2 fb_resolution{};
-    glfwGetFramebufferSize(win, &fb_resolution.x, &fb_resolution.y);
-    VkExtent2D actual_extent = { static_cast<uint32_t>(fb_resolution.x),
-                                 static_cast<uint32_t>(fb_resolution.y) };
+    VkExtent2D actual_extent = { fb_w, fb_h };
 
     auto scs = getSwapChainSupport(_physical_device, _surface, actual_extent);
     if (!scs.isValid()) {
@@ -295,19 +302,4 @@ VkRenderer::_check_validation_layer_support()
         }
     }
     return (true);
-}
-
-std::vector<char const *>
-VkRenderer::_get_required_extensions()
-{
-    uint32_t nb_glfw_extension = 0;
-    char const **glfw_extensions =
-      glfwGetRequiredInstanceExtensions(&nb_glfw_extension);
-    std::vector<char const *> extensions(glfw_extensions,
-                                         glfw_extensions + nb_glfw_extension);
-
-    if constexpr (ENABLE_VALIDATION_LAYER) {
-        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-    }
-    return (extensions);
 }

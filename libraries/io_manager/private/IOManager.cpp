@@ -63,11 +63,31 @@ IOManager::createWindow(IOManagerWindowCreationOption &&opts)
             toggleFullscreen();
         }
         _apply_mouse_visibility();
-        _vk_renderer.init(_app_name.c_str(),
-                          _engine_name.c_str(),
-                          _win,
-                          _app_version,
-                          _engine_version);
+
+        // Glfw required extension for Vulkan
+        uint32_t nb_glfw_extension = 0;
+        char const **glfw_extensions =
+          glfwGetRequiredInstanceExtensions(&nb_glfw_extension);
+        std::vector<char const *> extensions(
+          glfw_extensions, glfw_extensions + nb_glfw_extension);
+
+        // Vulkan init
+        _vk_renderer.createInstance(_app_name.c_str(),
+                                    _engine_name.c_str(),
+                                    _app_version,
+                                    _engine_version,
+                                    std::move(extensions));
+        VkSurfaceKHR vk_surface{};
+        if (glfwCreateWindowSurface(
+              _vk_renderer.getVkInstance(), _win, nullptr, &vk_surface) !=
+            VK_SUCCESS) {
+            throw std::runtime_error(
+              "VkRenderer: Failed to create window surface");
+        }
+        int fb_w{};
+        int fb_h{};
+        glfwGetFramebufferSize(_win, &fb_w, &fb_h);
+        _vk_renderer.initInstance(vk_surface, fb_w, fb_h);
     }
 }
 
