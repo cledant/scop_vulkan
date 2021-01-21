@@ -279,6 +279,11 @@ VkRenderer::_create_image_view()
     }
 }
 
+void
+VkRenderer::_create_render_pass()
+{}
+
+
 bool
 VkRenderer::_check_validation_layer_support()
 {

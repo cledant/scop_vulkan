@@ -42,6 +42,8 @@ class VkRenderer final
     std::vector<VkImage> _swap_chain_images;
     std::vector<VkImageView> _swap_chain_image_views;
 
+
+
     inline void _create_instance(
       char const *app_name,
       char const *engine_name,
@@ -53,6 +55,7 @@ class VkRenderer final
     inline void _create_graphic_queue();
     inline void _create_swap_chain(uint32_t fb_w, uint32_t fb_h);
     inline void _create_image_view();
+    inline void _create_render_pass();
 
     static inline bool _check_validation_layer_support();
 };

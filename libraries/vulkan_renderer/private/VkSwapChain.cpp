@@ -1,7 +1,5 @@
 #include "VkSwapChain.hpp"
 
-#include <algorithm>
-
 SwapChainSupport
 getSwapChainSupport(VkPhysicalDevice device,
                     VkSurfaceKHR surface,

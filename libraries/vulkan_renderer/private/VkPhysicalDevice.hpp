@@ -6,15 +6,14 @@
 #include <optional>
 #include <array>
 
-#define GLFW_INCLUDE_VULKAN
-#include "GLFW/glfw3.h"
+#include <vulkan/vulkan.h>
 
 struct DeviceRequirement
 {
     std::optional<uint32_t> graphic_queue_index;
     std::optional<uint32_t> present_queue_index;
-    VkBool32 geometry_shader;
-    VkBool32 all_extension_supported;
+    VkBool32 geometry_shader{};
+    VkBool32 all_extension_supported{};
 
     [[nodiscard]] bool isValid() const;
 };
