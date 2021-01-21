@@ -37,23 +37,25 @@ VkRenderer::getVkInstance() const
 void
 VkRenderer::initInstance(VkSurfaceKHR surface, uint32_t fb_w, uint32_t fb_h)
 {
+    assert(surface);
+
     _surface = surface;
     _setup_vk_debug_msg();
     _select_physical_device();
     _create_graphic_queue();
     _create_swap_chain(fb_w, fb_h);
     _create_image_view();
+    _create_render_pass();
 }
 
 void
 VkRenderer::clear()
 {
+    vkDestroyRenderPass(_device, _render_pass, nullptr);
     for (auto iv : _swap_chain_image_views) {
         vkDestroyImageView(_device, iv, nullptr);
     }
-    if (_swap_chain) {
-        vkDestroySwapchainKHR(_device, _swap_chain, nullptr);
-    }
+    vkDestroySwapchainKHR(_device, _swap_chain, nullptr);
     vkDestroyDevice(_device, nullptr);
     if constexpr (ENABLE_VALIDATION_LAYER) {
         destroyDebugUtilsMessengerEXT(_instance, _debug_messenger, nullptr);
@@ -281,8 +283,38 @@ VkRenderer::_create_image_view()
 
 void
 VkRenderer::_create_render_pass()
-{}
+{
+    VkAttachmentDescription color_attachment{};
+    color_attachment.format = _swap_chain_image_format;
+    color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
+    VkAttachmentReference color_attachment_ref{};
+    color_attachment_ref.attachment = 0;
+    color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &color_attachment_ref;
+
+    VkRenderPassCreateInfo render_pass_info{};
+    render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    render_pass_info.attachmentCount = 1;
+    render_pass_info.pAttachments = &color_attachment;
+    render_pass_info.subpassCount = 1;
+    render_pass_info.pSubpasses = &subpass;
+
+    if (vkCreateRenderPass(
+          _device, &render_pass_info, nullptr, &_render_pass) != VK_SUCCESS) {
+        throw std::runtime_error("VkRenderer: failed to create render pass");
+    }
+}
 
 bool
 VkRenderer::_check_validation_layer_support()

@@ -25,24 +25,27 @@ class VkRenderer final
 
   private:
     VkInstance _instance{};
+    VkSurfaceKHR _surface{};
     VkDebugUtilsMessengerEXT _debug_messenger{};
 
-    VkSurfaceKHR _surface{};
+    // Device related
     VkPhysicalDevice _physical_device{};
     VkDevice _device{};
     char _device_name[VK_MAX_PHYSICAL_DEVICE_NAME_SIZE]{};
 
+    // Queue related
     VkQueue _graphic_queue{};
     VkQueue _present_queue{};
 
+    // Swap chain related
     VkSwapchainKHR _swap_chain{};
-
     VkFormat _swap_chain_image_format{};
     VkExtent2D _swap_chain_extent{};
     std::vector<VkImage> _swap_chain_images;
     std::vector<VkImageView> _swap_chain_image_views;
 
-
+    // Pipeline related
+    VkRenderPass _render_pass{};
 
     inline void _create_instance(
       char const *app_name,
