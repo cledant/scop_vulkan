@@ -53,17 +53,18 @@ class Camera final
     glm::mat4 _perspective;
     glm::mat4 _perspec_mult_view;
 
-    typedef enum frustumPlane
+    enum frustumPlane
     {
-        F_LEFT,
+        F_LEFT = 0,
         F_RIGHT,
         F_BOTTOM,
         F_TOP,
         F_NEAR,
         F_FAR,
-    } frustumPlane;
-    std::array<glm::vec4, 6> _frustum_planes;
-    std::array<glm::vec4, 6> _abs_frustum_planes;
+        F_NB_PLANE
+    };
+    std::array<glm::vec4, F_NB_PLANE> _frustum_planes;
+    std::array<glm::vec4, F_NB_PLANE> _abs_frustum_planes;
     inline void _extractFrustumPlanes();
 
     float _mouse_sensitivity;

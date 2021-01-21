@@ -8,11 +8,11 @@
 #include "IOManager.hpp"
 #include "Perspective.hpp"
 
-class EventHandler
+class EventHandler final
 {
   public:
     EventHandler();
-    virtual ~EventHandler() = default;
+    ~EventHandler() = default;
     EventHandler(EventHandler const &src) = delete;
     EventHandler &operator=(EventHandler const &rhs) = delete;
     EventHandler(EventHandler &&src) = delete;
