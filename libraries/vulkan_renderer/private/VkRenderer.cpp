@@ -13,20 +13,20 @@
 #include "VkShader.hpp"
 
 void
-VkRenderer::createInstance(char const *app_name,
-                           char const *engine_name,
+VkRenderer::createInstance(std::string &&app_name,
+                           std::string &&engine_name,
                            uint32_t app_version,
                            uint32_t engine_version,
                            std::vector<char const *> &&required_extensions)
 {
-    assert(app_name);
-    assert(engine_name);
-
     if constexpr (ENABLE_VALIDATION_LAYER) {
         required_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
-    _create_instance(
-      app_name, engine_name, app_version, engine_version, required_extensions);
+    _app_name = std::move(app_name);
+    _app_version = app_version;
+    _engine_name = std::move(engine_name);
+    _engine_version = engine_version;
+    _create_instance(required_extensions);
 }
 
 VkInstance
@@ -48,11 +48,18 @@ VkRenderer::initInstance(VkSurfaceKHR surface, uint32_t fb_w, uint32_t fb_h)
     _create_image_view();
     _create_render_pass();
     _create_gfx_pipeline();
+    _create_framebuffers();
+    _create_command_pool();
+    _create_command_buffers();
 }
 
 void
-VkRenderer::clear()
+VkRenderer::clearInstance()
 {
+    vkDestroyCommandPool(_device, _command_pool, nullptr);
+    for (auto &it : _swap_chain_framebuffers) {
+        vkDestroyFramebuffer(_device, it, nullptr);
+    }
     vkDestroyPipeline(_device, _graphic_pipeline, nullptr);
     vkDestroyPipelineLayout(_device, _pipeline_layout, nullptr);
     vkDestroyRenderPass(_device, _render_pass, nullptr);
@@ -68,12 +75,38 @@ VkRenderer::clear()
     vkDestroyInstance(_instance, nullptr);
 }
 
+std::string const &
+VkRenderer::getAppName() const
+{
+    return (_app_name);
+}
+
+uint32_t
+VkRenderer::getAppVersion() const
+{
+    return (_app_version);
+}
+
+std::string const &
+VkRenderer::getEngineName() const
+{
+    return (_engine_name);
+}
+
+uint32_t
+VkRenderer::getEngineVersion() const
+{
+    return (_engine_version);
+}
+
+// Render Related
+void
+VkRenderer::draw()
+{}
+
+// Instance init related
 void
 VkRenderer::_create_instance(
-  char const *app_name,
-  char const *engine_name,
-  uint32_t app_version,
-  uint32_t engine_version,
   std::vector<char const *> const &required_extension)
 {
     if (ENABLE_VALIDATION_LAYER && !_check_validation_layer_support()) {
@@ -82,10 +115,10 @@ VkRenderer::_create_instance(
 
     VkApplicationInfo app_info{};
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    app_info.pApplicationName = app_name;
-    app_info.applicationVersion = app_version;
-    app_info.pEngineName = engine_name;
-    app_info.engineVersion = engine_version;
+    app_info.pApplicationName = _app_name.c_str();
+    app_info.applicationVersion = _app_version;
+    app_info.pEngineName = _engine_name.c_str();
+    app_info.engineVersion = _engine_version;
     app_info.apiVersion = VK_API_VERSION_1_2;
 
     VkInstanceCreateInfo create_info{};
@@ -441,7 +474,6 @@ VkRenderer::_create_gfx_pipeline()
     pipeline_layout_info.pSetLayouts = nullptr;
     pipeline_layout_info.pushConstantRangeCount = 0;
     pipeline_layout_info.pPushConstantRanges = nullptr;
-
     if (vkCreatePipelineLayout(
           _device, &pipeline_layout_info, nullptr, &_pipeline_layout) !=
         VK_SUCCESS) {
@@ -481,6 +513,105 @@ VkRenderer::_create_gfx_pipeline()
     vkDestroyShaderModule(_device, frag_shader, nullptr);
 }
 
+void
+VkRenderer::_create_framebuffers()
+{
+    _swap_chain_framebuffers.resize(_swap_chain_image_views.size());
+
+    size_t i = 0;
+    for (auto const &it : _swap_chain_image_views) {
+        VkImageView sciv[] = { it };
+
+        VkFramebufferCreateInfo framebuffer_info{};
+        framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebuffer_info.renderPass = _render_pass;
+        framebuffer_info.attachmentCount = 1;
+        framebuffer_info.pAttachments = sciv;
+        framebuffer_info.width = _swap_chain_extent.width;
+        framebuffer_info.height = _swap_chain_extent.height;
+        framebuffer_info.layers = 1;
+
+        if (vkCreateFramebuffer(_device,
+                                &framebuffer_info,
+                                nullptr,
+                                &_swap_chain_framebuffers[i]) != VK_SUCCESS) {
+            throw std::runtime_error(
+              "VkRenderer: Failed to create framebuffer");
+        }
+        ++i;
+    }
+}
+
+void
+VkRenderer::_create_command_pool()
+{
+    DeviceRequirement dr{};
+    getDeviceQueues(_physical_device, _surface, dr);
+
+    VkCommandPoolCreateInfo command_pool_info{};
+    command_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    command_pool_info.queueFamilyIndex = dr.graphic_queue_index.value();
+    command_pool_info.flags = 0;
+
+    if (vkCreateCommandPool(
+          _device, &command_pool_info, nullptr, &_command_pool) != VK_SUCCESS) {
+        throw std::runtime_error("VkRenderer: Failed to create command pool");
+    }
+}
+
+void
+VkRenderer::_create_command_buffers()
+{
+    _command_buffers.resize(_swap_chain_framebuffers.size());
+
+    VkCommandBufferAllocateInfo cb_allocate_info{};
+    cb_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    cb_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    cb_allocate_info.commandPool = _command_pool;
+    cb_allocate_info.commandBufferCount = _command_buffers.size();
+
+    if (vkAllocateCommandBuffers(
+          _device, &cb_allocate_info, _command_buffers.data()) != VK_SUCCESS) {
+        throw std::runtime_error(
+          "VkRenderer: Failed to allocate command buffers");
+    }
+
+    size_t i = 0;
+    for (auto &it : _command_buffers) {
+        VkCommandBufferBeginInfo cb_begin_info{};
+        cb_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        cb_begin_info.flags = 0;
+        cb_begin_info.pInheritanceInfo = nullptr;
+        if (vkBeginCommandBuffer(it, &cb_begin_info) != VK_SUCCESS) {
+            throw std::runtime_error(
+              "VkRenderer: Failed to begin recording command buffer");
+        }
+
+        VkClearValue clear_color = { 0.0f, 0.0f, 0.0f, 1.0f };
+        VkRenderPassBeginInfo rp_begin_info{};
+        rp_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        rp_begin_info.renderPass = _render_pass;
+        rp_begin_info.framebuffer = _swap_chain_framebuffers[i];
+        rp_begin_info.renderArea.offset = { 0, 0 };
+        rp_begin_info.renderArea.extent = _swap_chain_extent;
+        rp_begin_info.clearValueCount = 1;
+        rp_begin_info.pClearValues = &clear_color;
+
+        vkCmdBeginRenderPass(it, &rp_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBindPipeline(
+          it, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphic_pipeline);
+        vkCmdDraw(it, 3, 1, 0, 0);
+        vkCmdEndRenderPass(it);
+
+        if (vkEndCommandBuffer(it) != VK_SUCCESS) {
+            throw std::runtime_error(
+              "VkRenderer: Failed to record command Buffer");
+        }
+        ++i;
+    }
+}
+
+// Dbg related
 bool
 VkRenderer::_check_validation_layer_support()
 {

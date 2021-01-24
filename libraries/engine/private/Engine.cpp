@@ -4,6 +4,7 @@
 
 Engine::Engine()
   : _io_manager()
+  , _vk_renderer()
   , _camera()
   , _event_handler()
   , _perspective_data()
@@ -15,21 +16,26 @@ Engine::Engine()
 void
 Engine::init(EngineOptions const &opts)
 {
-    IOManagerWindowCreationOption win_opts{ 0,
-                                            0,
-                                            opts.fullscreen,
-                                            0,
-                                            DEFAULT_WIN_SIZE,
-                                            "scop",
-                                            VK_MAKE_VERSION(1, 0, 0),
-                                            "scop_engine",
-                                            VK_MAKE_VERSION(1, 0, 0) };
+    auto cpy_app_name = opts.app_name;
+    IOManagerWindowCreationOption win_opts{
+        0, 0, opts.fullscreen, 0, DEFAULT_WIN_SIZE, opts.app_name
+    };
 
     _event_handler.setCamera(&_camera);
     _event_handler.setIOManager(&_io_manager);
     _event_handler.setPerspectiveData(&_perspective_data);
     _event_handler.setInvertYAxis(opts.invert_y_axis);
     _io_manager.createWindow(std::move(win_opts));
+    _vk_renderer.createInstance(std::move(cpy_app_name),
+                                cpy_app_name + "_engine",
+                                VK_MAKE_VERSION(1, 0, 0),
+                                VK_MAKE_VERSION(1, 0, 0),
+                                IOManager::getRequiredInstanceExtension());
+    auto fb_size = _io_manager.getFramebufferSize();
+    _vk_renderer.initInstance(
+      _io_manager.createVulkanSurface(_vk_renderer.getVkInstance()),
+      fb_size.x,
+      fb_size.y);
     _perspective_data.near_far = DEFAULT_NEAR_FAR;
     _perspective_data.fov = DEFAULT_FOV;
     _perspective_data.ratio = _io_manager.getWindowRatio();
@@ -45,11 +51,11 @@ void
 Engine::run()
 {
     while (!_io_manager.shouldClose()) {
-        _io_manager.clear();
         _event_handler.processEvents(_io_manager.getEvents());
-        _io_manager.render();
+        _vk_renderer.draw();
         _compute_fps();
     }
+    _vk_renderer.clearInstance();
     _io_manager.deleteWindow();
 }
 

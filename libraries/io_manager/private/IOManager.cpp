@@ -12,15 +12,10 @@ IOManager::IOManager()
   , _win(nullptr)
   , _fullscreen(0)
   , _resized(0)
-  , _size()
-  , _viewport_size()
-  , _app_name()
-  , _engine_name()
-  , _app_version()
-  , _engine_version()
+  , _win_size()
+  , _framebuffer_size()
   , _mouse_exclusive(0)
   , _cursor_hidden_on_window(0)
-  , _vk_renderer()
 {
     if (!glfwInit()) {
         throw std::runtime_error("Glfw : failed to init");
@@ -29,7 +24,6 @@ IOManager::IOManager()
 
 IOManager::~IOManager()
 {
-    _vk_renderer.clear();
     glfwTerminate();
 }
 
@@ -41,17 +35,13 @@ IOManager::createWindow(IOManagerWindowCreationOption &&opts)
         if (!glfwVulkanSupported()) {
             throw std::runtime_error("Glfw: Vulkan not supported !");
         }
-        _size = opts.size;
+        _win_size = opts.size;
         _mouse_exclusive = opts.mouse_exclusive;
         _cursor_hidden_on_window = opts.cursor_hidden_on_window;
-        _app_name = std::move(opts.app_name);
-        _engine_name = std::move(opts.engine_name);
-        _app_version = opts.app_version;
-        _engine_version = opts.engine_version;
         glfwWindowHint(GLFW_RESIZABLE, opts.resizable);
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         _win = glfwCreateWindow(
-          _size.x, _size.y, _app_name.c_str(), nullptr, nullptr);
+          _win_size.x, _win_size.y, opts.win_name.c_str(), nullptr, nullptr);
         if (!_win) {
             throw std::runtime_error("Glfw : failed to create window");
         }
@@ -63,31 +53,6 @@ IOManager::createWindow(IOManagerWindowCreationOption &&opts)
             toggleFullscreen();
         }
         _apply_mouse_visibility();
-
-        // Glfw required extension for Vulkan
-        uint32_t nb_glfw_extension = 0;
-        char const **glfw_extensions =
-          glfwGetRequiredInstanceExtensions(&nb_glfw_extension);
-        std::vector<char const *> extensions(
-          glfw_extensions, glfw_extensions + nb_glfw_extension);
-
-        // Vulkan init
-        _vk_renderer.createInstance(_app_name.c_str(),
-                                    _engine_name.c_str(),
-                                    _app_version,
-                                    _engine_version,
-                                    std::move(extensions));
-        VkSurfaceKHR vk_surface{};
-        if (glfwCreateWindowSurface(
-              _vk_renderer.getVkInstance(), _win, nullptr, &vk_surface) !=
-            VK_SUCCESS) {
-            throw std::runtime_error(
-              "VkRenderer: Failed to create window surface");
-        }
-        int fb_w{};
-        int fb_h{};
-        glfwGetFramebufferSize(_win, &fb_w, &fb_h);
-        _vk_renderer.initInstance(vk_surface, fb_w, fb_h);
     }
 }
 
@@ -126,7 +91,7 @@ IOManager::toggleFullscreen()
           _win, monitor, 0, 0, mode->width, mode->height, GLFW_DONT_CARE);
     } else {
         glfwSetWindowMonitor(
-          _win, nullptr, 100, 100, _size.x, _size.y, GLFW_DONT_CARE);
+          _win, nullptr, 100, 100, _win_size.x, _win_size.y, GLFW_DONT_CARE);
     }
 }
 
@@ -165,13 +130,19 @@ IOManager::isMouseExclusive() const
 float
 IOManager::getWindowRatio() const
 {
-    return (static_cast<float>(_size.x) / static_cast<float>(_size.y));
+    return (static_cast<float>(_win_size.x) / static_cast<float>(_win_size.y));
 }
 
 glm::ivec2
 IOManager::getWindowSize() const
 {
-    return (_size);
+    return (_win_size);
+}
+
+glm::ivec2
+IOManager::getFramebufferSize() const
+{
+    return (_framebuffer_size);
 }
 
 // Keyboard / Mouse Input related
@@ -204,19 +175,27 @@ IOManager::resetMouseScroll()
     _mouse_scroll = 0.0f;
 }
 
-// Render related
-void
-IOManager::render()
+// Vulkan related
+VkSurfaceKHR
+IOManager::createVulkanSurface(VkInstance instance)
 {
-    _resized = 0;
-    glfwSwapBuffers(_win);
+    VkSurfaceKHR vk_surface{};
+    if (glfwCreateWindowSurface(instance, _win, nullptr, &vk_surface) !=
+        VK_SUCCESS) {
+        throw std::runtime_error("IOManager: Failed to create window surface");
+    }
+    return (vk_surface);
 }
 
-void
-IOManager::clear() const
+std::vector<const char *>
+IOManager::getRequiredInstanceExtension()
 {
-    // glClearColor(0.086f, 0.317f, 0.427f, 1.0f);
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    uint32_t nb_glfw_extension = 0;
+    char const **glfw_extensions =
+      glfwGetRequiredInstanceExtensions(&nb_glfw_extension);
+    std::vector<char const *> extensions(glfw_extensions,
+                                         glfw_extensions + nb_glfw_extension);
+    return (extensions);
 }
 
 // Callbacks
@@ -275,15 +254,14 @@ IOManager::_initCallbacks()
 
     // Window
     auto window_size_callback = [](GLFWwindow *win, int w, int h) {
-        THIS_WIN_PTR->_size = glm::ivec2(w, h);
+        THIS_WIN_PTR->_win_size = glm::ivec2(w, h);
         THIS_WIN_PTR->_resized = 1;
     };
     glfwSetWindowSizeCallback(_win, window_size_callback);
 
     // Framebuffer
     auto framebuffer_size_callback = [](GLFWwindow *win, int w, int h) {
-        THIS_WIN_PTR->_viewport_size = glm::ivec2(w, h);
-        // glViewport(0, 0, w, h);
+        THIS_WIN_PTR->_framebuffer_size = glm::ivec2(w, h);
     };
     glfwSetFramebufferSizeCallback(_win, framebuffer_size_callback);
 }

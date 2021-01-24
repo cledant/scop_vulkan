@@ -6,6 +6,7 @@ main(int argc, char const **argv)
 {
     try {
         auto options = parseArgs(argc, argv);
+        options.app_name = "scop";
         Engine engine;
 
         engine.init(options);

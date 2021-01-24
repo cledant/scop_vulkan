@@ -2,6 +2,7 @@
 #define SCOP_VULKAN_IOMANAGER_HPP
 
 #include <array>
+#include <vector>
 #include <string>
 #include <cstdint>
 
@@ -11,7 +12,6 @@
 
 #include "IOManagerWindowCreationOption.hpp"
 #include "IOEvents.hpp"
-#include "VkRenderer.hpp"
 
 class IOManager final
 {
@@ -39,14 +39,16 @@ class IOManager final
     [[nodiscard]] uint8_t isMouseExclusive() const;
     [[nodiscard]] float getWindowRatio() const;
     [[nodiscard]] glm::ivec2 getWindowSize() const;
+    [[nodiscard]] glm::ivec2 getFramebufferSize() const;
 
     // Keyboard / Mouse Input related
     [[nodiscard]] IOEvents getEvents() const;
     void resetMouseScroll();
 
-    // Render Related
-    void render();
-    void clear() const;
+    // Vulkan related
+    VkSurfaceKHR createVulkanSurface(VkInstance instance);
+    [[nodiscard]] static std::vector<char const *>
+    getRequiredInstanceExtension();
 
   private:
     // Input
@@ -59,17 +61,11 @@ class IOManager final
     GLFWwindow *_win;
     uint8_t _fullscreen;
     uint8_t _resized;
-    glm::ivec2 _size;
-    glm::ivec2 _viewport_size;
-    std::string _app_name;
-    std::string _engine_name;
-    uint32_t _app_version;
-    uint32_t _engine_version;
+    glm::ivec2 _win_size;
+    glm::ivec2 _framebuffer_size;
+
     uint8_t _mouse_exclusive;
     uint8_t _cursor_hidden_on_window;
-
-    // Vulkan Renderer
-    VkRenderer _vk_renderer;
 
     // Callbacks
     inline void _initCallbacks();

@@ -2,6 +2,7 @@
 #define SCOP_VULKAN_VKRENDERER_HPP
 
 #include <vector>
+#include <string>
 #include <vulkan/vulkan.h>
 
 class VkRenderer final
@@ -14,16 +15,31 @@ class VkRenderer final
     VkRenderer(VkRenderer &&src) = delete;
     VkRenderer &operator=(VkRenderer &&rhs) = delete;
 
-    void createInstance(char const *app_name,
-                        char const *engine_name,
+    // Instance related
+    void createInstance(std::string &&app_name,
+                        std::string &&engine_name,
                         uint32_t app_version,
                         uint32_t engine_version,
                         std::vector<char const *> &&required_extensions);
     [[nodiscard]] VkInstance getVkInstance() const;
     void initInstance(VkSurfaceKHR surface, uint32_t fb_w, uint32_t fb_h);
-    void clear();
+    void clearInstance();
+    [[nodiscard]] std::string const &getAppName() const;
+    [[nodiscard]] uint32_t getAppVersion() const;
+    [[nodiscard]] std::string const &getEngineName() const;
+    [[nodiscard]] uint32_t getEngineVersion() const;
+
+    // Render related
+    void draw();
 
   private:
+    // Description related
+    std::string _app_name;
+    std::string _engine_name;
+    uint32_t _app_version{};
+    uint32_t _engine_version{};
+
+    // Instance Related
     VkInstance _instance{};
     VkSurfaceKHR _surface{};
     VkDebugUtilsMessengerEXT _debug_messenger{};
@@ -43,17 +59,19 @@ class VkRenderer final
     VkExtent2D _swap_chain_extent{};
     std::vector<VkImage> _swap_chain_images;
     std::vector<VkImageView> _swap_chain_image_views;
+    std::vector<VkFramebuffer> _swap_chain_framebuffers;
 
     // Pipeline related
     VkRenderPass _render_pass{};
     VkPipelineLayout _pipeline_layout{};
     VkPipeline _graphic_pipeline{};
 
+    // Command pool related
+    VkCommandPool _command_pool{};
+    std::vector<VkCommandBuffer> _command_buffers;
+
+    // Instance init related
     inline void _create_instance(
-      char const *app_name,
-      char const *engine_name,
-      uint32_t app_version,
-      uint32_t engine_version,
       std::vector<char const *> const &required_extension);
     inline void _setup_vk_debug_msg();
     inline void _select_physical_device();
@@ -62,7 +80,11 @@ class VkRenderer final
     inline void _create_image_view();
     inline void _create_render_pass();
     inline void _create_gfx_pipeline();
+    inline void _create_framebuffers();
+    inline void _create_command_pool();
+    inline void _create_command_buffers();
 
+    // Dbg related
     static inline bool _check_validation_layer_support();
 };
 

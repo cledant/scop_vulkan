@@ -6,6 +6,7 @@
 #include "Camera.hpp"
 #include "EventHandler.hpp"
 #include "Perspective.hpp"
+#include "VkRenderer.hpp"
 
 class Engine final
 {
@@ -29,6 +30,7 @@ class Engine final
     inline void _compute_fps();
 
     IOManager _io_manager;
+    VkRenderer _vk_renderer;
     Camera _camera;
     EventHandler _event_handler;
     Perspective _perspective_data;
