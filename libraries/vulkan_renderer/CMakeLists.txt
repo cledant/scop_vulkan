@@ -5,7 +5,8 @@ add_library(vulkan_renderer STATIC
         private/VkRenderer.cpp
         private/VkPhysicalDevice.cpp
         private/VkDebug.cpp
-        private/VkSwapChain.cpp)
+        private/VkSwapChain.cpp
+        private/VkShader.cpp)
 target_include_directories(vulkan_renderer
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/public
