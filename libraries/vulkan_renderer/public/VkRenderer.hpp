@@ -31,6 +31,7 @@ class VkRenderer final
 
     // Render related
     void draw();
+    void deviceWaitIdle();
 
   private:
     // Description related
@@ -70,6 +71,14 @@ class VkRenderer final
     VkCommandPool _command_pool{};
     std::vector<VkCommandBuffer> _command_buffers;
 
+    // Render synchronization related
+    static constexpr size_t const MAX_FRAME_INFLIGHT = 2;
+    std::vector<VkSemaphore> _image_available_sem;
+    std::vector<VkSemaphore> _render_finished_sem;
+    std::vector<VkFence> _inflight_fence;
+    size_t _current_frame{};
+    std::vector<VkFence> _imgs_inflight_fence;
+
     // Instance init related
     inline void _create_instance(
       std::vector<char const *> const &required_extension);
@@ -83,6 +92,7 @@ class VkRenderer final
     inline void _create_framebuffers();
     inline void _create_command_pool();
     inline void _create_command_buffers();
+    inline void _create_render_sync_objects();
 
     // Dbg related
     static inline bool _check_validation_layer_support();

@@ -55,6 +55,7 @@ Engine::run()
         _vk_renderer.draw();
         _compute_fps();
     }
+    _vk_renderer.deviceWaitIdle();
     _vk_renderer.clearInstance();
     _io_manager.deleteWindow();
 }
@@ -67,6 +68,7 @@ Engine::_compute_fps()
     std::chrono::duration<double> diff = now - _fps_count_timeref;
     if (diff.count() > 1.0f) {
         _str_fps = std::to_string(_nb_frame);
+        std::cout << "Avg Fps = " << _str_fps << std::endl;
         _nb_frame = 0;
         _fps_count_timeref = now;
     }

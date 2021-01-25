@@ -51,11 +51,17 @@ VkRenderer::initInstance(VkSurfaceKHR surface, uint32_t fb_w, uint32_t fb_h)
     _create_framebuffers();
     _create_command_pool();
     _create_command_buffers();
+    _create_render_sync_objects();
 }
 
 void
 VkRenderer::clearInstance()
 {
+    for (size_t i = 0; i < MAX_FRAME_INFLIGHT; ++i) {
+        vkDestroySemaphore(_device, _image_available_sem[i], nullptr);
+        vkDestroySemaphore(_device, _render_finished_sem[i], nullptr);
+        vkDestroyFence(_device, _inflight_fence[i], nullptr);
+    }
     vkDestroyCommandPool(_device, _command_pool, nullptr);
     for (auto &it : _swap_chain_framebuffers) {
         vkDestroyFramebuffer(_device, it, nullptr);
@@ -102,7 +108,65 @@ VkRenderer::getEngineVersion() const
 // Render Related
 void
 VkRenderer::draw()
-{}
+{
+    vkWaitForFences(
+      _device, 1, &_inflight_fence[_current_frame], VK_TRUE, UINT64_MAX);
+
+    uint32_t img_index;
+    vkAcquireNextImageKHR(_device,
+                          _swap_chain,
+                          UINT64_MAX,
+                          _image_available_sem[_current_frame],
+                          VK_NULL_HANDLE,
+                          &img_index);
+
+    if (_imgs_inflight_fence[img_index] != VK_NULL_HANDLE) {
+        vkWaitForFences(
+          _device, 1, &_imgs_inflight_fence[img_index], VK_TRUE, UINT64_MAX);
+    }
+    _imgs_inflight_fence[img_index] = _inflight_fence[_current_frame];
+
+    VkSemaphore wait_sems[] = { _image_available_sem[_current_frame] };
+    VkPipelineStageFlags wait_stages[] = {
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+    };
+    VkSemaphore sig_sems[] = { _render_finished_sem[_current_frame] };
+    VkSubmitInfo submit_info{};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.waitSemaphoreCount = 1;
+    submit_info.pWaitSemaphores = wait_sems;
+    submit_info.pWaitDstStageMask = wait_stages;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &_command_buffers[img_index];
+    submit_info.signalSemaphoreCount = 1;
+    submit_info.pSignalSemaphores = sig_sems;
+
+    vkResetFences(_device, 1, &_inflight_fence[_current_frame]);
+    if (vkQueueSubmit(
+          _graphic_queue, 1, &submit_info, _inflight_fence[_current_frame]) !=
+        VK_SUCCESS) {
+        throw std::runtime_error(
+          "VkRenderer: Failed to submit draw command buffer");
+    }
+
+    VkSwapchainKHR swap_chains[] = { _swap_chain };
+    VkPresentInfoKHR present_info{};
+    present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    present_info.waitSemaphoreCount = 1;
+    present_info.pWaitSemaphores = sig_sems;
+    present_info.swapchainCount = 1;
+    present_info.pSwapchains = swap_chains;
+    present_info.pImageIndices = &img_index;
+    present_info.pResults = nullptr;
+    vkQueuePresentKHR(_present_queue, &present_info);
+    _current_frame = (_current_frame + 1) % MAX_FRAME_INFLIGHT;
+}
+
+void
+VkRenderer::deviceWaitIdle()
+{
+    vkDeviceWaitIdle(_device);
+}
 
 // Instance init related
 void
@@ -340,12 +404,22 @@ VkRenderer::_create_render_pass()
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &color_attachment_ref;
 
+    VkSubpassDependency sub_dep{};
+    sub_dep.srcSubpass = VK_SUBPASS_EXTERNAL;
+    sub_dep.dstSubpass = 0;
+    sub_dep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    sub_dep.srcAccessMask = 0;
+    sub_dep.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    sub_dep.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
     VkRenderPassCreateInfo render_pass_info{};
     render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     render_pass_info.attachmentCount = 1;
     render_pass_info.pAttachments = &color_attachment;
     render_pass_info.subpassCount = 1;
     render_pass_info.pSubpasses = &subpass;
+    render_pass_info.dependencyCount = 1;
+    render_pass_info.pDependencies = &sub_dep;
 
     if (vkCreateRenderPass(
           _device, &render_pass_info, nullptr, &_render_pass) != VK_SUCCESS) {
@@ -608,6 +682,35 @@ VkRenderer::_create_command_buffers()
               "VkRenderer: Failed to record command Buffer");
         }
         ++i;
+    }
+}
+
+void
+VkRenderer::_create_render_sync_objects()
+{
+    _image_available_sem.resize(MAX_FRAME_INFLIGHT);
+    _render_finished_sem.resize(MAX_FRAME_INFLIGHT);
+    _inflight_fence.resize(MAX_FRAME_INFLIGHT);
+    _imgs_inflight_fence.resize(_swap_chain_images.size(), VK_NULL_HANDLE);
+
+    VkSemaphoreCreateInfo sem_info{};
+    sem_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    VkFenceCreateInfo fence_info{};
+    fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    for (size_t i = 0; i < MAX_FRAME_INFLIGHT; ++i) {
+        if (vkCreateSemaphore(
+              _device, &sem_info, nullptr, &_image_available_sem[i]) !=
+              VK_SUCCESS ||
+            vkCreateSemaphore(
+              _device, &sem_info, nullptr, &_render_finished_sem[i]) !=
+              VK_SUCCESS ||
+            vkCreateFence(_device, &fence_info, nullptr, &_inflight_fence[i]) !=
+              VK_SUCCESS) {
+            throw std::runtime_error("VkRender: failed to create semaphores");
+        }
     }
 }
 
