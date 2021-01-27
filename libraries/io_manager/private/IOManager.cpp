@@ -11,7 +11,6 @@ IOManager::IOManager()
   , _mouse_scroll(0.0f)
   , _win(nullptr)
   , _fullscreen(0)
-  , _resized(0)
   , _win_size()
   , _framebuffer_size()
   , _mouse_exclusive(0)
@@ -33,7 +32,7 @@ IOManager::createWindow(IOManagerWindowCreationOption &&opts)
 {
     if (!_win) {
         if (!glfwVulkanSupported()) {
-            throw std::runtime_error("Glfw: Vulkan not supported !");
+            throw std::runtime_error("Glfw : Vulkan not supported !");
         }
         _win_size = opts.size;
         _mouse_exclusive = opts.mouse_exclusive;
@@ -45,10 +44,12 @@ IOManager::createWindow(IOManagerWindowCreationOption &&opts)
         if (!_win) {
             throw std::runtime_error("Glfw : failed to create window");
         }
+        glfwSetWindowPos(_win, 100, 100);
+        glfwGetWindowSize(_win, &_win_size.x, &_win_size.y);
+        glfwGetFramebufferSize(
+          _win, &_framebuffer_size.x, &_framebuffer_size.y);
         glfwSetWindowUserPointer(_win, this);
         _initCallbacks();
-        glfwSetWindowPos(_win, 100, 100);
-        glfwSwapInterval(0);
         if (opts.fullscreen) {
             toggleFullscreen();
         }
@@ -66,9 +67,11 @@ IOManager::deleteWindow()
 }
 
 uint8_t
-IOManager::wasResized() const
+IOManager::wasResized()
 {
-    return (_resized);
+    auto tmp = _resized;
+    _resized = 0;
+    return (tmp);
 }
 
 void
@@ -90,8 +93,13 @@ IOManager::toggleFullscreen()
         glfwSetWindowMonitor(
           _win, monitor, 0, 0, mode->width, mode->height, GLFW_DONT_CARE);
     } else {
-        glfwSetWindowMonitor(
-          _win, nullptr, 100, 100, _win_size.x, _win_size.y, GLFW_DONT_CARE);
+        glfwSetWindowMonitor(_win,
+                             nullptr,
+                             100,
+                             100,
+                             DEFAULT_WIN_SIZE.x,
+                             DEFAULT_WIN_SIZE.y,
+                             GLFW_DONT_CARE);
     }
 }
 

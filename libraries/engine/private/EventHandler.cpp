@@ -8,6 +8,7 @@ EventHandler::EventHandler()
   : _camera(nullptr)
   , _io_manager(nullptr)
   , _perspective(nullptr)
+  , _renderer(nullptr)
   , _timers()
   , _movements(0)
   , _mouse_pos(0.0)
@@ -35,6 +36,12 @@ EventHandler::setPerspectiveData(Perspective *perspective)
 }
 
 void
+EventHandler::setVkRenderer(VkRenderer *renderer)
+{
+    _renderer = renderer;
+}
+
+void
 EventHandler::setInvertYAxis(uint8_t val)
 {
     _invert_y_axis = val;
@@ -46,6 +53,7 @@ EventHandler::processEvents(IOEvents const &events)
     assert(_camera);
     assert(_io_manager);
     assert(_perspective);
+    assert(_renderer);
 
     // Resetting movement tracking
     _movements = glm::ivec3(0);
@@ -87,8 +95,13 @@ EventHandler::processEvents(IOEvents const &events)
     }
     _timers.updated[ET_CAMERA] = 1;
 
-    // Updating perspective
+    // Resized window case
     if (_io_manager->wasResized()) {
+        // VK Renderer related
+        auto fb_size = _io_manager->getFramebufferSize();
+        _renderer->resizeInstance(fb_size.x, fb_size.y);
+
+        // Perspective related
         _perspective->ratio = _io_manager->getWindowRatio();
         _camera->setPerspective(
           glm::perspective(glm::radians(_perspective->fov),

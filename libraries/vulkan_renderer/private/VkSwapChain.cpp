@@ -76,7 +76,7 @@ getSwapChainPresentMode(
     std::optional<VkPresentModeKHR> present_mode = VK_PRESENT_MODE_FIFO_KHR;
 
     for (auto const &it : available_present_mode) {
-        if (it == VK_PRESENT_MODE_FIFO_RELAXED_KHR) {
+        if (it == VK_PRESENT_MODE_IMMEDIATE_KHR) {
             present_mode = it;
             break;
         }

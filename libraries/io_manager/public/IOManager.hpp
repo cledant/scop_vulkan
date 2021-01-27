@@ -30,7 +30,7 @@ class IOManager final
     // Window related
     void createWindow(IOManagerWindowCreationOption &&opts);
     void deleteWindow();
-    [[nodiscard]] uint8_t wasResized() const;
+    [[nodiscard]] uint8_t wasResized();
     void toggleFullscreen();
     [[nodiscard]] uint8_t shouldClose() const;
     void triggerClose() const;

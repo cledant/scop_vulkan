@@ -23,6 +23,7 @@ class VkRenderer final
                         std::vector<char const *> &&required_extensions);
     [[nodiscard]] VkInstance getVkInstance() const;
     void initInstance(VkSurfaceKHR surface, uint32_t fb_w, uint32_t fb_h);
+    void resizeInstance(uint32_t fb_w, uint32_t fb_h);
     void clearInstance();
     [[nodiscard]] std::string const &getAppName() const;
     [[nodiscard]] uint32_t getAppVersion() const;
@@ -93,6 +94,9 @@ class VkRenderer final
     inline void _create_command_pool();
     inline void _create_command_buffers();
     inline void _create_render_sync_objects();
+
+    // Clean related
+    inline void _clear_swap_chain();
 
     // Dbg related
     static inline bool _check_validation_layer_support();

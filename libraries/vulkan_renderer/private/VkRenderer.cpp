@@ -55,24 +55,28 @@ VkRenderer::initInstance(VkSurfaceKHR surface, uint32_t fb_w, uint32_t fb_h)
 }
 
 void
+VkRenderer::resizeInstance(uint32_t fb_w, uint32_t fb_h)
+{
+    vkDeviceWaitIdle(_device);
+    _clear_swap_chain();
+    _create_swap_chain(fb_w, fb_h);
+    _create_image_view();
+    _create_render_pass();
+    _create_gfx_pipeline();
+    _create_framebuffers();
+    _create_command_buffers();
+}
+
+void
 VkRenderer::clearInstance()
 {
+    _clear_swap_chain();
     for (size_t i = 0; i < MAX_FRAME_INFLIGHT; ++i) {
         vkDestroySemaphore(_device, _image_available_sem[i], nullptr);
         vkDestroySemaphore(_device, _render_finished_sem[i], nullptr);
         vkDestroyFence(_device, _inflight_fence[i], nullptr);
     }
     vkDestroyCommandPool(_device, _command_pool, nullptr);
-    for (auto &it : _swap_chain_framebuffers) {
-        vkDestroyFramebuffer(_device, it, nullptr);
-    }
-    vkDestroyPipeline(_device, _graphic_pipeline, nullptr);
-    vkDestroyPipelineLayout(_device, _pipeline_layout, nullptr);
-    vkDestroyRenderPass(_device, _render_pass, nullptr);
-    for (auto iv : _swap_chain_image_views) {
-        vkDestroyImageView(_device, iv, nullptr);
-    }
-    vkDestroySwapchainKHR(_device, _swap_chain, nullptr);
     vkDestroyDevice(_device, nullptr);
     if constexpr (ENABLE_VALIDATION_LAYER) {
         destroyDebugUtilsMessengerEXT(_instance, _debug_messenger, nullptr);
@@ -113,12 +117,16 @@ VkRenderer::draw()
       _device, 1, &_inflight_fence[_current_frame], VK_TRUE, UINT64_MAX);
 
     uint32_t img_index;
-    vkAcquireNextImageKHR(_device,
-                          _swap_chain,
-                          UINT64_MAX,
-                          _image_available_sem[_current_frame],
-                          VK_NULL_HANDLE,
-                          &img_index);
+    auto result = vkAcquireNextImageKHR(_device,
+                                        _swap_chain,
+                                        UINT64_MAX,
+                                        _image_available_sem[_current_frame],
+                                        VK_NULL_HANDLE,
+                                        &img_index);
+
+    if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+        return;
+    }
 
     if (_imgs_inflight_fence[img_index] != VK_NULL_HANDLE) {
         vkWaitForFences(
@@ -712,6 +720,24 @@ VkRenderer::_create_render_sync_objects()
             throw std::runtime_error("VkRender: failed to create semaphores");
         }
     }
+}
+
+// Clean related
+void
+VkRenderer::_clear_swap_chain()
+{
+    for (auto &it : _swap_chain_framebuffers) {
+        vkDestroyFramebuffer(_device, it, nullptr);
+    }
+    vkFreeCommandBuffers(
+      _device, _command_pool, _command_buffers.size(), _command_buffers.data());
+    vkDestroyPipeline(_device, _graphic_pipeline, nullptr);
+    vkDestroyPipelineLayout(_device, _pipeline_layout, nullptr);
+    vkDestroyRenderPass(_device, _render_pass, nullptr);
+    for (auto iv : _swap_chain_image_views) {
+        vkDestroyImageView(_device, iv, nullptr);
+    }
+    vkDestroySwapchainKHR(_device, _swap_chain, nullptr);
 }
 
 // Dbg related
