@@ -1,7 +1,10 @@
 #ifndef SCOP_VULKAN_VKRENDERER_HPP
 #define SCOP_VULKAN_VKRENDERER_HPP
 
+#include "glm/glm.hpp"
+
 #include <vector>
+#include <array>
 #include <string>
 #include <vulkan/vulkan.h>
 
@@ -35,6 +38,47 @@ class VkRenderer final
     void deviceWaitIdle();
 
   private:
+    struct Vertex
+    {
+        glm::vec2 pos;
+        glm::vec3 color;
+
+        static std::array<VkVertexInputBindingDescription, 1>
+        getBindingDescription()
+        {
+            std::array<VkVertexInputBindingDescription, 1>
+              binding_description{};
+            binding_description[0].binding = 0;
+            binding_description[0].stride = sizeof(Vertex);
+            binding_description[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+            return (binding_description);
+        }
+
+        static std::array<VkVertexInputAttributeDescription, 2>
+        getAttributeDescriptions()
+        {
+            std::array<VkVertexInputAttributeDescription, 2>
+              attribute_description{};
+
+            attribute_description[0].binding = 0;
+            attribute_description[0].location = 0;
+            attribute_description[0].offset = 0;
+            attribute_description[0].format = VK_FORMAT_R32G32_SFLOAT;
+            attribute_description[1].binding = 0;
+            attribute_description[1].location = 1;
+            attribute_description[1].offset = offsetof(Vertex, color);
+            attribute_description[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+            return (attribute_description);
+        }
+    };
+
+    static constexpr std::array<Vertex, 3> const _test_triangle = {
+        { { { 0.0f, -0.5f }, { 0.0f, 0.0f, 0.0f } },
+          { { 0.5f, 0.5f }, { 0.0f, 1.0f, 0.0f } },
+          { { -0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } } }
+    };
+
     // Description related
     std::string _app_name;
     std::string _engine_name;
@@ -80,6 +124,10 @@ class VkRenderer final
     size_t _current_frame{};
     std::vector<VkFence> _imgs_inflight_fence;
 
+    // Buffer related
+    VkBuffer _vertex_buffer{};
+    VkDeviceMemory _vertex_buffer_memory{};
+
     // Instance init related
     inline void _create_instance(
       std::vector<char const *> const &required_extension);
@@ -92,6 +140,7 @@ class VkRenderer final
     inline void _create_gfx_pipeline();
     inline void _create_framebuffers();
     inline void _create_command_pool();
+    inline void _create_vertex_buffer();
     inline void _create_command_buffers();
     inline void _create_render_sync_objects();
 

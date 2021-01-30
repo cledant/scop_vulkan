@@ -11,6 +11,7 @@
 #include "VkPhysicalDevice.hpp"
 #include "VkSwapChain.hpp"
 #include "VkShader.hpp"
+#include "VkMemory.hpp"
 
 void
 VkRenderer::createInstance(std::string &&app_name,
@@ -50,6 +51,7 @@ VkRenderer::initInstance(VkSurfaceKHR surface, uint32_t fb_w, uint32_t fb_h)
     _create_gfx_pipeline();
     _create_framebuffers();
     _create_command_pool();
+    _create_vertex_buffer();
     _create_command_buffers();
     _create_render_sync_objects();
 }
@@ -71,6 +73,8 @@ void
 VkRenderer::clearInstance()
 {
     _clear_swap_chain();
+    vkDestroyBuffer(_device, _vertex_buffer, nullptr);
+    vkFreeMemory(_device, _vertex_buffer_memory, nullptr);
     for (size_t i = 0; i < MAX_FRAME_INFLIGHT; ++i) {
         vkDestroySemaphore(_device, _image_available_sem[i], nullptr);
         vkDestroySemaphore(_device, _render_finished_sem[i], nullptr);
@@ -463,12 +467,17 @@ VkRenderer::_create_gfx_pipeline()
 
     // Vertex input
     VkPipelineVertexInputStateCreateInfo vertex_input_info{};
+    auto binding_description = Vertex::getBindingDescription();
+    auto attribute_description = Vertex::getAttributeDescriptions();
     vertex_input_info.sType =
       VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertex_input_info.vertexBindingDescriptionCount = 0;
-    vertex_input_info.pVertexBindingDescriptions = nullptr;
-    vertex_input_info.vertexAttributeDescriptionCount = 0;
-    vertex_input_info.pVertexAttributeDescriptions = nullptr;
+    vertex_input_info.vertexBindingDescriptionCount =
+      binding_description.size();
+    vertex_input_info.pVertexBindingDescriptions = binding_description.data();
+    vertex_input_info.vertexAttributeDescriptionCount =
+      attribute_description.size();
+    vertex_input_info.pVertexAttributeDescriptions =
+      attribute_description.data();
 
     // Input Assembly
     VkPipelineInputAssemblyStateCreateInfo input_assembly_info{};
@@ -642,6 +651,26 @@ VkRenderer::_create_command_pool()
 }
 
 void
+VkRenderer::_create_vertex_buffer()
+{
+    VkDeviceSize size = sizeof(_test_triangle[0]) * _test_triangle.size();
+
+    createBuffer(_physical_device,
+                 _device,
+                 size,
+                 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                 _vertex_buffer,
+                 _vertex_buffer_memory);
+
+    void *data{};
+    vkMapMemory(_device, _vertex_buffer_memory, 0, size, 0, &data);
+    memcpy(data, _test_triangle.data(), size);
+    vkUnmapMemory(_device, _vertex_buffer_memory);
+}
+
+void
 VkRenderer::_create_command_buffers()
 {
     _command_buffers.resize(_swap_chain_framebuffers.size());
@@ -679,9 +708,13 @@ VkRenderer::_create_command_buffers()
         rp_begin_info.clearValueCount = 1;
         rp_begin_info.pClearValues = &clear_color;
 
+        VkBuffer vertex_buffer[] = { _vertex_buffer };
+        VkDeviceSize offsets[] = { 0 };
+
         vkCmdBeginRenderPass(it, &rp_begin_info, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(
           it, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphic_pipeline);
+        vkCmdBindVertexBuffers(it, 0, 1, vertex_buffer, offsets);
         vkCmdDraw(it, 3, 1, 0, 0);
         vkCmdEndRenderPass(it);
 
