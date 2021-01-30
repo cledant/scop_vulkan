@@ -73,10 +73,15 @@ class VkRenderer final
         }
     };
 
-    static constexpr std::array<Vertex, 3> const _test_triangle = {
-        { { { 0.0f, -0.5f }, { 0.0f, 0.0f, 0.0f } },
-          { { 0.5f, 0.5f }, { 0.0f, 1.0f, 0.0f } },
-          { { -0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } } }
+    // Test triangle
+    static constexpr std::array<Vertex, 4> const _test_triangle_verticies = {
+        { { { -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
+          { { 0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f } },
+          { { 0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } },
+          { { -0.5f, 0.5f }, { 1.0f, 1.0f, 1.0f } } }
+    };
+    static constexpr std::array<uint16_t, 6> const _test_triangle_indices = {
+        0, 1, 2, 2, 3, 0
     };
 
     // Description related
@@ -127,6 +132,8 @@ class VkRenderer final
     // Buffer related
     VkBuffer _vertex_buffer{};
     VkDeviceMemory _vertex_buffer_memory{};
+    VkBuffer _index_buffer{};
+    VkDeviceMemory _index_buffer_memory{};
 
     // Instance init related
     inline void _create_instance(
@@ -141,6 +148,7 @@ class VkRenderer final
     inline void _create_framebuffers();
     inline void _create_command_pool();
     inline void _create_vertex_buffer();
+    inline void _create_index_buffer();
     inline void _create_command_buffers();
     inline void _create_render_sync_objects();
 

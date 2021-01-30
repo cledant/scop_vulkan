@@ -52,6 +52,7 @@ VkRenderer::initInstance(VkSurfaceKHR surface, uint32_t fb_w, uint32_t fb_h)
     _create_framebuffers();
     _create_command_pool();
     _create_vertex_buffer();
+    _create_index_buffer();
     _create_command_buffers();
     _create_render_sync_objects();
 }
@@ -73,6 +74,8 @@ void
 VkRenderer::clearInstance()
 {
     _clear_swap_chain();
+    vkDestroyBuffer(_device, _index_buffer, nullptr);
+    vkFreeMemory(_device, _index_buffer_memory, nullptr);
     vkDestroyBuffer(_device, _vertex_buffer, nullptr);
     vkFreeMemory(_device, _vertex_buffer_memory, nullptr);
     for (size_t i = 0; i < MAX_FRAME_INFLIGHT; ++i) {
@@ -653,21 +656,85 @@ VkRenderer::_create_command_pool()
 void
 VkRenderer::_create_vertex_buffer()
 {
-    VkDeviceSize size = sizeof(_test_triangle[0]) * _test_triangle.size();
+    VkDeviceSize size =
+      sizeof(_test_triangle_verticies[0]) * _test_triangle_verticies.size();
 
+    // CPU => GPU transfer buffer
+    VkBuffer staging_buffer{};
+    VkDeviceMemory staging_buffer_memory{};
     createBuffer(_physical_device,
                  _device,
                  size,
-                 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                 staging_buffer,
+                 staging_buffer_memory);
+    void *data{};
+    vkMapMemory(_device, staging_buffer_memory, 0, size, 0, &data);
+    memcpy(data, _test_triangle_verticies.data(), size);
+    vkUnmapMemory(_device, staging_buffer_memory);
+
+    // GPU only memory
+    createBuffer(_physical_device,
+                 _device,
+                 size,
+                 VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+                   VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                  _vertex_buffer,
                  _vertex_buffer_memory);
+    copyBuffer(_device,
+               _command_pool,
+               _present_queue,
+               _vertex_buffer,
+               staging_buffer,
+               size);
 
+    vkDestroyBuffer(_device, staging_buffer, nullptr);
+    vkFreeMemory(_device, staging_buffer_memory, nullptr);
+}
+
+void
+VkRenderer::_create_index_buffer()
+{
+    VkDeviceSize size =
+      sizeof(_test_triangle_indices[0]) * _test_triangle_indices.size();
+
+    // CPU => GPU transfer buffer
+    VkBuffer staging_buffer{};
+    VkDeviceMemory staging_buffer_memory{};
+    createBuffer(_physical_device,
+                 _device,
+                 size,
+                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                 staging_buffer,
+                 staging_buffer_memory);
     void *data{};
-    vkMapMemory(_device, _vertex_buffer_memory, 0, size, 0, &data);
-    memcpy(data, _test_triangle.data(), size);
-    vkUnmapMemory(_device, _vertex_buffer_memory);
+    vkMapMemory(_device, staging_buffer_memory, 0, size, 0, &data);
+    memcpy(data, _test_triangle_indices.data(), size);
+    vkUnmapMemory(_device, staging_buffer_memory);
+
+    // GPU only memory
+    createBuffer(_physical_device,
+                 _device,
+                 size,
+                 VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+                   VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                 _index_buffer,
+                 _index_buffer_memory);
+    copyBuffer(_device,
+               _command_pool,
+               _present_queue,
+               _index_buffer,
+               staging_buffer,
+               size);
+
+    vkDestroyBuffer(_device, staging_buffer, nullptr);
+    vkFreeMemory(_device, staging_buffer_memory, nullptr);
 }
 
 void
@@ -698,6 +765,7 @@ VkRenderer::_create_command_buffers()
               "VkRenderer: Failed to begin recording command buffer");
         }
 
+        // Begin render pass values
         VkClearValue clear_color = { 0.0f, 0.0f, 0.0f, 1.0f };
         VkRenderPassBeginInfo rp_begin_info{};
         rp_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -708,6 +776,7 @@ VkRenderer::_create_command_buffers()
         rp_begin_info.clearValueCount = 1;
         rp_begin_info.pClearValues = &clear_color;
 
+        // Vertex related values
         VkBuffer vertex_buffer[] = { _vertex_buffer };
         VkDeviceSize offsets[] = { 0 };
 
@@ -715,7 +784,8 @@ VkRenderer::_create_command_buffers()
         vkCmdBindPipeline(
           it, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphic_pipeline);
         vkCmdBindVertexBuffers(it, 0, 1, vertex_buffer, offsets);
-        vkCmdDraw(it, 3, 1, 0, 0);
+        vkCmdBindIndexBuffer(it, _index_buffer, 0, VK_INDEX_TYPE_UINT16);
+        vkCmdDrawIndexed(it, _test_triangle_indices.size(), 1, 0, 0, 0);
         vkCmdEndRenderPass(it);
 
         if (vkEndCommandBuffer(it) != VK_SUCCESS) {

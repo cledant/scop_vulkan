@@ -54,3 +54,43 @@ createBuffer(VkPhysicalDevice physical_device,
     }
     vkBindBufferMemory(device, buffer, buffer_memory, 0);
 }
+
+void
+copyBuffer(VkDevice device,
+           VkCommandPool command_pool,
+           VkQueue gfx_queue,
+           VkBuffer dst_buffer,
+           VkBuffer src_buffer,
+           VkDeviceSize size)
+{
+    VkCommandBufferAllocateInfo alloc_info{};
+    alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    alloc_info.commandPool = command_pool;
+    alloc_info.commandBufferCount = 1;
+
+    VkCommandBuffer cmd_buffer;
+    vkAllocateCommandBuffers(device, &alloc_info, &cmd_buffer);
+
+    VkCommandBufferBeginInfo begin_info{};
+    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(cmd_buffer, &begin_info);
+
+    VkBufferCopy copy_region{};
+    copy_region.size = size;
+    copy_region.dstOffset = 0;
+    copy_region.srcOffset = 0;
+    vkCmdCopyBuffer(cmd_buffer, src_buffer, dst_buffer, 1, &copy_region);
+
+    vkEndCommandBuffer(cmd_buffer);
+
+    VkSubmitInfo submit_info{};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &cmd_buffer;
+
+    vkQueueSubmit(gfx_queue, 1, &submit_info, VK_NULL_HANDLE);
+    vkQueueWaitIdle(gfx_queue);
+    vkFreeCommandBuffers(device, command_pool, 1, &cmd_buffer);
+}

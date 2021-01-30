@@ -14,5 +14,11 @@ void createBuffer(VkPhysicalDevice physicalDevice,
                   VkMemoryPropertyFlags properties,
                   VkBuffer &buffer,
                   VkDeviceMemory &buffer_memory);
+void copyBuffer(VkDevice device,
+                VkCommandPool command_pool,
+                VkQueue gfx_queue,
+                VkBuffer dst_buffer,
+                VkBuffer src_buffer,
+                VkDeviceSize size);
 
 #endif // SCOP_VULKAN_VKMEMORY_HPP
