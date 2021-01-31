@@ -34,7 +34,7 @@ class VkRenderer final
     [[nodiscard]] uint32_t getEngineVersion() const;
 
     // Render related
-    void draw();
+    void draw(glm::mat4 const &view_proj_mat);
     void deviceWaitIdle();
 
   private:
@@ -51,6 +51,9 @@ class VkRenderer final
             binding_description[0].binding = 0;
             binding_description[0].stride = sizeof(Vertex);
             binding_description[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+            // binding_description[1].binding = 1;
+            // binding_description[1].stride = sizeof(glm::mat4);
+            // binding_description[1].inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
 
             return (binding_description);
         }
@@ -69,8 +72,18 @@ class VkRenderer final
             attribute_description[1].location = 1;
             attribute_description[1].offset = offsetof(Vertex, color);
             attribute_description[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+            // attribute_description[2].binding = 1;
+            // attribute_description[2].location = 2;
+            // attribute_description[2].offset = 0;
+            // attribute_description[2].format = VK_FORMAT_R32G32B32_SFLOAT;
             return (attribute_description);
         }
+    };
+
+    // Uniform related
+    struct UniformBufferObject
+    {
+        glm::mat4 view_proj;
     };
 
     // Test triangle
@@ -82,6 +95,9 @@ class VkRenderer final
     };
     static constexpr std::array<uint16_t, 6> const _test_triangle_indices = {
         0, 1, 2, 2, 3, 0
+    };
+    static constexpr std::array<glm::vec3, 1> const _test_triangles_position = {
+        { { 0.0f, 0.0f, 0.0f } }
     };
 
     // Description related
@@ -114,6 +130,7 @@ class VkRenderer final
 
     // Pipeline related
     VkRenderPass _render_pass{};
+    VkDescriptorSetLayout _descriptor_set_layout{};
     VkPipelineLayout _pipeline_layout{};
     VkPipeline _graphic_pipeline{};
 
@@ -135,6 +152,12 @@ class VkRenderer final
     VkBuffer _index_buffer{};
     VkDeviceMemory _index_buffer_memory{};
 
+    // Ubo related
+    std::vector<VkBuffer> _uniform_buffers;
+    std::vector<VkDeviceMemory> _uniform_buffers_memory;
+    VkDescriptorPool _descriptor_pool{};
+    std::vector<VkDescriptorSet> _descriptor_sets;
+
     // Instance init related
     inline void _create_instance(
       std::vector<char const *> const &required_extension);
@@ -144,11 +167,15 @@ class VkRenderer final
     inline void _create_swap_chain(uint32_t fb_w, uint32_t fb_h);
     inline void _create_image_view();
     inline void _create_render_pass();
+    inline void _create_descriptor_layout();
     inline void _create_gfx_pipeline();
     inline void _create_framebuffers();
     inline void _create_command_pool();
     inline void _create_vertex_buffer();
     inline void _create_index_buffer();
+    inline void _create_uniform_buffers();
+    inline void _create_descriptor_pool();
+    inline void _create_descriptor_sets();
     inline void _create_command_buffers();
     inline void _create_render_sync_objects();
 
@@ -157,6 +184,9 @@ class VkRenderer final
 
     // Dbg related
     static inline bool _check_validation_layer_support();
+
+    // Ubo related
+    inline void _update_ubo(uint32_t img_index, glm::mat4 const &view_proj_mat);
 };
 
 #endif // SCOP_VULKAN_VKRENDERER_HPP

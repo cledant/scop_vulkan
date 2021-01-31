@@ -53,7 +53,7 @@ Engine::run()
 {
     while (!_io_manager.shouldClose()) {
         _event_handler.processEvents(_io_manager.getEvents());
-        _vk_renderer.draw();
+        _vk_renderer.draw(_camera.getPerspectiveViewMatrix());
         _compute_fps();
     }
     _vk_renderer.deviceWaitIdle();
