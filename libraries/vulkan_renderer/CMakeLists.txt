@@ -8,7 +8,8 @@ add_library(vulkan_renderer STATIC
         private/VkSwapChain.cpp
         private/VkShader.cpp
         private/VkMemory.cpp
-        private/VkImage.cpp)
+        private/VkImage.cpp
+        private/VkCommandBuffer.cpp)
 target_include_directories(vulkan_renderer
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/public

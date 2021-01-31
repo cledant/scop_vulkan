@@ -7,9 +7,6 @@
 #include <iostream>
 #include <set>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-
 #include "VkDebug.hpp"
 #include "VkPhysicalDevice.hpp"
 #include "VkSwapChain.hpp"
@@ -696,40 +693,23 @@ VkRenderer::_create_command_pool()
 void
 VkRenderer::_create_texture_image()
 {
-    int tex_w;
-    int tex_h;
-    int tex_chan;
-    auto pixels = stbi_load("resources/texture/texture.jpg",
-                            &tex_w,
-                            &tex_h,
-                            &tex_chan,
-                            STBI_rgb_alpha);
-    if (!pixels) {
-        throw std::runtime_error("VkRenderer: failed to load texture image");
-    }
+    VkBuffer staging_buffer{};
+    VkDeviceMemory staging_buffer_memory{};
+    int img_w = 0;
+    int img_h = 0;
 
-    VkBuffer staging_buffer;
-    VkDeviceMemory staging_buffer_memory;
-    VkDeviceSize img_size = tex_w * tex_h * 4;
-    createBuffer(
-      _device, staging_buffer, img_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-    allocateBuffer(_physical_device,
-                   _device,
-                   staging_buffer,
-                   staging_buffer_memory,
-                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-    void *data;
-    vkMapMemory(_device, staging_buffer_memory, 0, img_size, 0, &data);
-    memcpy(data, pixels, static_cast<size_t>(img_size));
-    vkUnmapMemory(_device, staging_buffer_memory);
-    stbi_image_free(pixels);
-
+    auto img_size = loadImage(_physical_device,
+                              _device,
+                              "resources/texture/texture.jpg",
+                              staging_buffer,
+                              staging_buffer_memory,
+                              img_w,
+                              img_w);
+    (void)img_size;
     createImage(_device,
                 _texture_img,
-                tex_w,
-                tex_h,
+                img_w,
+                img_h,
                 VK_FORMAT_R8G8B8A8_SRGB,
                 VK_IMAGE_TILING_OPTIMAL,
                 VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);

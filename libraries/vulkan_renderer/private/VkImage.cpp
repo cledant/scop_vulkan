@@ -2,7 +2,44 @@
 
 #include <stdexcept>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 #include "VkMemory.hpp"
+
+VkDeviceSize
+loadImage(VkPhysicalDevice physical_device,
+          VkDevice device,
+          std::string const &filepath,
+          VkBuffer &image_buffer,
+          VkDeviceMemory &image_buffer_memory,
+          int &img_w,
+          int &img_h)
+{
+    int img_chan;
+    auto pixels =
+      stbi_load(filepath.c_str(), &img_w, &img_h, &img_chan, STBI_rgb_alpha);
+    if (!pixels) {
+        throw std::runtime_error("VkImage: failed to load image: " + filepath);
+    }
+    VkDeviceSize img_size = img_w * img_h * 4;
+
+    createBuffer(
+      device, image_buffer, img_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+    allocateBuffer(physical_device,
+                   device,
+                   image_buffer,
+                   image_buffer_memory,
+                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    void *data;
+    vkMapMemory(device, image_buffer_memory, 0, img_size, 0, &data);
+    memcpy(data, pixels, static_cast<size_t>(img_size));
+    vkUnmapMemory(device, image_buffer_memory);
+    stbi_image_free(pixels);
+    return (img_size);
+}
 
 void
 createImage(VkDevice device,
