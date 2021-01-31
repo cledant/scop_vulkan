@@ -997,6 +997,7 @@ void
 VkRenderer::_update_ubo(uint32_t img_index, glm::mat4 const &view_proj_mat)
 {
     UniformBufferObject ubo = { view_proj_mat };
+    ubo.view_proj[1][1] = -ubo.view_proj[1][1];
 
     void *data = nullptr;
     vkMapMemory(

@@ -24,6 +24,7 @@ class Camera final
 
     // Setters
     void setPosition(glm::vec3 const &pos);
+    void setYawPitch(float yaw, float pitch);
     void setWorldUp(glm::vec3 const &world_up);
     void setPerspective(glm::mat4 const &perspective);
 

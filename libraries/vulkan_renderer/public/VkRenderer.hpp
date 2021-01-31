@@ -40,7 +40,7 @@ class VkRenderer final
   private:
     struct Vertex
     {
-        glm::vec2 pos;
+        glm::vec3 pos;
         glm::vec3 color;
 
         static std::array<VkVertexInputBindingDescription, 1>
@@ -51,9 +51,6 @@ class VkRenderer final
             binding_description[0].binding = 0;
             binding_description[0].stride = sizeof(Vertex);
             binding_description[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-            // binding_description[1].binding = 1;
-            // binding_description[1].stride = sizeof(glm::mat4);
-            // binding_description[1].inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
 
             return (binding_description);
         }
@@ -72,10 +69,6 @@ class VkRenderer final
             attribute_description[1].location = 1;
             attribute_description[1].offset = offsetof(Vertex, color);
             attribute_description[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-            // attribute_description[2].binding = 1;
-            // attribute_description[2].location = 2;
-            // attribute_description[2].offset = 0;
-            // attribute_description[2].format = VK_FORMAT_R32G32B32_SFLOAT;
             return (attribute_description);
         }
     };
@@ -88,10 +81,10 @@ class VkRenderer final
 
     // Test triangle
     static constexpr std::array<Vertex, 4> const _test_triangle_verticies = {
-        { { { -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
-          { { 0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f } },
-          { { 0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } },
-          { { -0.5f, 0.5f }, { 1.0f, 1.0f, 1.0f } } }
+        { { { -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f } },
+          { { 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f } },
+          { { 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f } },
+          { { -0.5f, 0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f } } }
     };
     static constexpr std::array<uint16_t, 6> const _test_triangle_indices = {
         0, 1, 2, 2, 3, 0

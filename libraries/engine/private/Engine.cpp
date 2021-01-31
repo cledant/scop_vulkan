@@ -45,6 +45,8 @@ Engine::init(EngineOptions const &opts)
                                             _perspective_data.near_far.x,
                                             _perspective_data.near_far.y));
     _camera.setPosition(START_POS);
+    _camera.setYawPitch(START_YAW, START_PITCH);
+    _camera.update_matricies();
     _fps_count_timeref = std::chrono::steady_clock::now();
 }
 

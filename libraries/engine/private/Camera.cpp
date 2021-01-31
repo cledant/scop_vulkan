@@ -65,12 +65,26 @@ void
 Camera::setPosition(glm::vec3 const &pos)
 {
     _pos = pos;
+    _updated = 1;
+}
+
+void
+Camera::setYawPitch(float yaw, float pitch)
+{
+    _yaw = yaw;
+    _pitch = pitch;
+    if (_pitch > 89.0f)
+        _pitch = 89.0f;
+    if (_pitch < -89.0f)
+        _pitch = -89.0f;
+    _updated = 1;
 }
 
 void
 Camera::setWorldUp(glm::vec3 const &world_up)
 {
     _world_up = world_up;
+    _updated = 1;
 }
 
 void
