@@ -21,13 +21,10 @@ findMemoryType(VkPhysicalDevice physical_device,
 }
 
 void
-createBuffer(VkPhysicalDevice physical_device,
-             VkDevice device,
-             VkDeviceSize size,
-             VkBufferUsageFlags usage,
-             VkMemoryPropertyFlags properties,
+createBuffer(VkDevice device,
              VkBuffer &buffer,
-             VkDeviceMemory &buffer_memory)
+             VkDeviceSize size,
+             VkBufferUsageFlags usage)
 {
     VkBufferCreateInfo buffer_info{};
 
@@ -38,7 +35,15 @@ createBuffer(VkPhysicalDevice physical_device,
     if (vkCreateBuffer(device, &buffer_info, nullptr, &buffer) != VK_SUCCESS) {
         throw std::runtime_error("VkMemory: Failed to create buffer");
     }
+}
 
+void
+allocateBuffer(VkPhysicalDevice physical_device,
+               VkDevice device,
+               VkBuffer &buffer,
+               VkDeviceMemory &buffer_memory,
+               VkMemoryPropertyFlags properties)
+{
     VkMemoryRequirements mem_requirement;
     vkGetBufferMemoryRequirements(device, buffer, &mem_requirement);
 

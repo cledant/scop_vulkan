@@ -60,6 +60,11 @@ option(GLFW_INSTALL "" OFF)
 option(BUILD_SHARED_LIBS "" OFF)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/glfw ${CMAKE_BINARY_DIR}/external/glfw/build)
 
+#Setup stb
+add_library(stb INTERFACE IMPORTED)
+set_target_properties(stb PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/external/stb)
+
 #Project libs
 add_subdirectory(libraries/io_manager)
 add_subdirectory(libraries/engine)
@@ -82,3 +87,4 @@ set_target_properties(scop PROPERTIES
         CXX_STANDARD_REQUIRED YES
         CXX_EXTENSIONS NO)
 target_compile_options(scop PRIVATE -Wall -Wextra -Werror)
+file(COPY ${CMAKE_SOURCE_DIR}/texture/texture.jpg DESTINATION ${CMAKE_BINARY_DIR}/resources/texture)

@@ -151,6 +151,10 @@ class VkRenderer final
     VkDescriptorPool _descriptor_pool{};
     std::vector<VkDescriptorSet> _descriptor_sets;
 
+    // Texture related
+    VkImage _texture_img{};
+    VkDeviceMemory _texture_img_memory{};
+
     // Instance init related
     inline void _create_instance(
       std::vector<char const *> const &required_extension);
@@ -164,6 +168,7 @@ class VkRenderer final
     inline void _create_gfx_pipeline();
     inline void _create_framebuffers();
     inline void _create_command_pool();
+    inline void _create_texture_image();
     inline void _create_vertex_buffer();
     inline void _create_index_buffer();
     inline void _create_uniform_buffers();

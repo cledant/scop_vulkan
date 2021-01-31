@@ -7,11 +7,15 @@
 #include <iostream>
 #include <set>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 #include "VkDebug.hpp"
 #include "VkPhysicalDevice.hpp"
 #include "VkSwapChain.hpp"
 #include "VkShader.hpp"
 #include "VkMemory.hpp"
+#include "VkImage.hpp"
 
 void
 VkRenderer::createInstance(std::string &&app_name,
@@ -52,6 +56,7 @@ VkRenderer::initInstance(VkSurfaceKHR surface, uint32_t fb_w, uint32_t fb_h)
     _create_gfx_pipeline();
     _create_framebuffers();
     _create_command_pool();
+    _create_texture_image();
     _create_vertex_buffer();
     _create_index_buffer();
     _create_uniform_buffers();
@@ -81,6 +86,8 @@ void
 VkRenderer::clearInstance()
 {
     _clear_swap_chain();
+    vkDestroyImage(_device, _texture_img, nullptr);
+    vkFreeMemory(_device, _texture_img_memory, nullptr);
     vkDestroyBuffer(_device, _index_buffer, nullptr);
     vkFreeMemory(_device, _index_buffer_memory, nullptr);
     vkDestroyBuffer(_device, _vertex_buffer, nullptr);
@@ -687,6 +694,56 @@ VkRenderer::_create_command_pool()
 }
 
 void
+VkRenderer::_create_texture_image()
+{
+    int tex_w;
+    int tex_h;
+    int tex_chan;
+    auto pixels = stbi_load("resources/texture/texture.jpg",
+                            &tex_w,
+                            &tex_h,
+                            &tex_chan,
+                            STBI_rgb_alpha);
+    if (!pixels) {
+        throw std::runtime_error("VkRenderer: failed to load texture image");
+    }
+
+    VkBuffer staging_buffer;
+    VkDeviceMemory staging_buffer_memory;
+    VkDeviceSize img_size = tex_w * tex_h * 4;
+    createBuffer(
+      _device, staging_buffer, img_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+    allocateBuffer(_physical_device,
+                   _device,
+                   staging_buffer,
+                   staging_buffer_memory,
+                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    void *data;
+    vkMapMemory(_device, staging_buffer_memory, 0, img_size, 0, &data);
+    memcpy(data, pixels, static_cast<size_t>(img_size));
+    vkUnmapMemory(_device, staging_buffer_memory);
+    stbi_image_free(pixels);
+
+    createImage(_device,
+                _texture_img,
+                tex_w,
+                tex_h,
+                VK_FORMAT_R8G8B8A8_SRGB,
+                VK_IMAGE_TILING_OPTIMAL,
+                VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+    allocateImage(_physical_device,
+                  _device,
+                  _texture_img,
+                  _texture_img_memory,
+                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    vkDestroyBuffer(_device, staging_buffer, nullptr);
+    vkFreeMemory(_device, staging_buffer_memory, nullptr);
+}
+
+void
 VkRenderer::_create_vertex_buffer()
 {
     VkDeviceSize size =
@@ -695,28 +752,31 @@ VkRenderer::_create_vertex_buffer()
     // CPU => GPU transfer buffer
     VkBuffer staging_buffer{};
     VkDeviceMemory staging_buffer_memory{};
-    createBuffer(_physical_device,
-                 _device,
-                 size,
-                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                 staging_buffer,
-                 staging_buffer_memory);
+    createBuffer(
+      _device, staging_buffer, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+    allocateBuffer(_physical_device,
+                   _device,
+                   staging_buffer,
+                   staging_buffer_memory,
+                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
     void *data{};
     vkMapMemory(_device, staging_buffer_memory, 0, size, 0, &data);
     memcpy(data, _test_triangle_verticies.data(), size);
     vkUnmapMemory(_device, staging_buffer_memory);
 
     // GPU only memory
-    createBuffer(_physical_device,
-                 _device,
+    createBuffer(_device,
+                 _vertex_buffer,
                  size,
                  VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-                   VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                 _vertex_buffer,
-                 _vertex_buffer_memory);
+                   VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+    allocateBuffer(_physical_device,
+                   _device,
+                   _vertex_buffer,
+                   _vertex_buffer_memory,
+                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     copyBuffer(_device,
                _command_pool,
                _present_queue,
@@ -737,28 +797,31 @@ VkRenderer::_create_index_buffer()
     // CPU => GPU transfer buffer
     VkBuffer staging_buffer{};
     VkDeviceMemory staging_buffer_memory{};
-    createBuffer(_physical_device,
-                 _device,
-                 size,
-                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                 staging_buffer,
-                 staging_buffer_memory);
+    createBuffer(
+      _device, staging_buffer, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+    allocateBuffer(_physical_device,
+                   _device,
+                   staging_buffer,
+                   staging_buffer_memory,
+                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
     void *data{};
     vkMapMemory(_device, staging_buffer_memory, 0, size, 0, &data);
     memcpy(data, _test_triangle_indices.data(), size);
     vkUnmapMemory(_device, staging_buffer_memory);
 
     // GPU only memory
-    createBuffer(_physical_device,
-                 _device,
+    createBuffer(_device,
+                 _index_buffer,
                  size,
                  VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-                   VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                 _index_buffer,
-                 _index_buffer_memory);
+                   VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+    allocateBuffer(_physical_device,
+                   _device,
+                   _index_buffer,
+                   _index_buffer_memory,
+                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     copyBuffer(_device,
                _command_pool,
                _present_queue,
@@ -779,14 +842,16 @@ VkRenderer::_create_uniform_buffers()
     _uniform_buffers_memory.resize(_swap_chain_framebuffers.size());
 
     for (size_t i = 0; i < _swap_chain_framebuffers.size(); ++i) {
-        createBuffer(_physical_device,
-                     _device,
-                     size,
-                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                       VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        createBuffer(_device,
                      _uniform_buffers[i],
-                     _uniform_buffers_memory[i]);
+                     size,
+                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+        allocateBuffer(_physical_device,
+                       _device,
+                       _uniform_buffers[i],
+                       _uniform_buffers_memory[i],
+                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     }
 }
 
