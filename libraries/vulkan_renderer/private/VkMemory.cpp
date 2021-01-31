@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-#include <VkCommandBuffer.hpp>
+#include "VkCommandBuffer.hpp"
 
 uint32_t
 findMemoryType(VkPhysicalDevice physical_device,

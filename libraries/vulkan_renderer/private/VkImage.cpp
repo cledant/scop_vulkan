@@ -6,37 +6,38 @@
 #include "stb_image.h"
 
 #include "VkMemory.hpp"
+#include "VkCommandBuffer.hpp"
 
 VkDeviceSize
-loadImage(VkPhysicalDevice physical_device,
-          VkDevice device,
-          std::string const &filepath,
-          VkBuffer &image_buffer,
-          VkDeviceMemory &image_buffer_memory,
-          int &img_w,
-          int &img_h)
+loadTextureInBuffer(VkPhysicalDevice physical_device,
+                    VkDevice device,
+                    std::string const &filepath,
+                    VkBuffer &tex_buffer,
+                    VkDeviceMemory &tex_buffer_memory,
+                    int &tex_w,
+                    int &tex_h)
 {
     int img_chan;
     auto pixels =
-      stbi_load(filepath.c_str(), &img_w, &img_h, &img_chan, STBI_rgb_alpha);
+      stbi_load(filepath.c_str(), &tex_w, &tex_h, &img_chan, STBI_rgb_alpha);
     if (!pixels) {
         throw std::runtime_error("VkImage: failed to load image: " + filepath);
     }
-    VkDeviceSize img_size = img_w * img_h * 4;
+    VkDeviceSize img_size = tex_w * tex_h * 4;
 
     createBuffer(
-      device, image_buffer, img_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+      device, tex_buffer, img_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
     allocateBuffer(physical_device,
                    device,
-                   image_buffer,
-                   image_buffer_memory,
+                   tex_buffer,
+                   tex_buffer_memory,
                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                      VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
     void *data;
-    vkMapMemory(device, image_buffer_memory, 0, img_size, 0, &data);
+    vkMapMemory(device, tex_buffer_memory, 0, img_size, 0, &data);
     memcpy(data, pixels, static_cast<size_t>(img_size));
-    vkUnmapMemory(device, image_buffer_memory);
+    vkUnmapMemory(device, tex_buffer_memory);
     stbi_image_free(pixels);
     return (img_size);
 }
@@ -77,7 +78,7 @@ allocateImage(VkPhysicalDevice physical_device,
               VkDeviceMemory &image_memory,
               VkMemoryPropertyFlags properties)
 {
-    VkMemoryRequirements mem_req;
+    VkMemoryRequirements mem_req{};
     vkGetImageMemoryRequirements(device, image, &mem_req);
 
     VkMemoryAllocateInfo alloc_info{};
@@ -91,4 +92,93 @@ allocateImage(VkPhysicalDevice physical_device,
         throw std::runtime_error("VkImage: failed to allocate image memory");
     }
     vkBindImageMemory(device, image, image_memory, 0);
+}
+
+void
+transitionImageLayout(VkDevice device,
+                      VkCommandPool command_pool,
+                      VkQueue gfx_queue,
+                      VkImage image,
+                      VkFormat format,
+                      VkImageLayout old_layout,
+                      VkImageLayout new_layout)
+{
+    auto cmd_buffer = beginSingleTimeCommands(device, command_pool);
+    (void)format;
+
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.oldLayout = old_layout;
+    barrier.newLayout = new_layout;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = image;
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 1;
+
+    VkPipelineStageFlags source_stage;
+    VkPipelineStageFlags destination_stage;
+
+    if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED &&
+        new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+        source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        destination_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    } else if (old_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+               new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+        source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    } else {
+        throw std::runtime_error("VkImage: unsupported layout transition");
+    }
+
+    vkCmdPipelineBarrier(cmd_buffer,
+                         source_stage,
+                         destination_stage,
+                         0,
+                         0,
+                         nullptr,
+                         0,
+                         nullptr,
+                         1,
+                         &barrier);
+    endSingleTimeCommands(device, command_pool, cmd_buffer, gfx_queue);
+}
+
+void
+copyBufferToImage(VkDevice device,
+                  VkCommandPool command_pool,
+                  VkQueue gfx_queue,
+                  VkBuffer buffer,
+                  VkImage image,
+                  uint32_t width,
+                  uint32_t height)
+{
+    auto cmd_buffer = beginSingleTimeCommands(device, command_pool);
+
+    VkBufferImageCopy region{};
+    region.bufferOffset = 0;
+    region.bufferRowLength = 0;
+    region.bufferImageHeight = 0;
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.mipLevel = 0;
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.layerCount = 1;
+    region.imageOffset = { 0, 0, 0 };
+    region.imageExtent = { width, height, 1 };
+    vkCmdCopyBufferToImage(cmd_buffer,
+                           buffer,
+                           image,
+                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           1,
+                           &region);
+    endSingleTimeCommands(device, command_pool, cmd_buffer, gfx_queue);
 }

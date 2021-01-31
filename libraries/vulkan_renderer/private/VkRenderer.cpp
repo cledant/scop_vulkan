@@ -698,14 +698,13 @@ VkRenderer::_create_texture_image()
     int img_w = 0;
     int img_h = 0;
 
-    auto img_size = loadImage(_physical_device,
-                              _device,
-                              "resources/texture/texture.jpg",
-                              staging_buffer,
-                              staging_buffer_memory,
-                              img_w,
-                              img_w);
-    (void)img_size;
+    loadTextureInBuffer(_physical_device,
+                        _device,
+                        "resources/texture/texture.jpg",
+                        staging_buffer,
+                        staging_buffer_memory,
+                        img_w,
+                        img_h);
     createImage(_device,
                 _texture_img,
                 img_w,
@@ -718,6 +717,27 @@ VkRenderer::_create_texture_image()
                   _texture_img,
                   _texture_img_memory,
                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    transitionImageLayout(_device,
+                          _command_pool,
+                          _graphic_queue,
+                          _texture_img,
+                          VK_FORMAT_R8G8B8A8_SRGB,
+                          VK_IMAGE_LAYOUT_UNDEFINED,
+                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    copyBufferToImage(_device,
+                      _command_pool,
+                      _graphic_queue,
+                      staging_buffer,
+                      _texture_img,
+                      img_w,
+                      img_h);
+    transitionImageLayout(_device,
+                          _command_pool,
+                          _graphic_queue,
+                          _texture_img,
+                          VK_FORMAT_R8G8B8A8_SRGB,
+                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     vkDestroyBuffer(_device, staging_buffer, nullptr);
     vkFreeMemory(_device, staging_buffer_memory, nullptr);
