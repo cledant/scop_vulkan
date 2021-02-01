@@ -42,6 +42,7 @@ class VkRenderer final
     {
         glm::vec3 pos;
         glm::vec3 color;
+        glm::vec2 tex_coord;
 
         static std::array<VkVertexInputBindingDescription, 1>
         getBindingDescription()
@@ -55,20 +56,26 @@ class VkRenderer final
             return (binding_description);
         }
 
-        static std::array<VkVertexInputAttributeDescription, 2>
+        static std::array<VkVertexInputAttributeDescription, 3>
         getAttributeDescriptions()
         {
-            std::array<VkVertexInputAttributeDescription, 2>
+            std::array<VkVertexInputAttributeDescription, 3>
               attribute_description{};
 
             attribute_description[0].binding = 0;
             attribute_description[0].location = 0;
             attribute_description[0].offset = 0;
-            attribute_description[0].format = VK_FORMAT_R32G32_SFLOAT;
+            attribute_description[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+
             attribute_description[1].binding = 0;
             attribute_description[1].location = 1;
             attribute_description[1].offset = offsetof(Vertex, color);
             attribute_description[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+
+            attribute_description[2].binding = 0;
+            attribute_description[2].location = 2;
+            attribute_description[2].offset = offsetof(Vertex, tex_coord);
+            attribute_description[2].format = VK_FORMAT_R32G32_SFLOAT;
             return (attribute_description);
         }
     };
@@ -81,10 +88,10 @@ class VkRenderer final
 
     // Test triangle
     static constexpr std::array<Vertex, 4> const _test_triangle_verticies = {
-        { { { -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f } },
-          { { 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f } },
-          { { 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f } },
-          { { -0.5f, 0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f } } }
+        { { { -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } },
+          { { 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
+          { { 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f } },
+          { { -0.5f, 0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f } } }
     };
     static constexpr std::array<uint16_t, 6> const _test_triangle_indices = {
         0, 1, 2, 2, 3, 0
