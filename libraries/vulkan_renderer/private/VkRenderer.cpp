@@ -54,6 +54,8 @@ VkRenderer::initInstance(VkSurfaceKHR surface, uint32_t fb_w, uint32_t fb_h)
     _create_framebuffers();
     _create_command_pool();
     _create_texture_image();
+    _create_texture_image_view();
+    _create_texture_sampler();
     _create_vertex_buffer();
     _create_index_buffer();
     _create_uniform_buffers();
@@ -83,6 +85,8 @@ void
 VkRenderer::clearInstance()
 {
     _clear_swap_chain();
+    vkDestroySampler(_device, _texture_sampler, nullptr);
+    vkDestroyImageView(_device, _texture_img_view, nullptr);
     vkDestroyImage(_device, _texture_img, nullptr);
     vkFreeMemory(_device, _texture_img_memory, nullptr);
     vkDestroyBuffer(_device, _index_buffer, nullptr);
@@ -294,6 +298,7 @@ VkRenderer::_create_graphic_queue()
     // Device info
     VkPhysicalDeviceFeatures physical_device_features{};
     physical_device_features.geometryShader = VK_TRUE;
+    physical_device_features.samplerAnisotropy = VK_TRUE;
     VkDeviceCreateInfo device_create_info{};
     device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     device_create_info.pQueueCreateInfos = vec_queue_create_info.data();
@@ -386,28 +391,8 @@ VkRenderer::_create_image_view()
 {
     _swap_chain_image_views.resize(_swap_chain_images.size());
     for (size_t i = 0; i < _swap_chain_images.size(); ++i) {
-        VkImageViewCreateInfo iv_create_info{};
-
-        iv_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        iv_create_info.image = _swap_chain_images[i];
-        iv_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        iv_create_info.format = _swap_chain_image_format;
-        iv_create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-        iv_create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-        iv_create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-        iv_create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-        iv_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        iv_create_info.subresourceRange.baseMipLevel = 0;
-        iv_create_info.subresourceRange.levelCount = 1;
-        iv_create_info.subresourceRange.baseArrayLayer = 0;
-        iv_create_info.subresourceRange.layerCount = 1;
-
-        if (vkCreateImageView(
-              _device, &iv_create_info, nullptr, &_swap_chain_image_views[i]) !=
-            VK_SUCCESS) {
-            throw std::runtime_error(
-              "VkRenderer: failed to create image views");
-        }
+        _swap_chain_image_views[i] = createImageView(
+          _device, _swap_chain_images[i], _swap_chain_image_format);
     }
 }
 
@@ -741,6 +726,43 @@ VkRenderer::_create_texture_image()
 
     vkDestroyBuffer(_device, staging_buffer, nullptr);
     vkFreeMemory(_device, staging_buffer_memory, nullptr);
+}
+
+void
+VkRenderer::_create_texture_image_view()
+{
+    _texture_img_view =
+      createImageView(_device, _texture_img, VK_FORMAT_R8G8B8A8_SRGB);
+}
+
+void
+VkRenderer::_create_texture_sampler()
+{
+    VkPhysicalDeviceProperties properties{};
+    vkGetPhysicalDeviceProperties(_physical_device, &properties);
+    float aniso = (properties.limits.maxSamplerAnisotropy > 16.0f)
+                    ? 16.0f
+                    : properties.limits.maxSamplerAnisotropy;
+
+    VkSamplerCreateInfo sampler_info{};
+    sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    sampler_info.magFilter = VK_FILTER_LINEAR;
+    sampler_info.minFilter = VK_FILTER_LINEAR;
+    sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    sampler_info.anisotropyEnable = VK_TRUE;
+    sampler_info.maxAnisotropy = aniso;
+    sampler_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    sampler_info.unnormalizedCoordinates = VK_FALSE;
+    sampler_info.compareEnable = VK_FALSE;
+    sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
+
+    if (vkCreateSampler(_device, &sampler_info, nullptr, &_texture_sampler) !=
+        VK_SUCCESS) {
+        throw std::runtime_error(
+          "VkRenderer: failed to create texture sampler");
+    }
 }
 
 void

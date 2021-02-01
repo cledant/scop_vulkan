@@ -37,5 +37,6 @@ void copyBufferToImage(VkDevice device,
                        VkImage image,
                        uint32_t width,
                        uint32_t height);
+VkImageView createImageView(VkDevice device, VkImage image, VkFormat format);
 
 #endif // SCOP_VULKAN_VKIMAGE_HPP

@@ -13,7 +13,7 @@ DeviceRequirement::isValid() const
 {
     return (graphic_queue_index.has_value() &&
             present_queue_index.has_value() && geometry_shader &&
-            all_extension_supported);
+            sampler_aniso && all_extension_supported);
 }
 
 VkPhysicalDevice
@@ -112,6 +112,9 @@ checkDeviceFeaturesSupport(VkPhysicalDevice device, DeviceRequirement &dr)
     vkGetPhysicalDeviceFeatures(device, &features);
     if (features.geometryShader) {
         dr.geometry_shader = VK_TRUE;
+    }
+    if (features.samplerAnisotropy) {
+        dr.sampler_aniso = VK_TRUE;
     }
 }
 
