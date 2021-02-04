@@ -75,6 +75,7 @@ VkRenderer::resizeInstance(uint32_t fb_w, uint32_t fb_h)
     _create_image_view();
     _create_render_pass();
     _create_gfx_pipeline();
+    _create_depth_resources();
     _create_framebuffers();
     _create_uniform_buffers();
     _create_descriptor_pool();
@@ -419,6 +420,13 @@ VkRenderer::_create_render_pass()
 
     // Depth
     VkAttachmentDescription depth_attachment{};
+    _depth_format =
+      findSupportedFormat(_physical_device,
+                          { VK_FORMAT_D32_SFLOAT,
+                            VK_FORMAT_D32_SFLOAT_S8_UINT,
+                            VK_FORMAT_D24_UNORM_S8_UINT },
+                          VK_IMAGE_TILING_OPTIMAL,
+                          VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
     depth_attachment.format = _depth_format;
     depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
     depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -430,8 +438,9 @@ VkRenderer::_create_render_pass()
       VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     VkAttachmentReference depth_attachment_ref{};
-    depth_attachment_ref.attachment = 0;
-    depth_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    depth_attachment_ref.attachment = 1;
+    depth_attachment_ref.layout =
+      VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     VkSubpassDescription subpass{};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -728,14 +737,6 @@ VkRenderer::_create_command_pool()
 void
 VkRenderer::_create_depth_resources()
 {
-    _depth_format =
-      findSupportedFormat(_physical_device,
-                          { VK_FORMAT_D32_SFLOAT,
-                            VK_FORMAT_D32_SFLOAT_S8_UINT,
-                            VK_FORMAT_D24_UNORM_S8_UINT },
-                          VK_IMAGE_TILING_OPTIMAL,
-                          VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-
     createImage(_device,
                 _depth_image,
                 _swap_chain_extent.width,
@@ -1074,8 +1075,8 @@ VkRenderer::_create_command_buffers()
 
         // Begin render pass values
         std::array<VkClearValue, 2> clear_vals{};
-        clear_vals[0] = { 0.0f, 0.0f, 0.0f, 1.0f };
-        clear_vals[0] = { 1.0f, 0.0f };
+        clear_vals[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+        clear_vals[1].depthStencil = { 1.0f, 0 };
         VkRenderPassBeginInfo rp_begin_info{};
         rp_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         rp_begin_info.renderPass = _render_pass;
@@ -1147,6 +1148,9 @@ void
 VkRenderer::_clear_swap_chain()
 {
     size_t i = 0;
+    vkDestroyImageView(_device, _depth_img_view, nullptr);
+    vkDestroyImage(_device, _depth_image, nullptr);
+    vkFreeMemory(_device, _depth_img_memory, nullptr);
     for (auto &it : _swap_chain_framebuffers) {
         vkDestroyBuffer(_device, _uniform_buffers[i], nullptr);
         vkFreeMemory(_device, _uniform_buffers_memory[i], nullptr);
