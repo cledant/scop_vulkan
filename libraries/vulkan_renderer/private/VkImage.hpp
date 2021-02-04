@@ -2,6 +2,7 @@
 #define SCOP_VULKAN_VKIMAGE_HPP
 
 #include <string>
+#include <vector>
 #include <vulkan/vulkan.h>
 
 VkDeviceSize loadTextureInBuffer(VkPhysicalDevice physical_device,
@@ -37,6 +38,14 @@ void copyBufferToImage(VkDevice device,
                        VkImage image,
                        uint32_t width,
                        uint32_t height);
-VkImageView createImageView(VkDevice device, VkImage image, VkFormat format);
+VkImageView createImageView(VkDevice device,
+                            VkImage image,
+                            VkFormat format,
+                            VkImageAspectFlags aspect_flags);
+VkFormat findSupportedFormat(VkPhysicalDevice physical_device,
+                             std::vector<VkFormat> const &candidates,
+                             VkImageTiling tiling,
+                             VkFormatFeatureFlags features);
+bool hasStencilComponent(VkFormat format);
 
 #endif // SCOP_VULKAN_VKIMAGE_HPP

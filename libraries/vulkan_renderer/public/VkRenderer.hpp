@@ -87,17 +87,21 @@ class VkRenderer final
     };
 
     // Test triangle
-    static constexpr std::array<Vertex, 4> const _test_triangle_verticies = {
+    static constexpr std::array<Vertex, 8> const _test_triangle_verticies = {
         { { { -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } },
           { { 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
           { { 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f } },
-          { { -0.5f, 0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f } } }
+          { { -0.5f, 0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f } },
+
+          { { -0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
+          { { 0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
+          { { 0.5f, 0.5f, -0.5f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f } },
+          { { -0.5f, 0.5f, -0.5f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f } }
+
+        }
     };
-    static constexpr std::array<uint16_t, 6> const _test_triangle_indices = {
-        0, 1, 2, 2, 3, 0
-    };
-    static constexpr std::array<glm::vec3, 1> const _test_triangles_position = {
-        { { 0.0f, 0.0f, 0.0f } }
+    static constexpr std::array<uint16_t, 12> const _test_triangle_indices = {
+        0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4
     };
 
     // Description related
@@ -164,6 +168,12 @@ class VkRenderer final
     VkImageView _texture_img_view{};
     VkSampler _texture_sampler{};
 
+    // Depth Buffer related
+    VkImage _depth_image{};
+    VkDeviceMemory _depth_img_memory{};
+    VkImageView _depth_img_view{};
+    VkFormat _depth_format{};
+
     // Instance init related
     inline void _create_instance(
       std::vector<char const *> const &required_extension);
@@ -177,6 +187,7 @@ class VkRenderer final
     inline void _create_gfx_pipeline();
     inline void _create_framebuffers();
     inline void _create_command_pool();
+    inline void _create_depth_resources();
     inline void _create_texture_image();
     inline void _create_texture_image_view();
     inline void _create_texture_sampler();
