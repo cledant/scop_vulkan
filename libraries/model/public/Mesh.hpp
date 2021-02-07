@@ -45,7 +45,7 @@ struct Mesh final
     void printMesh() const;
 
     std::vector<Vertex> vertex_list;
-    std::vector<unsigned int> indices;
+    std::vector<uint32_t> indices;
     Material material{};
     std::string mesh_name;
 };

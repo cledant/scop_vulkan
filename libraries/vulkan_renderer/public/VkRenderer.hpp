@@ -25,13 +25,20 @@ class VkRenderer final
                         uint32_t engine_version,
                         std::vector<char const *> &&required_extensions);
     [[nodiscard]] VkInstance getVkInstance() const;
-    void initInstance(VkSurfaceKHR surface, uint32_t fb_w, uint32_t fb_h);
-    void resizeInstance(uint32_t fb_w, uint32_t fb_h);
+    void initInstance(VkSurfaceKHR surface);
     void clearInstance();
     [[nodiscard]] std::string const &getAppName() const;
     [[nodiscard]] uint32_t getAppVersion() const;
     [[nodiscard]] std::string const &getEngineName() const;
     [[nodiscard]] uint32_t getEngineVersion() const;
+
+    // Resources Related
+    void initResources(uint32_t fb_w, uint32_t fb_h);
+    void resizeResources(uint32_t fb_w, uint32_t fb_h);
+    void clearResources();
+
+    // Global
+    void clearAll();
 
     // Render related
     void draw(glm::mat4 const &view_proj_mat);

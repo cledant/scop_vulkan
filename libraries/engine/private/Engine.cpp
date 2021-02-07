@@ -27,18 +27,19 @@ Engine::init(EngineOptions const &opts)
     _event_handler.setVkRenderer(&_vk_renderer);
     _event_handler.setInvertYAxis(opts.invert_y_axis);
     _model.loadModel(opts.model_path);
+#ifndef NDEBUG
     _model.printModel();
+#endif
     _io_manager.createWindow(std::move(win_opts));
     _vk_renderer.createInstance(std::move(cpy_app_name),
                                 cpy_app_name + "_engine",
                                 VK_MAKE_VERSION(1, 0, 0),
                                 VK_MAKE_VERSION(1, 0, 0),
                                 IOManager::getRequiredInstanceExtension());
-    auto fb_size = _io_manager.getFramebufferSize();
     _vk_renderer.initInstance(
-      _io_manager.createVulkanSurface(_vk_renderer.getVkInstance()),
-      fb_size.x,
-      fb_size.y);
+      _io_manager.createVulkanSurface(_vk_renderer.getVkInstance()));
+    auto fb_size = _io_manager.getFramebufferSize();
+    _vk_renderer.initResources(fb_size.x, fb_size.y);
     _perspective_data.near_far = DEFAULT_NEAR_FAR;
     _perspective_data.fov = DEFAULT_FOV;
     _perspective_data.ratio = _io_manager.getWindowRatio();
@@ -61,7 +62,7 @@ Engine::run()
         _compute_fps();
     }
     _vk_renderer.deviceWaitIdle();
-    _vk_renderer.clearInstance();
+    _vk_renderer.clearAll();
     _io_manager.deleteWindow();
 }
 

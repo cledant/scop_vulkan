@@ -74,9 +74,8 @@ assimpLoadMesh(aiMesh *mesh, aiScene const *scene, std::vector<Mesh> &mesh_list)
         for (size_t j = 0; j < mesh->mNumFaces; j++) {
             aiFace face = mesh->mFaces[j];
             for (size_t k = 0; k < face.mNumIndices; ++k) {
-                loaded_mesh.indices.push_back(face.mIndices[k]);
+                loaded_mesh.indices.emplace_back(face.mIndices[k]);
             }
-            nb_indices = face.mNumIndices;
         }
 
         // Other

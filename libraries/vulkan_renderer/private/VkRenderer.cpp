@@ -12,7 +12,7 @@
 #include "VkSwapChain.hpp"
 #include "VkShader.hpp"
 #include "VkMemory.hpp"
-#include "VkImage.hpp"
+#include "VkImageManger.hpp"
 
 void
 VkRenderer::createInstance(std::string &&app_name,
@@ -38,7 +38,7 @@ VkRenderer::getVkInstance() const
 }
 
 void
-VkRenderer::initInstance(VkSurfaceKHR surface, uint32_t fb_w, uint32_t fb_h)
+VkRenderer::initInstance(VkSurfaceKHR surface)
 {
     assert(surface);
 
@@ -46,61 +46,18 @@ VkRenderer::initInstance(VkSurfaceKHR surface, uint32_t fb_w, uint32_t fb_h)
     _setup_vk_debug_msg();
     _select_physical_device();
     _create_graphic_queue();
-    _create_swap_chain(fb_w, fb_h);
-    _create_image_view();
-    _create_render_pass();
-    _create_descriptor_layout();
-    _create_gfx_pipeline();
     _create_command_pool();
-    _create_depth_resources();
-    _create_framebuffers();
-    _create_texture_image();
-    _create_texture_image_view();
-    _create_texture_sampler();
-    _create_vertex_buffer();
-    _create_index_buffer();
-    _create_uniform_buffers();
-    _create_descriptor_pool();
-    _create_descriptor_sets();
-    _create_command_buffers();
     _create_render_sync_objects();
-}
-
-void
-VkRenderer::resizeInstance(uint32_t fb_w, uint32_t fb_h)
-{
-    vkDeviceWaitIdle(_device);
-    _clear_swap_chain();
-    _create_swap_chain(fb_w, fb_h);
-    _create_image_view();
-    _create_render_pass();
-    _create_gfx_pipeline();
-    _create_depth_resources();
-    _create_framebuffers();
-    _create_uniform_buffers();
-    _create_descriptor_pool();
-    _create_descriptor_sets();
-    _create_command_buffers();
 }
 
 void
 VkRenderer::clearInstance()
 {
-    _clear_swap_chain();
-    vkDestroySampler(_device, _texture_sampler, nullptr);
-    vkDestroyImageView(_device, _texture_img_view, nullptr);
-    vkDestroyImage(_device, _texture_img, nullptr);
-    vkFreeMemory(_device, _texture_img_memory, nullptr);
-    vkDestroyBuffer(_device, _index_buffer, nullptr);
-    vkFreeMemory(_device, _index_buffer_memory, nullptr);
-    vkDestroyBuffer(_device, _vertex_buffer, nullptr);
-    vkFreeMemory(_device, _vertex_buffer_memory, nullptr);
     for (size_t i = 0; i < MAX_FRAME_INFLIGHT; ++i) {
         vkDestroySemaphore(_device, _image_available_sem[i], nullptr);
         vkDestroySemaphore(_device, _render_finished_sem[i], nullptr);
         vkDestroyFence(_device, _inflight_fence[i], nullptr);
     }
-    vkDestroyDescriptorSetLayout(_device, _descriptor_set_layout, nullptr);
     vkDestroyCommandPool(_device, _command_pool, nullptr);
     vkDestroyDevice(_device, nullptr);
     if constexpr (ENABLE_VALIDATION_LAYER) {
@@ -132,6 +89,69 @@ uint32_t
 VkRenderer::getEngineVersion() const
 {
     return (_engine_version);
+}
+
+// Resources related
+void
+VkRenderer::initResources(uint32_t fb_w, uint32_t fb_h)
+{
+    _create_swap_chain(fb_w, fb_h);
+    _create_image_view();
+    _create_render_pass();
+    _create_descriptor_layout();
+    _create_gfx_pipeline();
+    _create_depth_resources();
+    _create_framebuffers();
+    _create_texture_image();
+    _create_texture_image_view();
+    _create_texture_sampler();
+    _create_vertex_buffer();
+    _create_index_buffer();
+    _create_uniform_buffers();
+    _create_descriptor_pool();
+    _create_descriptor_sets();
+    _create_command_buffers();
+}
+
+void
+VkRenderer::resizeResources(uint32_t fb_w, uint32_t fb_h)
+{
+    vkDeviceWaitIdle(_device);
+    _clear_swap_chain();
+    _create_swap_chain(fb_w, fb_h);
+    _create_image_view();
+    _create_render_pass();
+    _create_gfx_pipeline();
+    _create_depth_resources();
+    _create_framebuffers();
+    _create_uniform_buffers();
+    _create_descriptor_pool();
+    _create_descriptor_sets();
+    _create_command_buffers();
+}
+
+void
+VkRenderer::clearResources()
+{
+    _clear_swap_chain();
+    vkDestroySampler(_device, _texture_sampler, nullptr);
+    vkDestroyImageView(_device, _texture_img_view, nullptr);
+    vkDestroyImage(_device, _texture_img, nullptr);
+    vkFreeMemory(_device, _texture_img_memory, nullptr);
+    vkDestroyBuffer(_device, _index_buffer, nullptr);
+    vkFreeMemory(_device, _index_buffer_memory, nullptr);
+    vkDestroyBuffer(_device, _vertex_buffer, nullptr);
+    vkFreeMemory(_device, _vertex_buffer_memory, nullptr);
+    vkDestroyDescriptorSetLayout(_device, _descriptor_set_layout, nullptr);
+}
+
+// Global Related
+
+void
+VkRenderer::clearAll()
+{
+    clearResources();
+    clearInstance();
 }
 
 // Render Related
