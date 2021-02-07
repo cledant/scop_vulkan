@@ -65,10 +65,21 @@ add_library(stb INTERFACE IMPORTED)
 set_target_properties(stb PROPERTIES
         INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/external/stb)
 
+#Setup Assimp
+option(BUILD_SHARED_LIBS "" OFF)
+option(ASSIMP_NO_EXPORT "" ON)
+option(ASSIMP_BUILD_TESTS "" OFF)
+option(ASSIMP_BUILD_ASSIMP_TOOLS "" ON)
+set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF CACHE BOOL "")
+set(ASSIMP_BUILD_OBJ_IMPORTER ON CACHE BOOL "")
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/assimp ${CMAKE_BINARY_DIR}/external/assimp/build)
+
+
 #Project libs
 add_subdirectory(libraries/io_manager)
 add_subdirectory(libraries/engine)
 add_subdirectory(libraries/vulkan_renderer)
+add_subdirectory(libraries/model)
 
 #Shaders
 add_subdirectory(shaders/trivial)

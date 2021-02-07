@@ -7,6 +7,7 @@
 #include "EventHandler.hpp"
 #include "Perspective.hpp"
 #include "VkRenderer.hpp"
+#include "Model.hpp"
 
 class Engine final
 {
@@ -36,6 +37,7 @@ class Engine final
     Camera _camera;
     EventHandler _event_handler;
     Perspective _perspective_data;
+    Model _model;
 
     // Fps related
     uint64_t _nb_frame;

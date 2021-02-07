@@ -10,8 +10,8 @@ target_include_directories(engine
         ${CMAKE_CURRENT_SOURCE_DIR}/public
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/private)
-add_dependencies(engine iomanager)
-target_link_libraries(engine PUBLIC iomanager)
+add_dependencies(engine iomanager model)
+target_link_libraries(engine PUBLIC iomanager model)
 set_target_properties(engine PROPERTIES
         CXX_STANDARD 20
         CXX_STANDARD_REQUIRED YES

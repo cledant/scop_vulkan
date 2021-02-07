@@ -26,6 +26,8 @@ Engine::init(EngineOptions const &opts)
     _event_handler.setPerspectiveData(&_perspective_data);
     _event_handler.setVkRenderer(&_vk_renderer);
     _event_handler.setInvertYAxis(opts.invert_y_axis);
+    _model.loadModel(opts.model_path);
+    _model.printModel();
     _io_manager.createWindow(std::move(win_opts));
     _vk_renderer.createInstance(std::move(cpy_app_name),
                                 cpy_app_name + "_engine",
