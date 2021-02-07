@@ -24,12 +24,11 @@ class Model final
     void printModel() const;
 
     [[nodiscard]] std::vector<Mesh> const &getMeshList() const;
-    [[nodiscard]] glm::vec3 const &getCenter() const;
     [[nodiscard]] std::string const &getDirectory() const;
 
   private:
     std::vector<Mesh> _mesh_list;
-    glm::vec3 _center{};
+    std::string _model_path;
     std::string _directory;
 };
 

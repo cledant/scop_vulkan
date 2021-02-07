@@ -79,7 +79,9 @@ assimpLoadMesh(aiMesh *mesh, aiScene const *scene, std::vector<Mesh> &mesh_list)
             nb_indices = face.mNumIndices;
         }
 
+        // Other
         loaded_mesh.material = assimpLoadMaterial(mesh, scene);
+        loaded_mesh.mesh_name = mesh->mName.C_Str();
         loaded_mesh.vertex_list.emplace_back(loaded_vertex);
     }
     mesh_list.emplace_back(loaded_mesh);
@@ -119,11 +121,10 @@ assimpLoadMaterial(aiMesh *mesh, aiScene const *scene)
     mat.tex_alpha_name = assimpGetTextureName(mesh_mat, aiTextureType_OPACITY);
 
     // Name
-    char *mat_name{};
-    if (mesh_mat->Get(AI_MATKEY_NAME, &mat_name, nullptr) == AI_SUCCESS) {
-        mat.material_name = mat_name;
+    aiString mat_name;
+    if (mesh_mat->Get(AI_MATKEY_NAME, mat_name) == AI_SUCCESS) {
+        mat.material_name = mat_name.C_Str();
     }
-    delete[] mat_name;
     return (mat);
 }
 

@@ -28,10 +28,10 @@ Material::printMaterial() const
 void
 Mesh::printMesh() const
 {
-    std::cout << "MESH:" << std::endl;
-    std::cout << "Mesh Name:" << mesh_name << std::endl;
+    std::cout << "\tMESH:" << std::endl;
+    std::cout << "\tMesh Name: " << mesh_name << std::endl;
     material.printMaterial();
-    std::cout << "Nb Vertices: " << vertex_list.size() << std::endl;
-    std::cout << "Nb indices: " << indices.size() << std::endl;
-    std::cout << "----------" << std::endl;
+    std::cout << "\tNb Vertices: " << vertex_list.size() << std::endl;
+    std::cout << "\tNb indices: " << indices.size() << std::endl;
+    std::cout << "----- END MESH -----" << std::endl;
 }
