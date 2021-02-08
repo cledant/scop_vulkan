@@ -14,10 +14,10 @@ set_target_properties(vulkan_renderer PROPERTIES
         CXX_STANDARD_REQUIRED YES
         CXX_EXTENSIONS NO)
 add_dependencies(vulkan_renderer
-        vulkan_image_manager
+        vulkan_texture_manager
         vulkan_utils)
 target_link_libraries(vulkan_renderer
         glm
         vulkan_utils
-        vulkan_image_manager)
+        vulkan_texture_manager)
 target_compile_options(vulkan_renderer PRIVATE -Wall -Wextra -Werror)

@@ -5,6 +5,7 @@ add_library(vulkan_utils STATIC
         private/VkPhysicalDevice.cpp
         private/VkSwapChain.cpp
         private/VkShader.cpp
+        private/VkImage.cpp
         private/VkMemory.cpp
         private/VkCommandBuffer.cpp)
 target_include_directories(vulkan_utils

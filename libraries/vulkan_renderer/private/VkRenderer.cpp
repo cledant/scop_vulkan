@@ -12,7 +12,8 @@
 #include "VkSwapChain.hpp"
 #include "VkShader.hpp"
 #include "VkMemory.hpp"
-#include "VkImageManger.hpp"
+#include "VkImage.hpp"
+#include "VkTextureManager.hpp"
 
 void
 VkRenderer::createInstance(std::string &&app_name,
@@ -47,7 +48,7 @@ VkRenderer::initInstance(VkSurfaceKHR surface)
     _select_physical_device();
     _create_graphic_queue();
     _create_command_pool();
-    _create_render_sync_objects();
+    _tex_manager.init(_device, _physical_device, _graphic_queue, _command_pool);
 }
 
 void
@@ -102,15 +103,14 @@ VkRenderer::initResources(uint32_t fb_w, uint32_t fb_h)
     _create_gfx_pipeline();
     _create_depth_resources();
     _create_framebuffers();
-    _create_texture_image();
-    _create_texture_image_view();
-    _create_texture_sampler();
+    _tex = _tex_manager.loadAndGetTexture("resources/texture/texture.jpg");
     _create_vertex_buffer();
     _create_index_buffer();
     _create_uniform_buffers();
     _create_descriptor_pool();
     _create_descriptor_sets();
     _create_command_buffers();
+    _create_render_sync_objects();
 }
 
 void
@@ -134,10 +134,7 @@ void
 VkRenderer::clearResources()
 {
     _clear_swap_chain();
-    vkDestroySampler(_device, _texture_sampler, nullptr);
-    vkDestroyImageView(_device, _texture_img_view, nullptr);
-    vkDestroyImage(_device, _texture_img, nullptr);
-    vkFreeMemory(_device, _texture_img_memory, nullptr);
+    _tex_manager.clear();
     vkDestroyBuffer(_device, _index_buffer, nullptr);
     vkFreeMemory(_device, _index_buffer_memory, nullptr);
     vkDestroyBuffer(_device, _vertex_buffer, nullptr);
@@ -781,98 +778,6 @@ VkRenderer::_create_depth_resources()
 }
 
 void
-VkRenderer::_create_texture_image()
-{
-    VkBuffer staging_buffer{};
-    VkDeviceMemory staging_buffer_memory{};
-    int img_w = 0;
-    int img_h = 0;
-
-    loadTextureInBuffer(_physical_device,
-                        _device,
-                        "resources/texture/texture.jpg",
-                        staging_buffer,
-                        staging_buffer_memory,
-                        img_w,
-                        img_h);
-    createImage(_device,
-                _texture_img,
-                img_w,
-                img_h,
-                VK_FORMAT_R8G8B8A8_SRGB,
-                VK_IMAGE_TILING_OPTIMAL,
-                VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-    allocateImage(_physical_device,
-                  _device,
-                  _texture_img,
-                  _texture_img_memory,
-                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    transitionImageLayout(_device,
-                          _command_pool,
-                          _graphic_queue,
-                          _texture_img,
-                          VK_FORMAT_R8G8B8A8_SRGB,
-                          VK_IMAGE_LAYOUT_UNDEFINED,
-                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    copyBufferToImage(_device,
-                      _command_pool,
-                      _graphic_queue,
-                      staging_buffer,
-                      _texture_img,
-                      img_w,
-                      img_h);
-    transitionImageLayout(_device,
-                          _command_pool,
-                          _graphic_queue,
-                          _texture_img,
-                          VK_FORMAT_R8G8B8A8_SRGB,
-                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-    vkDestroyBuffer(_device, staging_buffer, nullptr);
-    vkFreeMemory(_device, staging_buffer_memory, nullptr);
-}
-
-void
-VkRenderer::_create_texture_image_view()
-{
-    _texture_img_view = createImageView(_device,
-                                        _texture_img,
-                                        VK_FORMAT_R8G8B8A8_SRGB,
-                                        VK_IMAGE_ASPECT_COLOR_BIT);
-}
-
-void
-VkRenderer::_create_texture_sampler()
-{
-    VkPhysicalDeviceProperties properties{};
-    vkGetPhysicalDeviceProperties(_physical_device, &properties);
-    float aniso = (properties.limits.maxSamplerAnisotropy > 16.0f)
-                    ? 16.0f
-                    : properties.limits.maxSamplerAnisotropy;
-
-    VkSamplerCreateInfo sampler_info{};
-    sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    sampler_info.magFilter = VK_FILTER_LINEAR;
-    sampler_info.minFilter = VK_FILTER_LINEAR;
-    sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    sampler_info.anisotropyEnable = VK_TRUE;
-    sampler_info.maxAnisotropy = aniso;
-    sampler_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-    sampler_info.unnormalizedCoordinates = VK_FALSE;
-    sampler_info.compareEnable = VK_FALSE;
-    sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
-
-    if (vkCreateSampler(_device, &sampler_info, nullptr, &_texture_sampler) !=
-        VK_SUCCESS) {
-        throw std::runtime_error(
-          "VkRenderer: failed to create texture sampler");
-    }
-}
-
-void
 VkRenderer::_create_vertex_buffer()
 {
     VkDeviceSize size =
@@ -1032,8 +937,8 @@ VkRenderer::_create_descriptor_sets()
 
         VkDescriptorImageInfo img_info{};
         img_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        img_info.imageView = _texture_img_view;
-        img_info.sampler = _texture_sampler;
+        img_info.imageView = _tex.texture_img_view;
+        img_info.sampler = _tex.texture_sampler;
 
         std::array<VkWriteDescriptorSet, 2> descriptor_write{};
         descriptor_write[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

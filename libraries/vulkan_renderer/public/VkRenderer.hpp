@@ -8,6 +8,8 @@
 #include <string>
 #include <vulkan/vulkan.h>
 
+#include "VkTextureManager.hpp"
+
 class VkRenderer final
 {
   public:
@@ -170,10 +172,8 @@ class VkRenderer final
     std::vector<VkDescriptorSet> _descriptor_sets;
 
     // Texture related
-    VkImage _texture_img{};
-    VkDeviceMemory _texture_img_memory{};
-    VkImageView _texture_img_view{};
-    VkSampler _texture_sampler{};
+    VkTextureManager _tex_manager;
+    Texture _tex;
 
     // Depth Buffer related
     VkImage _depth_image{};
@@ -195,9 +195,6 @@ class VkRenderer final
     inline void _create_framebuffers();
     inline void _create_command_pool();
     inline void _create_depth_resources();
-    inline void _create_texture_image();
-    inline void _create_texture_image_view();
-    inline void _create_texture_sampler();
     inline void _create_vertex_buffer();
     inline void _create_index_buffer();
     inline void _create_uniform_buffers();

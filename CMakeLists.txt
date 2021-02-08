@@ -79,7 +79,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/assimp ${CMAKE_BINARY_DIR}
 add_subdirectory(libraries/io_manager)
 add_subdirectory(libraries/engine)
 add_subdirectory(libraries/vulkan_utils)
-add_subdirectory(libraries/vulkan_image_manager)
+add_subdirectory(libraries/vulkan_texture_manager)
 add_subdirectory(libraries/vulkan_renderer)
 add_subdirectory(libraries/model)
 
