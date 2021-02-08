@@ -123,15 +123,15 @@ class VkRenderer final
     VkInstance _instance{};
     VkSurfaceKHR _surface{};
     VkDebugUtilsMessengerEXT _debug_messenger{};
-
-    // Device related
     VkPhysicalDevice _physical_device{};
     VkDevice _device{};
     char _device_name[VK_MAX_PHYSICAL_DEVICE_NAME_SIZE]{};
-
-    // Queue related
     VkQueue _graphic_queue{};
     VkQueue _present_queue{};
+    VkCommandPool _command_pool{};
+
+    // Tex management related
+    VkTextureManager _tex_manager;
 
     // Swap chain related
     VkSwapchainKHR _swap_chain{};
@@ -140,15 +140,27 @@ class VkRenderer final
     std::vector<VkImage> _swap_chain_images;
     std::vector<VkImageView> _swap_chain_image_views;
     std::vector<VkFramebuffer> _swap_chain_framebuffers;
-
-    // Pipeline related
+    VkFormat _depth_format{};
+    VkImage _depth_image{};
+    VkDeviceMemory _depth_img_memory{};
+    VkImageView _depth_img_view{};
     VkRenderPass _render_pass{};
+
+    // Pipeline + Model + model texture related
     VkDescriptorSetLayout _descriptor_set_layout{};
     VkPipelineLayout _pipeline_layout{};
     VkPipeline _graphic_pipeline{};
+    VkBuffer _vertex_buffer{};
+    VkDeviceMemory _vertex_buffer_memory{};
+    VkBuffer _index_buffer{};
+    VkDeviceMemory _index_buffer_memory{};
+    Texture _tex;
+    std::vector<VkBuffer> _uniform_buffers;
+    std::vector<VkDeviceMemory> _uniform_buffers_memory;
+    VkDescriptorPool _descriptor_pool{};
+    std::vector<VkDescriptorSet> _descriptor_sets;
 
-    // Command pool related
-    VkCommandPool _command_pool{};
+    // Drawing related
     std::vector<VkCommandBuffer> _command_buffers;
 
     // Render synchronization related
@@ -159,34 +171,12 @@ class VkRenderer final
     size_t _current_frame{};
     std::vector<VkFence> _imgs_inflight_fence;
 
-    // Buffer related
-    VkBuffer _vertex_buffer{};
-    VkDeviceMemory _vertex_buffer_memory{};
-    VkBuffer _index_buffer{};
-    VkDeviceMemory _index_buffer_memory{};
-
-    // Ubo related
-    std::vector<VkBuffer> _uniform_buffers;
-    std::vector<VkDeviceMemory> _uniform_buffers_memory;
-    VkDescriptorPool _descriptor_pool{};
-    std::vector<VkDescriptorSet> _descriptor_sets;
-
-    // Texture related
-    VkTextureManager _tex_manager;
-    Texture _tex;
-
-    // Depth Buffer related
-    VkImage _depth_image{};
-    VkDeviceMemory _depth_img_memory{};
-    VkImageView _depth_img_view{};
-    VkFormat _depth_format{};
-
-    // Instance init related
+    // Init related
     inline void _create_instance(
       std::vector<char const *> const &required_extension);
     inline void _setup_vk_debug_msg();
     inline void _select_physical_device();
-    inline void _create_graphic_queue();
+    inline void _create_present_and_graphic_queue();
     inline void _create_swap_chain(uint32_t fb_w, uint32_t fb_h);
     inline void _create_image_view();
     inline void _create_render_pass();

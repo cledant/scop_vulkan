@@ -13,7 +13,6 @@
 #include "VkShader.hpp"
 #include "VkMemory.hpp"
 #include "VkImage.hpp"
-#include "VkTextureManager.hpp"
 
 void
 VkRenderer::createInstance(std::string &&app_name,
@@ -46,7 +45,7 @@ VkRenderer::initInstance(VkSurfaceKHR surface)
     _surface = surface;
     _setup_vk_debug_msg();
     _select_physical_device();
-    _create_graphic_queue();
+    _create_present_and_graphic_queue();
     _create_command_pool();
     _tex_manager.init(_device, _physical_device, _graphic_queue, _command_pool);
 }
@@ -54,11 +53,6 @@ VkRenderer::initInstance(VkSurfaceKHR surface)
 void
 VkRenderer::clearInstance()
 {
-    for (size_t i = 0; i < MAX_FRAME_INFLIGHT; ++i) {
-        vkDestroySemaphore(_device, _image_available_sem[i], nullptr);
-        vkDestroySemaphore(_device, _render_finished_sem[i], nullptr);
-        vkDestroyFence(_device, _inflight_fence[i], nullptr);
-    }
     vkDestroyCommandPool(_device, _command_pool, nullptr);
     vkDestroyDevice(_device, nullptr);
     if constexpr (ENABLE_VALIDATION_LAYER) {
@@ -96,20 +90,27 @@ VkRenderer::getEngineVersion() const
 void
 VkRenderer::initResources(uint32_t fb_w, uint32_t fb_h)
 {
+    // Swapchain related
     _create_swap_chain(fb_w, fb_h);
     _create_image_view();
     _create_render_pass();
-    _create_descriptor_layout();
-    _create_gfx_pipeline();
     _create_depth_resources();
     _create_framebuffers();
+
+    // Pipeline + Model + model texture related
+    _create_descriptor_layout();
+    _create_gfx_pipeline();
     _tex = _tex_manager.loadAndGetTexture("resources/texture/texture.jpg");
     _create_vertex_buffer();
     _create_index_buffer();
     _create_uniform_buffers();
     _create_descriptor_pool();
     _create_descriptor_sets();
+
+    // Drawing related
     _create_command_buffers();
+
+    // Render synchronization related
     _create_render_sync_objects();
 }
 
@@ -117,16 +118,21 @@ void
 VkRenderer::resizeResources(uint32_t fb_w, uint32_t fb_h)
 {
     vkDeviceWaitIdle(_device);
+    // Swapchain related
     _clear_swap_chain();
     _create_swap_chain(fb_w, fb_h);
     _create_image_view();
     _create_render_pass();
-    _create_gfx_pipeline();
     _create_depth_resources();
     _create_framebuffers();
+
+    // Pipeline + Model + model texture related
+    _create_gfx_pipeline();
     _create_uniform_buffers();
     _create_descriptor_pool();
     _create_descriptor_sets();
+
+    // Drawing related
     _create_command_buffers();
 }
 
@@ -134,6 +140,11 @@ void
 VkRenderer::clearResources()
 {
     _clear_swap_chain();
+    for (size_t i = 0; i < MAX_FRAME_INFLIGHT; ++i) {
+        vkDestroySemaphore(_device, _image_available_sem[i], nullptr);
+        vkDestroySemaphore(_device, _render_finished_sem[i], nullptr);
+        vkDestroyFence(_device, _inflight_fence[i], nullptr);
+    }
     _tex_manager.clear();
     vkDestroyBuffer(_device, _index_buffer, nullptr);
     vkFreeMemory(_device, _index_buffer_memory, nullptr);
@@ -143,7 +154,6 @@ VkRenderer::clearResources()
 }
 
 // Global Related
-
 void
 VkRenderer::clearAll()
 {
@@ -296,7 +306,7 @@ VkRenderer::_select_physical_device()
 }
 
 void
-VkRenderer::_create_graphic_queue()
+VkRenderer::_create_present_and_graphic_queue()
 {
     auto dfr = getDeviceRequirement(_physical_device, _surface);
     std::set<uint32_t> queue_families = { dfr.graphic_queue_index.value(),
