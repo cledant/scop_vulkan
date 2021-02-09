@@ -10,8 +10,8 @@ target_include_directories(model
         ${CMAKE_CURRENT_SOURCE_DIR}/public
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/private)
-add_dependencies(model assimp glm)
-target_link_libraries(model PUBLIC assimp glm)
+add_dependencies(model assimp glm fmt)
+target_link_libraries(model PUBLIC assimp glm fmt)
 set_target_properties(model PROPERTIES
         CXX_STANDARD 20
         CXX_STANDARD_REQUIRED YES

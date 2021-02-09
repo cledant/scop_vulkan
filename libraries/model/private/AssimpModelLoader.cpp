@@ -3,6 +3,8 @@
 #include <cassert>
 #include <stdexcept>
 
+#include "fmt/core.h"
+
 #include "assimp/Importer.hpp"
 #include "assimp/scene.h"
 #include "assimp/postprocess.h"
@@ -42,6 +44,13 @@ assimpLoadMesh(aiMesh *mesh, aiScene const *scene, std::vector<Mesh> &mesh_list)
 {
     Mesh loaded_mesh;
 
+    if (mesh->mNumVertices) {
+        loaded_mesh.min_point = { mesh->mVertices[0].x,
+                                  mesh->mVertices[0].y,
+                                  mesh->mVertices[0].z };
+        loaded_mesh.max_point = loaded_mesh.min_point;
+    }
+
     // Vertices
     loaded_mesh.vertex_list.resize(mesh->mNumVertices);
     for (size_t i = 0; i < mesh->mNumVertices; ++i) {
@@ -63,6 +72,35 @@ assimpLoadMesh(aiMesh *mesh, aiScene const *scene, std::vector<Mesh> &mesh_list)
                                         mesh->mBitangents[i].y,
                                         mesh->mBitangents[i].z };
         }
+        loaded_mesh.vertex_list.emplace_back(loaded_vertex);
+
+        // Min points
+        loaded_mesh.min_point.x =
+          (loaded_mesh.min_point.x > mesh->mVertices[i].x)
+            ? mesh->mVertices[i].x
+            : loaded_mesh.min_point.x;
+        loaded_mesh.min_point.y =
+          (loaded_mesh.min_point.y > mesh->mVertices[i].y)
+            ? mesh->mVertices[i].y
+            : loaded_mesh.min_point.y;
+        loaded_mesh.min_point.z =
+          (loaded_mesh.min_point.z > mesh->mVertices[i].z)
+            ? mesh->mVertices[i].z
+            : loaded_mesh.min_point.z;
+
+        // Max points
+        loaded_mesh.max_point.x =
+          (loaded_mesh.max_point.x < mesh->mVertices[i].x)
+            ? mesh->mVertices[i].x
+            : loaded_mesh.max_point.x;
+        loaded_mesh.max_point.y =
+          (loaded_mesh.max_point.y < mesh->mVertices[i].y)
+            ? mesh->mVertices[i].y
+            : loaded_mesh.max_point.y;
+        loaded_mesh.max_point.z =
+          (loaded_mesh.max_point.z < mesh->mVertices[i].z)
+            ? mesh->mVertices[i].z
+            : loaded_mesh.max_point.z;
 
         // Indices
         size_t nb_indices{};
@@ -77,12 +115,18 @@ assimpLoadMesh(aiMesh *mesh, aiScene const *scene, std::vector<Mesh> &mesh_list)
                 loaded_mesh.indices.emplace_back(face.mIndices[k]);
             }
         }
-
-        // Other
-        loaded_mesh.material = assimpLoadMaterial(mesh, scene);
-        loaded_mesh.mesh_name = mesh->mName.C_Str();
-        loaded_mesh.vertex_list.emplace_back(loaded_vertex);
     }
+    // Center
+    loaded_mesh.center = {
+        (loaded_mesh.min_point.x + loaded_mesh.max_point.x) / 2.0f,
+        (loaded_mesh.min_point.y + loaded_mesh.max_point.y) / 2.0f,
+        (loaded_mesh.min_point.z + loaded_mesh.max_point.z) / 2.0f
+    };
+
+    // Other
+    loaded_mesh.material = assimpLoadMaterial(mesh, scene);
+    loaded_mesh.mesh_name = mesh->mName.C_Str();
+
     mesh_list.emplace_back(loaded_mesh);
 }
 

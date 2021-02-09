@@ -47,6 +47,9 @@ struct Mesh final
     std::vector<Vertex> vertex_list;
     std::vector<uint32_t> indices;
     Material material{};
+    glm::vec3 center{};
+    glm::vec3 min_point{};
+    glm::vec3 max_point{};
     std::string mesh_name;
 };
 

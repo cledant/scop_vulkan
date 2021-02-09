@@ -28,8 +28,13 @@ class Model final
 
   private:
     std::vector<Mesh> _mesh_list;
+    glm::vec3 _center{};
+    glm::vec3 _min_point{};
+    glm::vec3 _max_point{};
     std::string _model_path;
     std::string _directory;
+
+    inline void _compute_min_max_points_and_center();
 };
 
 #endif
