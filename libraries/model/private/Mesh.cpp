@@ -29,19 +29,17 @@ Mesh::printMesh() const
     fmt::print("\tMESH:\n");
     fmt::print("\tMesh Name: {}\n", mesh_name);
     material.printMaterial();
-    fmt::print("\t\tMin point: ( {} | {} | {} )\n",
+    fmt::print("\t\tMin Point: ( {} | {} | {} )\n",
                min_point.x,
                min_point.y,
                min_point.z);
-    fmt::print("\t\tMax point: ( {} | {} | {} )\n",
+    fmt::print("\t\tMax Point: ( {} | {} | {} )\n",
                max_point.x,
                max_point.y,
                max_point.z);
-    fmt::print("\t\tCenter: ( {} | {} | {} )\n",
-               center.x,
-               center.y,
-               center.z);
+    fmt::print("\t\tCenter: ( {} | {} | {} )\n", center.x, center.y, center.z);
+    fmt::print("\tNb Faces: {}\n", nb_faces);
     fmt::print("\tNb Vertices: {}\n", vertex_list.size());
-    fmt::print("\tNb indices: {}\n", indices.size());
+    fmt::print("\tNb Indices: {}\n", indices.size());
     fmt::print("----- END MESH -----\n");
 }

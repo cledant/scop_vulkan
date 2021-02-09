@@ -52,11 +52,12 @@ Model::printModel() const
     fmt::print("MODEL:\n");
     fmt::print("Model Path: {}\n", _model_path);
     fmt::print("Model Directory: {}\n", _directory);
-    fmt::print("Model Min point: ( {} | {} | {} )\n",
+    fmt::print("Model Nb Faces: {}\n", _nb_faces);
+    fmt::print("Model Min Point: ( {} | {} | {} )\n",
                _min_point.x,
                _min_point.y,
                _min_point.z);
-    fmt::print("Model Max point: ( {} | {} | {} )\n",
+    fmt::print("Model Max Point: ( {} | {} | {} )\n",
                _max_point.x,
                _max_point.y,
                _max_point.z);
@@ -102,6 +103,8 @@ Model::_compute_min_max_points_and_center()
               (_max_point.y < it.max_point.y) ? it.max_point.y : _max_point.y;
             _max_point.z =
               (_max_point.z < it.max_point.z) ? it.max_point.z : _max_point.z;
+
+            _nb_faces += it.nb_faces;
         }
 
         // Center

@@ -31,6 +31,7 @@ class Model final
     glm::vec3 _center{};
     glm::vec3 _min_point{};
     glm::vec3 _max_point{};
+    uint32_t _nb_faces{};
     std::string _model_path;
     std::string _directory;
 

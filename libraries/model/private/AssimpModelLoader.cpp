@@ -44,6 +44,7 @@ assimpLoadMesh(aiMesh *mesh, aiScene const *scene, std::vector<Mesh> &mesh_list)
 {
     Mesh loaded_mesh;
 
+    // Init Min / Max point
     if (mesh->mNumVertices) {
         loaded_mesh.min_point = { mesh->mVertices[0].x,
                                   mesh->mVertices[0].y,
@@ -72,7 +73,7 @@ assimpLoadMesh(aiMesh *mesh, aiScene const *scene, std::vector<Mesh> &mesh_list)
                                         mesh->mBitangents[i].y,
                                         mesh->mBitangents[i].z };
         }
-        loaded_mesh.vertex_list.emplace_back(loaded_vertex);
+        loaded_mesh.vertex_list[i] = loaded_vertex;
 
         // Min points
         loaded_mesh.min_point.x =
@@ -101,21 +102,24 @@ assimpLoadMesh(aiMesh *mesh, aiScene const *scene, std::vector<Mesh> &mesh_list)
           (loaded_mesh.max_point.z < mesh->mVertices[i].z)
             ? mesh->mVertices[i].z
             : loaded_mesh.max_point.z;
+    }
 
-        // Indices
-        size_t nb_indices{};
-        for (size_t j = 0; j < mesh->mNumFaces; j++) {
-            aiFace face = mesh->mFaces[j];
-            nb_indices = face.mNumIndices;
-        }
-        loaded_mesh.indices.resize(nb_indices);
-        for (size_t j = 0; j < mesh->mNumFaces; j++) {
-            aiFace face = mesh->mFaces[j];
-            for (size_t k = 0; k < face.mNumIndices; ++k) {
-                loaded_mesh.indices.emplace_back(face.mIndices[k]);
-            }
+    // Indices
+    size_t nb_indices{};
+    for (size_t j = 0; j < mesh->mNumFaces; j++) {
+        aiFace face = mesh->mFaces[j];
+        nb_indices += face.mNumIndices;
+    }
+    loaded_mesh.indices.resize(nb_indices);
+    size_t indices_index{};
+    for (size_t j = 0; j < mesh->mNumFaces; j++) {
+        aiFace face = mesh->mFaces[j];
+        for (size_t k = 0; k < face.mNumIndices; ++k) {
+            loaded_mesh.indices[indices_index] = face.mIndices[k];
+            ++indices_index;
         }
     }
+
     // Center
     loaded_mesh.center = {
         (loaded_mesh.min_point.x + loaded_mesh.max_point.x) / 2.0f,
@@ -126,6 +130,7 @@ assimpLoadMesh(aiMesh *mesh, aiScene const *scene, std::vector<Mesh> &mesh_list)
     // Other
     loaded_mesh.material = assimpLoadMaterial(mesh, scene);
     loaded_mesh.mesh_name = mesh->mName.C_Str();
+    loaded_mesh.nb_faces = mesh->mNumFaces;
 
     mesh_list.emplace_back(loaded_mesh);
 }

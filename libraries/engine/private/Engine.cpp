@@ -27,9 +27,9 @@ Engine::init(EngineOptions const &opts)
     _event_handler.setVkRenderer(&_vk_renderer);
     _event_handler.setInvertYAxis(opts.invert_y_axis);
     _model.loadModel(opts.model_path);
-//#ifndef NDEBUG
+#ifndef NDEBUG
     _model.printModel();
-//#endif
+#endif
     _io_manager.createWindow(std::move(win_opts));
     _vk_renderer.createInstance(std::move(cpy_app_name),
                                 cpy_app_name + "_engine",

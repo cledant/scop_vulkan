@@ -50,6 +50,7 @@ struct Mesh final
     glm::vec3 center{};
     glm::vec3 min_point{};
     glm::vec3 max_point{};
+    uint32_t nb_faces;
     std::string mesh_name;
 };
 
