@@ -42,6 +42,7 @@ assimpLoadNode(aiNode *node, aiScene const *scene, std::vector<Mesh> &mesh_list)
 void
 assimpLoadMesh(aiMesh *mesh, aiScene const *scene, std::vector<Mesh> &mesh_list)
 {
+    assert(mesh && scene);
     Mesh loaded_mesh;
 
     // Init Min / Max point
@@ -53,7 +54,7 @@ assimpLoadMesh(aiMesh *mesh, aiScene const *scene, std::vector<Mesh> &mesh_list)
     }
 
     // Vertices
-    loaded_mesh.vertex_list.resize(mesh->mNumVertices);
+    std::unordered_map<Vertex, uint32_t> unique_vertices{};
     for (size_t i = 0; i < mesh->mNumVertices; ++i) {
         Vertex loaded_vertex{};
 
@@ -73,7 +74,13 @@ assimpLoadMesh(aiMesh *mesh, aiScene const *scene, std::vector<Mesh> &mesh_list)
                                         mesh->mBitangents[i].y,
                                         mesh->mBitangents[i].z };
         }
-        loaded_mesh.vertex_list[i] = loaded_vertex;
+        if (!unique_vertices.contains(loaded_vertex)) {
+            unique_vertices[loaded_vertex] = i;
+            loaded_mesh.vertex_list.emplace_back(loaded_vertex);
+        }
+
+        // Indices
+        loaded_mesh.indices.emplace_back(unique_vertices[loaded_vertex]);
 
         // Min points
         loaded_mesh.min_point.x =
@@ -104,22 +111,6 @@ assimpLoadMesh(aiMesh *mesh, aiScene const *scene, std::vector<Mesh> &mesh_list)
             : loaded_mesh.max_point.z;
     }
 
-    // Indices
-    size_t nb_indices{};
-    for (size_t j = 0; j < mesh->mNumFaces; j++) {
-        aiFace face = mesh->mFaces[j];
-        nb_indices += face.mNumIndices;
-    }
-    loaded_mesh.indices.resize(nb_indices);
-    size_t indices_index{};
-    for (size_t j = 0; j < mesh->mNumFaces; j++) {
-        aiFace face = mesh->mFaces[j];
-        for (size_t k = 0; k < face.mNumIndices; ++k) {
-            loaded_mesh.indices[indices_index] = face.mIndices[k];
-            ++indices_index;
-        }
-    }
-
     // Center
     loaded_mesh.center = {
         (loaded_mesh.min_point.x + loaded_mesh.max_point.x) / 2.0f,
@@ -138,6 +129,7 @@ assimpLoadMesh(aiMesh *mesh, aiScene const *scene, std::vector<Mesh> &mesh_list)
 Material
 assimpLoadMaterial(aiMesh *mesh, aiScene const *scene)
 {
+    assert(mesh);
     Material mat{};
     auto mesh_mat = scene->mMaterials[mesh->mMaterialIndex];
 
@@ -179,6 +171,7 @@ assimpLoadMaterial(aiMesh *mesh, aiScene const *scene)
 std::string
 assimpGetTextureName(aiMaterial *mat, aiTextureType type)
 {
+    assert(mat);
     aiString str;
 
     if (mat->GetTextureCount(type)) {

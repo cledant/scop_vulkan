@@ -3,13 +3,15 @@
 
 #include <string>
 #include <vector>
+#include <functional>
 
 #include "glm/glm.hpp"
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
 
 struct Vertex final
 {
-    Vertex() = default;
-    ~Vertex() = default;
+    bool operator==(Vertex const &rhs) const = default;
 
     glm::vec3 position{};
     glm::vec3 normal{};
@@ -20,9 +22,6 @@ struct Vertex final
 
 struct Material final
 {
-    Material() = default;
-    ~Material() = default;
-
     void printMaterial() const;
 
     glm::vec3 ambient = glm::vec3(1.0f);
@@ -39,9 +38,6 @@ struct Material final
 
 struct Mesh final
 {
-    Mesh() = default;
-    ~Mesh() = default;
-
     void printMesh() const;
 
     std::vector<Vertex> vertex_list;
@@ -53,5 +49,29 @@ struct Mesh final
     uint32_t nb_faces;
     std::string mesh_name;
 };
+
+size_t constexpr hash_combine(size_t h1, size_t h2)
+{
+    return (h1 ^ (h2 << 1));
+};
+
+namespace std {
+template<>
+struct hash<Vertex> final
+{
+    size_t
+    operator()(Vertex const &vertex) const noexcept
+    {
+        using namespace glm;
+        auto h1 = hash_combine(hash<vec3>()(vertex.position),
+                               hash<vec3>()(vertex.normal)) >>
+                  1;
+        auto h2 = hash_combine(h1, hash<vec2>()(vertex.tex_coords)) >> 1;
+        auto h3 = hash_combine(h2, hash<vec3>()(vertex.tangent)) >> 1;
+        auto h4 = hash_combine(h3, hash<vec3>()(vertex.bitangent));
+        return (h4);
+    }
+};
+}
 
 #endif
