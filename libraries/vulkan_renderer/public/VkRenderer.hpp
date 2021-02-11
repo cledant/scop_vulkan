@@ -53,22 +53,26 @@ class VkRenderer final
         glm::vec3 color;
         glm::vec2 tex_coord;
 
-        static std::array<VkVertexInputBindingDescription, 1>
+        static std::array<VkVertexInputBindingDescription, 2>
         getBindingDescription()
         {
-            std::array<VkVertexInputBindingDescription, 1>
+            std::array<VkVertexInputBindingDescription, 2>
               binding_description{};
             binding_description[0].binding = 0;
             binding_description[0].stride = sizeof(Vertex);
             binding_description[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
+            binding_description[1].binding = 1;
+            binding_description[1].stride = sizeof(glm::mat4);
+            binding_description[1].inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+
             return (binding_description);
         }
 
-        static std::array<VkVertexInputAttributeDescription, 3>
+        static std::array<VkVertexInputAttributeDescription, 7>
         getAttributeDescriptions()
         {
-            std::array<VkVertexInputAttributeDescription, 3>
+            std::array<VkVertexInputAttributeDescription, 7>
               attribute_description{};
 
             attribute_description[0].binding = 0;
@@ -85,6 +89,26 @@ class VkRenderer final
             attribute_description[2].location = 2;
             attribute_description[2].offset = offsetof(Vertex, tex_coord);
             attribute_description[2].format = VK_FORMAT_R32G32_SFLOAT;
+
+            attribute_description[3].binding = 1;
+            attribute_description[3].location = 3;
+            attribute_description[3].offset = 0;
+            attribute_description[3].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+
+            attribute_description[4].binding = 1;
+            attribute_description[4].location = 4;
+            attribute_description[4].offset = sizeof(glm::vec4);
+            attribute_description[4].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+
+            attribute_description[5].binding = 1;
+            attribute_description[5].location = 5;
+            attribute_description[5].offset = sizeof(glm::vec4) * 2;
+            attribute_description[5].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+
+            attribute_description[6].binding = 1;
+            attribute_description[6].location = 6;
+            attribute_description[6].offset = sizeof(glm::vec4) * 3;
+            attribute_description[6].format = VK_FORMAT_R32G32B32A32_SFLOAT;
             return (attribute_description);
         }
     };
@@ -96,22 +120,21 @@ class VkRenderer final
     };
 
     // Test triangle
-    static constexpr std::array<Vertex, 8> const _test_triangle_verticies = {
-        { { { -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } },
-          { { 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
-          { { 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f } },
-          { { -0.5f, 0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f } },
-
-          { { -0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
-          { { 0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
-          { { 0.5f, 0.5f, -0.5f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f } },
-          { { -0.5f, 0.5f, -0.5f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f } }
-
-        }
+    static constexpr std::array<Vertex, 8> const _test_triangle_verticies = { {
+      { { -0.5f, 1.0f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } },
+      { { 0.5f, 1.0f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
+      { { 0.5f, 1.0f, 0.5f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f } },
+      { { -0.5f, 1.0f, 0.5f }, { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f } },
+    } };
+    static constexpr std::array<uint32_t, 12> const _test_triangle_indices = {
+        0, 1, 2, 2, 3, 0,
     };
-    static constexpr std::array<uint16_t, 12> const _test_triangle_indices = {
-        0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4
-    };
+    static constexpr std::array<glm::vec3, 4> _test_triangle_pos = { {
+      { 2.0f, 0.0f, 2.0f },
+      { -2.0f, 0.0f, 2.0f },
+      { -2.0f, 0.0f, -2.0f },
+      { 2.0f, 0.0f, -2.0f },
+    } };
 
     // Description related
     std::string _app_name;
@@ -134,6 +157,8 @@ class VkRenderer final
     VkTextureManager _tex_manager;
 
     // Swap chain related
+    uint32_t _old_swap_chain_nb_img{};
+    uint32_t _current_swap_chain_nb_img{};
     VkSwapchainKHR _swap_chain{};
     VkFormat _swap_chain_image_format{};
     VkExtent2D _swap_chain_extent{};
@@ -150,13 +175,10 @@ class VkRenderer final
     VkDescriptorSetLayout _descriptor_set_layout{};
     VkPipelineLayout _pipeline_layout{};
     VkPipeline _graphic_pipeline{};
-    VkBuffer _vertex_buffer{};
-    VkDeviceMemory _vertex_buffer_memory{};
-    VkBuffer _index_buffer{};
-    VkDeviceMemory _index_buffer_memory{};
+    VkBuffer _gfx_buffer{};
+    VkDeviceMemory _gfx_memory{};
     Texture _tex;
-    std::vector<VkBuffer> _uniform_buffers;
-    std::vector<VkDeviceMemory> _uniform_buffers_memory;
+    std::vector<glm::mat4> _translation_matrices;
     VkDescriptorPool _descriptor_pool{};
     std::vector<VkDescriptorSet> _descriptor_sets;
 
@@ -185,9 +207,7 @@ class VkRenderer final
     inline void _create_framebuffers();
     inline void _create_command_pool();
     inline void _create_depth_resources();
-    inline void _create_vertex_buffer();
-    inline void _create_index_buffer();
-    inline void _create_uniform_buffers();
+    inline void _create_gfx_buffer();
     inline void _create_descriptor_pool();
     inline void _create_descriptor_sets();
     inline void _create_command_buffers();
@@ -201,6 +221,9 @@ class VkRenderer final
 
     // Ubo related
     inline void _update_ubo(uint32_t img_index, glm::mat4 const &view_proj_mat);
+
+    // Test instancing
+    inline void _init_instances_matrices();
 };
 
 #endif // SCOP_VULKAN_VKRENDERER_HPP

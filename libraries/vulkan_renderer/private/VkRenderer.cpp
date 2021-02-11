@@ -7,12 +7,15 @@
 #include <iostream>
 #include <set>
 
+#include "glm/gtc/matrix_transform.hpp"
+
 #include "VkDebug.hpp"
 #include "VkPhysicalDevice.hpp"
 #include "VkSwapChain.hpp"
 #include "VkShader.hpp"
 #include "VkMemory.hpp"
 #include "VkImage.hpp"
+#include "VkCommandBuffer.hpp"
 
 void
 VkRenderer::createInstance(std::string &&app_name,
@@ -101,9 +104,8 @@ VkRenderer::initResources(uint32_t fb_w, uint32_t fb_h)
     _create_descriptor_layout();
     _create_gfx_pipeline();
     _tex = _tex_manager.loadAndGetTexture("resources/texture/texture.jpg");
-    _create_vertex_buffer();
-    _create_index_buffer();
-    _create_uniform_buffers();
+    _init_instances_matrices();
+    _create_gfx_buffer();
     _create_descriptor_pool();
     _create_descriptor_sets();
 
@@ -119,6 +121,7 @@ VkRenderer::resizeResources(uint32_t fb_w, uint32_t fb_h)
 {
     vkDeviceWaitIdle(_device);
     // Swapchain related
+    _old_swap_chain_nb_img = _current_swap_chain_nb_img;
     _clear_swap_chain();
     _create_swap_chain(fb_w, fb_h);
     _create_image_view();
@@ -128,9 +131,14 @@ VkRenderer::resizeResources(uint32_t fb_w, uint32_t fb_h)
 
     // Pipeline + Model + model texture related
     _create_gfx_pipeline();
-    _create_uniform_buffers();
-    _create_descriptor_pool();
-    _create_descriptor_sets();
+    if (_old_swap_chain_nb_img != _current_swap_chain_nb_img) {
+        vkDestroyBuffer(_device, _gfx_buffer, nullptr);
+        vkFreeMemory(_device, _gfx_memory, nullptr);
+        vkDestroyDescriptorPool(_device, _descriptor_pool, nullptr);
+        _create_gfx_buffer();
+        _create_descriptor_pool();
+        _create_descriptor_sets();
+    }
 
     // Drawing related
     _create_command_buffers();
@@ -146,10 +154,8 @@ VkRenderer::clearResources()
         vkDestroyFence(_device, _inflight_fence[i], nullptr);
     }
     _tex_manager.clear();
-    vkDestroyBuffer(_device, _index_buffer, nullptr);
-    vkFreeMemory(_device, _index_buffer_memory, nullptr);
-    vkDestroyBuffer(_device, _vertex_buffer, nullptr);
-    vkFreeMemory(_device, _vertex_buffer_memory, nullptr);
+    vkDestroyBuffer(_device, _gfx_buffer, nullptr);
+    vkFreeMemory(_device, _gfx_memory, nullptr);
     vkDestroyDescriptorSetLayout(_device, _descriptor_set_layout, nullptr);
 }
 
@@ -158,6 +164,7 @@ void
 VkRenderer::clearAll()
 {
     clearResources();
+    vkDestroyDescriptorPool(_device, _descriptor_pool, nullptr);
     clearInstance();
 }
 
@@ -409,6 +416,7 @@ VkRenderer::_create_swap_chain(uint32_t fb_w, uint32_t fb_h)
     uint32_t nb_img_sc;
     vkGetSwapchainImagesKHR(_device, _swap_chain, &nb_img_sc, nullptr);
     _swap_chain_images.resize(nb_img_sc);
+    _current_swap_chain_nb_img = nb_img_sc;
     vkGetSwapchainImagesKHR(
       _device, _swap_chain, &nb_img_sc, _swap_chain_images.data());
     _swap_chain_extent = scs.extent;
@@ -612,7 +620,9 @@ VkRenderer::_create_gfx_pipeline()
     rasterizer_info.rasterizerDiscardEnable = VK_FALSE;
     rasterizer_info.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer_info.lineWidth = 1.0f;
-    rasterizer_info.cullMode = VK_CULL_MODE_BACK_BIT;
+    // rasterizer_info.cullMode = VK_CULL_MODE_BACK_BIT;
+    // rasterizer_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    rasterizer_info.cullMode = VK_CULL_MODE_NONE;
     rasterizer_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizer_info.depthBiasEnable = VK_FALSE;
     rasterizer_info.depthBiasConstantFactor = 0.0f;
@@ -788,16 +798,23 @@ VkRenderer::_create_depth_resources()
 }
 
 void
-VkRenderer::_create_vertex_buffer()
+VkRenderer::_create_gfx_buffer()
 {
-    VkDeviceSize size =
+    VkDeviceSize vertex_size =
       sizeof(_test_triangle_verticies[0]) * _test_triangle_verticies.size();
+    VkDeviceSize instance_matrices_size =
+      sizeof(glm::mat4) * _test_triangle_pos.size();
+    VkDeviceSize indices_size =
+      sizeof(uint32_t) * _test_triangle_indices.size();
+    VkDeviceSize uniform_size = sizeof(glm::mat4) * _current_swap_chain_nb_img;
+    VkDeviceSize total_size =
+      vertex_size + instance_matrices_size + indices_size + uniform_size;
 
     // CPU => GPU transfer buffer
     VkBuffer staging_buffer{};
     VkDeviceMemory staging_buffer_memory{};
     createBuffer(
-      _device, staging_buffer, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+      _device, staging_buffer, total_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
     allocateBuffer(_physical_device,
                    _device,
                    staging_buffer,
@@ -805,33 +822,55 @@ VkRenderer::_create_vertex_buffer()
                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                      VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
+    // Vertices
     void *data{};
-    vkMapMemory(_device, staging_buffer_memory, 0, size, 0, &data);
-    memcpy(data, _test_triangle_verticies.data(), size);
+    vkMapMemory(_device, staging_buffer_memory, 0, vertex_size, 0, &data);
+    memcpy(data, _test_triangle_verticies.data(), vertex_size);
+    vkUnmapMemory(_device, staging_buffer_memory);
+
+    // Instance Matrices
+    vkMapMemory(_device,
+                staging_buffer_memory,
+                vertex_size,
+                instance_matrices_size,
+                0,
+                &data);
+    memcpy(data, _translation_matrices.data(), instance_matrices_size);
+    vkUnmapMemory(_device, staging_buffer_memory);
+
+    // Indices
+    vkMapMemory(_device,
+                staging_buffer_memory,
+                vertex_size + instance_matrices_size,
+                indices_size,
+                0,
+                &data);
+    memcpy(data, _test_triangle_indices.data(), indices_size);
     vkUnmapMemory(_device, staging_buffer_memory);
 
     // GPU only memory
-    createBuffer(_device,
-                 _vertex_buffer,
-                 size,
-                 VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-                   VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+    createBuffer(
+      _device,
+      _gfx_buffer,
+      total_size,
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+        VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
     allocateBuffer(_physical_device,
                    _device,
-                   _vertex_buffer,
-                   _vertex_buffer_memory,
+                   _gfx_buffer,
+                   _gfx_memory,
                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     copyBuffer(_device,
                _command_pool,
                _present_queue,
-               _vertex_buffer,
+               _gfx_buffer,
                staging_buffer,
-               size);
+               total_size);
 
     vkDestroyBuffer(_device, staging_buffer, nullptr);
     vkFreeMemory(_device, staging_buffer_memory, nullptr);
 }
-
+/*
 void
 VkRenderer::_create_index_buffer()
 {
@@ -898,7 +937,7 @@ VkRenderer::_create_uniform_buffers()
                          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     }
 }
-
+*/
 void
 VkRenderer::_create_descriptor_pool()
 {
@@ -941,7 +980,7 @@ VkRenderer::_create_descriptor_sets()
 
     for (size_t i = 0; i < _swap_chain_framebuffers.size(); ++i) {
         VkDescriptorBufferInfo buffer_info{};
-        buffer_info.buffer = _uniform_buffers[i];
+        buffer_info.buffer = _gfx_buffer;
         buffer_info.offset = 0;
         buffer_info.range = sizeof(UniformBufferObject);
 
@@ -1022,14 +1061,20 @@ VkRenderer::_create_command_buffers()
         rp_begin_info.pClearValues = clear_vals.data();
 
         // Vertex related values
-        VkBuffer vertex_buffer[] = { _vertex_buffer };
-        VkDeviceSize offsets[] = { 0 };
+        VkBuffer vertex_buffer[] = { _gfx_buffer, _gfx_buffer };
+        VkDeviceSize offsets[] = {
+            0, sizeof(Vertex) * _test_triangle_verticies.size()
+        };
 
         vkCmdBeginRenderPass(it, &rp_begin_info, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(
           it, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphic_pipeline);
-        vkCmdBindVertexBuffers(it, 0, 1, vertex_buffer, offsets);
-        vkCmdBindIndexBuffer(it, _index_buffer, 0, VK_INDEX_TYPE_UINT16);
+        vkCmdBindVertexBuffers(it, 0, 2, vertex_buffer, offsets);
+        vkCmdBindIndexBuffer(it,
+                             _gfx_buffer,
+                             sizeof(Vertex) * _test_triangle_verticies.size() +
+                               sizeof(glm::mat4) * _test_triangle_pos.size(),
+                             VK_INDEX_TYPE_UINT32);
         vkCmdBindDescriptorSets(it,
                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 _pipeline_layout,
@@ -1038,7 +1083,7 @@ VkRenderer::_create_command_buffers()
                                 &_descriptor_sets[i],
                                 0,
                                 nullptr);
-        vkCmdDrawIndexed(it, _test_triangle_indices.size(), 1, 0, 0, 0);
+        vkCmdDrawIndexed(it, _test_triangle_indices.size(), 4, 0, 0, 0);
         vkCmdEndRenderPass(it);
 
         if (vkEndCommandBuffer(it) != VK_SUCCESS) {
@@ -1087,12 +1132,9 @@ VkRenderer::_clear_swap_chain()
     vkDestroyImage(_device, _depth_image, nullptr);
     vkFreeMemory(_device, _depth_img_memory, nullptr);
     for (auto &it : _swap_chain_framebuffers) {
-        vkDestroyBuffer(_device, _uniform_buffers[i], nullptr);
-        vkFreeMemory(_device, _uniform_buffers_memory[i], nullptr);
         vkDestroyFramebuffer(_device, it, nullptr);
         ++i;
     }
-    vkDestroyDescriptorPool(_device, _descriptor_pool, nullptr);
     vkFreeCommandBuffers(
       _device, _command_pool, _command_buffers.size(), _command_buffers.data());
     vkDestroyPipeline(_device, _graphic_pipeline, nullptr);
@@ -1133,12 +1175,68 @@ VkRenderer::_check_validation_layer_support()
 void
 VkRenderer::_update_ubo(uint32_t img_index, glm::mat4 const &view_proj_mat)
 {
+    VkDeviceSize vertex_size =
+      sizeof(_test_triangle_verticies[0]) * _test_triangle_verticies.size();
+    VkDeviceSize instance_matrices_size =
+      sizeof(glm::mat4) * _test_triangle_pos.size();
+    VkDeviceSize indices_size =
+      sizeof(uint32_t) * _test_triangle_indices.size();
+
     UniformBufferObject ubo = { view_proj_mat };
     ubo.view_proj[1][1] = -ubo.view_proj[1][1];
 
+    // CPU => GPU transfer buffer
+    VkBuffer staging_buffer{};
+    VkDeviceMemory staging_buffer_memory{};
+    createBuffer(
+      _device, staging_buffer, sizeof(ubo), VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+    allocateBuffer(_physical_device,
+                   _device,
+                   staging_buffer,
+                   staging_buffer_memory,
+                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
     void *data = nullptr;
-    vkMapMemory(
-      _device, _uniform_buffers_memory[img_index], 0, sizeof(ubo), 0, &data);
+    vkMapMemory(_device, _gfx_memory, 0, sizeof(ubo), 0, &data);
     memcpy(data, &ubo, sizeof(ubo));
-    vkUnmapMemory(_device, _uniform_buffers_memory[img_index]);
+    vkUnmapMemory(_device, _gfx_memory);
+
+    // GPU buffer
+    VkCommandBuffer cmd_buffer =
+      beginSingleTimeCommands(_device, _command_pool);
+
+    VkBufferCopy copy_region{};
+    copy_region.size = sizeof(ubo);
+    copy_region.dstOffset = vertex_size + instance_matrices_size +
+                            indices_size + sizeof(ubo) * img_index;
+    copy_region.srcOffset = 0;
+    vkCmdCopyBuffer(cmd_buffer, staging_buffer, _gfx_buffer, 1, &copy_region);
+
+    endSingleTimeCommands(_device, _command_pool, cmd_buffer, _graphic_queue);
+
+    vkDestroyBuffer(_device, staging_buffer, nullptr);
+    vkFreeMemory(_device, staging_buffer_memory, nullptr);
+}
+
+void
+VkRenderer::_init_instances_matrices()
+{
+    _translation_matrices.resize(_test_triangle_pos.size());
+
+    for (size_t i = 0; i < _translation_matrices.size(); ++i) {
+        _translation_matrices[i] = glm::mat4(1.0f);
+        _translation_matrices[i] =
+          glm::translate(_translation_matrices[i], _test_triangle_pos[i]);
+        _translation_matrices[i] = glm::rotate(
+          _translation_matrices[i], 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+        _translation_matrices[i] = glm::rotate(
+          _translation_matrices[i], 0.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+        _translation_matrices[i] = glm::rotate(
+          _translation_matrices[i], 0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+        _translation_matrices[i] =
+          glm::translate(_translation_matrices[i], glm::vec3(0.0f, 1.0f, 0.0f));
+        _translation_matrices[i] =
+          glm::scale(_translation_matrices[i], glm::vec3(1.0f));
+    }
 }
