@@ -1176,6 +1176,7 @@ VkRenderer::_init_instances_matrices()
 
     for (size_t i = 0; i < _translation_matrices.size(); ++i) {
         _translation_matrices[i] = glm::mat4(1.0f);
+
         _translation_matrices[i] =
           glm::translate(_translation_matrices[i], _test_triangle_pos[i]);
         _translation_matrices[i] = glm::rotate(
@@ -1185,7 +1186,7 @@ VkRenderer::_init_instances_matrices()
         _translation_matrices[i] = glm::rotate(
           _translation_matrices[i], 0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
         _translation_matrices[i] =
-          glm::translate(_translation_matrices[i], glm::vec3(0.0f, 1.0f, 0.0f));
+          glm::translate(_translation_matrices[i], glm::vec3(0.0f, -1.0f, 0.0f));
         _translation_matrices[i] =
           glm::scale(_translation_matrices[i], glm::vec3(1.0f));
     }
