@@ -8,6 +8,7 @@
 #include <set>
 
 #include "glm/gtc/matrix_transform.hpp"
+#include "fmt/core.h"
 
 #include "VkDebug.hpp"
 #include "VkPhysicalDevice.hpp"
@@ -800,8 +801,7 @@ VkRenderer::_create_depth_resources()
 void
 VkRenderer::_create_gfx_buffer()
 {
-    VkDeviceSize vertex_size =
-      sizeof(_test_triangle_verticies[0]) * _test_triangle_verticies.size();
+    VkDeviceSize vertex_size = sizeof(Vertex) * _test_triangle_verticies.size();
     VkDeviceSize instance_matrices_size =
       sizeof(glm::mat4) * _test_triangle_pos.size();
     VkDeviceSize indices_size =
@@ -870,74 +870,7 @@ VkRenderer::_create_gfx_buffer()
     vkDestroyBuffer(_device, staging_buffer, nullptr);
     vkFreeMemory(_device, staging_buffer_memory, nullptr);
 }
-/*
-void
-VkRenderer::_create_index_buffer()
-{
-    VkDeviceSize size =
-      sizeof(_test_triangle_indices[0]) * _test_triangle_indices.size();
 
-    // CPU => GPU transfer buffer
-    VkBuffer staging_buffer{};
-    VkDeviceMemory staging_buffer_memory{};
-    createBuffer(
-      _device, staging_buffer, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-    allocateBuffer(_physical_device,
-                   _device,
-                   staging_buffer,
-                   staging_buffer_memory,
-                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-    void *data{};
-    vkMapMemory(_device, staging_buffer_memory, 0, size, 0, &data);
-    memcpy(data, _test_triangle_indices.data(), size);
-    vkUnmapMemory(_device, staging_buffer_memory);
-
-    // GPU only memory
-    createBuffer(_device,
-                 _index_buffer,
-                 size,
-                 VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-                   VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-    allocateBuffer(_physical_device,
-                   _device,
-                   _index_buffer,
-                   _index_buffer_memory,
-                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    copyBuffer(_device,
-               _command_pool,
-               _present_queue,
-               _index_buffer,
-               staging_buffer,
-               size);
-
-    vkDestroyBuffer(_device, staging_buffer, nullptr);
-    vkFreeMemory(_device, staging_buffer_memory, nullptr);
-}
-
-void
-VkRenderer::_create_uniform_buffers()
-{
-    VkDeviceSize size = sizeof(UniformBufferObject);
-
-    _uniform_buffers.resize(_swap_chain_framebuffers.size());
-    _uniform_buffers_memory.resize(_swap_chain_framebuffers.size());
-
-    for (size_t i = 0; i < _swap_chain_framebuffers.size(); ++i) {
-        createBuffer(_device,
-                     _uniform_buffers[i],
-                     size,
-                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-        allocateBuffer(_physical_device,
-                       _device,
-                       _uniform_buffers[i],
-                       _uniform_buffers_memory[i],
-                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    }
-}
-*/
 void
 VkRenderer::_create_descriptor_pool()
 {
@@ -978,10 +911,24 @@ VkRenderer::_create_descriptor_sets()
           "VkRenderer: failed to create descriptor sets");
     }
 
+    VkDeviceSize vertex_size = sizeof(Vertex) * _test_triangle_verticies.size();
+    VkDeviceSize instance_matrices_size =
+      sizeof(glm::mat4) * _test_triangle_pos.size();
+    VkDeviceSize indices_size =
+      sizeof(uint32_t) * _test_triangle_indices.size();
+
+    // TODO : Remove
+    fmt::print("Size vertex offset {}\n", vertex_size);
+    fmt::print("Size instance offset {}\n", instance_matrices_size);
+    fmt::print("Size indices offset {}\n", indices_size);
+    fmt::print("Size total offset {}\n",
+               vertex_size + instance_matrices_size + indices_size);
+
     for (size_t i = 0; i < _swap_chain_framebuffers.size(); ++i) {
         VkDescriptorBufferInfo buffer_info{};
         buffer_info.buffer = _gfx_buffer;
-        buffer_info.offset = 0;
+        buffer_info.offset = vertex_size + instance_matrices_size +
+                             indices_size + sizeof(UniformBufferObject) * i;
         buffer_info.range = sizeof(UniformBufferObject);
 
         VkDescriptorImageInfo img_info{};
@@ -1083,7 +1030,7 @@ VkRenderer::_create_command_buffers()
                                 &_descriptor_sets[i],
                                 0,
                                 nullptr);
-        vkCmdDrawIndexed(it, _test_triangle_indices.size(), 4, 0, 0, 0);
+        vkCmdDrawIndexed(it, 6, 4, 0, 0, 0);
         vkCmdEndRenderPass(it);
 
         if (vkEndCommandBuffer(it) != VK_SUCCESS) {
@@ -1175,21 +1122,22 @@ VkRenderer::_check_validation_layer_support()
 void
 VkRenderer::_update_ubo(uint32_t img_index, glm::mat4 const &view_proj_mat)
 {
-    VkDeviceSize vertex_size =
-      sizeof(_test_triangle_verticies[0]) * _test_triangle_verticies.size();
+    VkDeviceSize vertex_size = sizeof(Vertex) * _test_triangle_verticies.size();
     VkDeviceSize instance_matrices_size =
       sizeof(glm::mat4) * _test_triangle_pos.size();
     VkDeviceSize indices_size =
       sizeof(uint32_t) * _test_triangle_indices.size();
 
     UniformBufferObject ubo = { view_proj_mat };
-    ubo.view_proj[1][1] = -ubo.view_proj[1][1];
+    ubo.view_proj[1][1] *= -1.0f;
 
     // CPU => GPU transfer buffer
     VkBuffer staging_buffer{};
     VkDeviceMemory staging_buffer_memory{};
-    createBuffer(
-      _device, staging_buffer, sizeof(ubo), VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+    createBuffer(_device,
+                 staging_buffer,
+                 sizeof(UniformBufferObject),
+                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
     allocateBuffer(_physical_device,
                    _device,
                    staging_buffer,
@@ -1198,18 +1146,20 @@ VkRenderer::_update_ubo(uint32_t img_index, glm::mat4 const &view_proj_mat)
                      VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
     void *data = nullptr;
-    vkMapMemory(_device, _gfx_memory, 0, sizeof(ubo), 0, &data);
-    memcpy(data, &ubo, sizeof(ubo));
-    vkUnmapMemory(_device, _gfx_memory);
+    vkMapMemory(
+      _device, staging_buffer_memory, 0, sizeof(UniformBufferObject), 0, &data);
+    memcpy(data, &ubo, sizeof(UniformBufferObject));
+    vkUnmapMemory(_device, staging_buffer_memory);
 
     // GPU buffer
     VkCommandBuffer cmd_buffer =
       beginSingleTimeCommands(_device, _command_pool);
 
     VkBufferCopy copy_region{};
-    copy_region.size = sizeof(ubo);
+    copy_region.size = sizeof(UniformBufferObject);
     copy_region.dstOffset = vertex_size + instance_matrices_size +
-                            indices_size + sizeof(ubo) * img_index;
+                            indices_size +
+                            sizeof(UniformBufferObject) * img_index;
     copy_region.srcOffset = 0;
     vkCmdCopyBuffer(cmd_buffer, staging_buffer, _gfx_buffer, 1, &copy_region);
 

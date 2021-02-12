@@ -120,13 +120,14 @@ class VkRenderer final
     };
 
     // Test triangle
-    static constexpr std::array<Vertex, 8> const _test_triangle_verticies = { {
+    static constexpr std::array<Vertex, 4> const _test_triangle_verticies = { {
       { { -0.5f, 1.0f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } },
       { { 0.5f, 1.0f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
       { { 0.5f, 1.0f, 0.5f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f } },
       { { -0.5f, 1.0f, 0.5f }, { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f } },
     } };
-    static constexpr std::array<uint32_t, 12> const _test_triangle_indices = {
+    // TODO : Used for memory alignment => do more dynamic stuff
+    static constexpr std::array<uint32_t, 16> const _test_triangle_indices = {
         0, 1, 2, 2, 3, 0,
     };
     static constexpr std::array<glm::vec3, 4> _test_triangle_pos = { {
