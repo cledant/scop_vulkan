@@ -7,7 +7,8 @@ add_library(vulkan_renderer STATIC
         private/VulkanInstance.cpp
         private/VulkanRenderPass.cpp
         private/VulkanSync.cpp
-        private/VulkanTextureManager.cpp)
+        private/VulkanTextureManager.cpp
+        private/VulkanModelPipeline.cpp)
 target_include_directories(vulkan_renderer
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/public
@@ -19,9 +20,11 @@ set_target_properties(vulkan_renderer PROPERTIES
         CXX_EXTENSIONS NO)
 add_dependencies(vulkan_renderer
         vulkan_utils
-        fmt)
+        fmt
+        model)
 target_link_libraries(vulkan_renderer
         glm
         fmt
-        vulkan_utils)
+        vulkan_utils
+        model)
 target_compile_options(vulkan_renderer PRIVATE -Wall -Wextra -Werror)

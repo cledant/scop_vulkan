@@ -12,7 +12,7 @@ struct ModelUbo
     glm::mat4 view_proj;
 };
 
-struct Vertex
+struct TestVertex
 {
     glm::vec3 pos;
     glm::vec3 color;
@@ -23,7 +23,7 @@ struct Vertex
     {
         std::array<VkVertexInputBindingDescription, 2> binding_description{};
         binding_description[0].binding = 0;
-        binding_description[0].stride = sizeof(Vertex);
+        binding_description[0].stride = sizeof(TestVertex);
         binding_description[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
         binding_description[1].binding = 1;
@@ -46,12 +46,12 @@ struct Vertex
 
         attribute_description[1].binding = 0;
         attribute_description[1].location = 1;
-        attribute_description[1].offset = offsetof(Vertex, color);
+        attribute_description[1].offset = offsetof(TestVertex, color);
         attribute_description[1].format = VK_FORMAT_R32G32B32_SFLOAT;
 
         attribute_description[2].binding = 0;
         attribute_description[2].location = 2;
-        attribute_description[2].offset = offsetof(Vertex, tex_coord);
+        attribute_description[2].offset = offsetof(TestVertex, tex_coord);
         attribute_description[2].format = VK_FORMAT_R32G32_SFLOAT;
 
         attribute_description[3].binding = 1;
@@ -78,7 +78,7 @@ struct Vertex
 };
 
 // Test triangle
-[[maybe_unused]] constexpr std::array<Vertex, 4> const
+[[maybe_unused]] constexpr std::array<TestVertex, 4> const
   TEST_TRIANGLE_VERTICIES = { {
     { { -0.5f, 1.0f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } },
     { { 0.5f, 1.0f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },

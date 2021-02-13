@@ -11,7 +11,8 @@
 #include "VulkanInstance.hpp"
 #include "VulkanTextureManager.hpp"
 #include "VulkanRenderPass.hpp"
-#include <VulkanSync.hpp>
+#include "VulkanSync.hpp"
+#include "VulkanModelPipeline.hpp"
 
 class VulkanRenderer final
 {
@@ -53,6 +54,7 @@ class VulkanRenderer final
     VulkanTextureManager _tex_manager;
     VulkanRenderPass _render_pass;
     VulkanSync _sync;
+    VulkanModelPipeline _model_pipeline;
 
     // Pipeline + Model + model texture related
     VkDescriptorSetLayout _descriptor_set_layout{};

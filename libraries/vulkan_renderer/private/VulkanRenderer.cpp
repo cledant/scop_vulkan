@@ -274,8 +274,8 @@ VulkanRenderer::_create_gfx_pipeline()
 
     // Vertex input
     VkPipelineVertexInputStateCreateInfo vertex_input_info{};
-    auto binding_description = Vertex::getBindingDescription();
-    auto attribute_description = Vertex::getAttributeDescriptions();
+    auto binding_description = TestVertex::getBindingDescription();
+    auto attribute_description = TestVertex::getAttributeDescriptions();
     vertex_input_info.sType =
       VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertex_input_info.vertexBindingDescriptionCount =
@@ -431,7 +431,7 @@ VulkanRenderer::_create_gfx_pipeline()
 void
 VulkanRenderer::_create_gfx_buffer()
 {
-    VkDeviceSize vertex_size = sizeof(Vertex) * TEST_TRIANGLE_VERTICIES.size();
+    VkDeviceSize vertex_size = sizeof(TestVertex) * TEST_TRIANGLE_VERTICIES.size();
     VkDeviceSize instance_matrices_size =
       sizeof(glm::mat4) * TEST_TRIANGLE_POS.size();
     VkDeviceSize indices_size = sizeof(uint32_t) * TEST_TRIANGLE_INDICES.size();
@@ -546,7 +546,7 @@ VulkanRenderer::_create_descriptor_sets()
           "VulkanRenderer: failed to create descriptor sets");
     }
 
-    VkDeviceSize vertex_size = sizeof(Vertex) * TEST_TRIANGLE_VERTICIES.size();
+    VkDeviceSize vertex_size = sizeof(TestVertex) * TEST_TRIANGLE_VERTICIES.size();
     VkDeviceSize instance_matrices_size =
       sizeof(glm::mat4) * TEST_TRIANGLE_POS.size();
     VkDeviceSize indices_size = sizeof(uint32_t) * TEST_TRIANGLE_INDICES.size();
@@ -638,7 +638,7 @@ VulkanRenderer::_create_command_buffers()
         // Vertex related values
         VkBuffer vertex_buffer[] = { _gfx_buffer, _gfx_buffer };
         VkDeviceSize offsets[] = {
-            0, sizeof(Vertex) * TEST_TRIANGLE_VERTICIES.size()
+            0, sizeof(TestVertex) * TEST_TRIANGLE_VERTICIES.size()
         };
 
         vkCmdBeginRenderPass(it, &rp_begin_info, VK_SUBPASS_CONTENTS_INLINE);
@@ -647,7 +647,7 @@ VulkanRenderer::_create_command_buffers()
         vkCmdBindVertexBuffers(it, 0, 2, vertex_buffer, offsets);
         vkCmdBindIndexBuffer(it,
                              _gfx_buffer,
-                             sizeof(Vertex) * TEST_TRIANGLE_VERTICIES.size() +
+                             sizeof(TestVertex) * TEST_TRIANGLE_VERTICIES.size() +
                                sizeof(glm::mat4) * TEST_TRIANGLE_POS.size(),
                              VK_INDEX_TYPE_UINT32);
         vkCmdBindDescriptorSets(it,
@@ -672,7 +672,7 @@ VulkanRenderer::_create_command_buffers()
 void
 VulkanRenderer::_update_ubo(uint32_t img_index, glm::mat4 const &view_proj_mat)
 {
-    VkDeviceSize vertex_size = sizeof(Vertex) * TEST_TRIANGLE_VERTICIES.size();
+    VkDeviceSize vertex_size = sizeof(TestVertex) * TEST_TRIANGLE_VERTICIES.size();
     VkDeviceSize instance_matrices_size =
       sizeof(glm::mat4) * TEST_TRIANGLE_POS.size();
     VkDeviceSize indices_size = sizeof(uint32_t) * TEST_TRIANGLE_INDICES.size();
