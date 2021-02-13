@@ -71,6 +71,8 @@ VulkanRenderer::resize(uint32_t win_w, uint32_t win_h)
     _render_pass.resize(win_w, win_h);
 
     // Pipeline + Model + model texture related
+    vkDestroyPipeline(_vk_instance.device, _graphic_pipeline, nullptr);
+    vkDestroyPipelineLayout(_vk_instance.device, _pipeline_layout, nullptr);
     _create_gfx_pipeline();
     if (_render_pass.oldSwapChainNbImg != _render_pass.currentSwapChainNbImg) {
         _sync.init(_vk_instance, _render_pass.swapChainFramebuffers.size());
@@ -153,14 +155,15 @@ VulkanRenderer::draw(glm::mat4 const &view_proj_mat)
         return;
     }
 
-    if (_sync.inflightFence[img_index] != VK_NULL_HANDLE) {
+    if (_sync.imgsInflightFence[img_index] != VK_NULL_HANDLE) {
         vkWaitForFences(_vk_instance.device,
                         1,
-                        &_sync.inflightFence[img_index],
+                        &_sync.imgsInflightFence[img_index],
                         VK_TRUE,
                         UINT64_MAX);
     }
-    _sync.inflightFence[img_index] = _sync.inflightFence[_sync.currentFrame];
+    _sync.imgsInflightFence[img_index] =
+      _sync.inflightFence[_sync.currentFrame];
 
     _update_ubo(img_index, view_proj_mat);
 
@@ -186,7 +189,7 @@ VulkanRenderer::draw(glm::mat4 const &view_proj_mat)
                       &submit_info,
                       _sync.inflightFence[_sync.currentFrame]) != VK_SUCCESS) {
         throw std::runtime_error(
-          "VkRenderer: Failed to submit draw command buffer");
+          "VulkanRenderer: Failed to submit draw command buffer");
     }
 
     VkSwapchainKHR swap_chains[] = { _render_pass.swapChain };
@@ -199,7 +202,8 @@ VulkanRenderer::draw(glm::mat4 const &view_proj_mat)
     present_info.pImageIndices = &img_index;
     present_info.pResults = nullptr;
     vkQueuePresentKHR(_vk_instance.presentQueue, &present_info);
-    _sync.currentFrame = (_sync.currentFrame + 1) % _sync.MAX_FRAME_INFLIGHT;
+    _sync.currentFrame =
+      (_sync.currentFrame + 1) % VulkanSync::MAX_FRAME_INFLIGHT;
 }
 
 void
@@ -238,7 +242,7 @@ VulkanRenderer::_create_descriptor_layout()
                                     nullptr,
                                     &_descriptor_set_layout) != VK_SUCCESS) {
         throw std::runtime_error(
-          "VkRenderer: failed to create descriptor set layout");
+          "VulkanRenderer: failed to create descriptor set layout");
     }
 }
 
@@ -375,7 +379,7 @@ VulkanRenderer::_create_gfx_pipeline()
                                nullptr,
                                &_pipeline_layout) != VK_SUCCESS) {
         throw std::runtime_error(
-          "VkRenderer: Failed to create pipeline layout");
+          "VulkanRenderer: Failed to create pipeline layout");
     }
 
     // Depth
@@ -417,7 +421,7 @@ VulkanRenderer::_create_gfx_pipeline()
                                   nullptr,
                                   &_graphic_pipeline) != VK_SUCCESS) {
         throw std::runtime_error(
-          "VkRenderer: Failed to create graphic pipeline");
+          "VulkanRenderer: Failed to create graphic pipeline");
     }
 
     vkDestroyShaderModule(_vk_instance.device, vert_shader, nullptr);
@@ -519,7 +523,7 @@ VulkanRenderer::_create_descriptor_pool()
           _vk_instance.device, &pool_info, nullptr, &_descriptor_pool) !=
         VK_SUCCESS) {
         throw std::runtime_error(
-          "VkRenderer: failed to create descriptor pool");
+          "VulkanRenderer: failed to create descriptor pool");
     }
 }
 
@@ -539,7 +543,7 @@ VulkanRenderer::_create_descriptor_sets()
                                  &alloc_info,
                                  _descriptor_sets.data()) != VK_SUCCESS) {
         throw std::runtime_error(
-          "VkRenderer: failed to create descriptor sets");
+          "VulkanRenderer: failed to create descriptor sets");
     }
 
     VkDeviceSize vertex_size = sizeof(Vertex) * TEST_TRIANGLE_VERTICIES.size();
@@ -604,7 +608,7 @@ VulkanRenderer::_create_command_buffers()
                                  &cb_allocate_info,
                                  _command_buffers.data()) != VK_SUCCESS) {
         throw std::runtime_error(
-          "VkRenderer: Failed to allocate command buffers");
+          "VulkanRenderer: Failed to allocate command buffers");
     }
 
     size_t i = 0;
@@ -615,7 +619,7 @@ VulkanRenderer::_create_command_buffers()
         cb_begin_info.pInheritanceInfo = nullptr;
         if (vkBeginCommandBuffer(it, &cb_begin_info) != VK_SUCCESS) {
             throw std::runtime_error(
-              "VkRenderer: Failed to begin recording command buffer");
+              "VulkanRenderer: Failed to begin recording command buffer");
         }
 
         // Begin render pass values
@@ -659,7 +663,7 @@ VulkanRenderer::_create_command_buffers()
 
         if (vkEndCommandBuffer(it) != VK_SUCCESS) {
             throw std::runtime_error(
-              "VkRenderer: Failed to record command Buffer");
+              "VulkanRenderer: Failed to record command Buffer");
         }
         ++i;
     }

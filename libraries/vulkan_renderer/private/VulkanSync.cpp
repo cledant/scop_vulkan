@@ -27,7 +27,7 @@ VulkanSync::init(VulkanInstance const &vkInstance, uint32_t nbFramebufferImgs)
               VK_SUCCESS ||
             vkCreateFence(_device, &fence_info, nullptr, &inflightFence[i]) !=
               VK_SUCCESS) {
-            throw std::runtime_error("VkRender: failed to create semaphores");
+            throw std::runtime_error("VulkanSync: failed to create semaphores");
         }
     }
 }
