@@ -1,10 +1,12 @@
-#ifndef SCOP_VULKAN_VKTEXTUREMANAGER_HPP
-#define SCOP_VULKAN_VKTEXTUREMANAGER_HPP
+#ifndef SCOP_VULKAN_VULKANTEXTUREMANAGER_HPP
+#define SCOP_VULKAN_VULKANTEXTUREMANAGER_HPP
 
 #include <unordered_map>
 #include <string>
 
 #include <vulkan/vulkan.h>
+
+#include "VulkanInstance.hpp"
 
 struct Texture final
 {
@@ -14,20 +16,17 @@ struct Texture final
     VkSampler texture_sampler{};
 };
 
-class VkTextureManager final
+class VulkanTextureManager final
 {
   public:
-    VkTextureManager() = default;
-    ~VkTextureManager() = default;
-    VkTextureManager(VkTextureManager const &src) = delete;
-    VkTextureManager(VkTextureManager &&src) = delete;
-    VkTextureManager &operator=(VkTextureManager const &rhs) = delete;
-    VkTextureManager &operator=(VkTextureManager &&rhs) = delete;
+    VulkanTextureManager() = default;
+    ~VulkanTextureManager() = default;
+    VulkanTextureManager(VulkanTextureManager const &src) = delete;
+    VulkanTextureManager(VulkanTextureManager &&src) = delete;
+    VulkanTextureManager &operator=(VulkanTextureManager const &rhs) = delete;
+    VulkanTextureManager &operator=(VulkanTextureManager &&rhs) = delete;
 
-    void init(VkDevice device,
-              VkPhysicalDevice physical_device,
-              VkQueue gfx_queue,
-              VkCommandPool command_pool);
+    void init(VulkanInstance const &vkInstance);
     void clear();
     void loadTexture(std::string const &texturePath);
     bool getTexture(std::string const &texturePath, Texture &tex);
@@ -47,4 +46,4 @@ class VkTextureManager final
     inline VkSampler _create_texture_sampler();
 };
 
-#endif // SCOP_VULKAN_VKTEXTUREMANAGER_HPP
+#endif // SCOP_VULKAN_VULKANTEXTUREMANAGER_HPP

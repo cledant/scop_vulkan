@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.17)
-project(scop_trivial_shader)
+project(scop_model_shader)
 
-set(SHADER_NAME trivial)
+set(SHADER_NAME model)
 set(SHADER_SOURCE_FOLDER
         ${CMAKE_CURRENT_SOURCE_DIR})
 set(SHADER_RUNTIME_FOLDER
@@ -14,7 +14,6 @@ set(SHADERS
 set(COMPILED_SHADERS
         ${SHADER_RUNTIME_FOLDER}/${SHADER_NAME}.frag.spv
         ${SHADER_RUNTIME_FOLDER}/${SHADER_NAME}.vert.spv)
-
 
 file(MAKE_DIRECTORY ${SHADER_RUNTIME_FOLDER})
 foreach (SHADER COMPILED_SHADER IN ZIP_LISTS SHADERS COMPILED_SHADERS)
@@ -32,4 +31,4 @@ foreach (SHADER COMPILED_SHADER IN ZIP_LISTS SHADERS COMPILED_SHADERS)
     )
 endforeach ()
 
-add_custom_target(trivial_shader DEPENDS ${COMPILED_SHADERS})
+add_custom_target(model_shader DEPENDS ${COMPILED_SHADERS})

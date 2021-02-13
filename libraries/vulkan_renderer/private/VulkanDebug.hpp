@@ -1,5 +1,5 @@
-#ifndef SCOP_VULKAN_VKDEBUG_HPP
-#define SCOP_VULKAN_VKDEBUG_HPP
+#ifndef SCOP_VULKAN_VULKANDEBUG_HPP
+#define SCOP_VULKAN_VULKANDEBUG_HPP
 
 #include <array>
 
@@ -31,4 +31,4 @@ void destroyDebugUtilsMessengerEXT(VkInstance instance,
 char const *getDbgSeverityStr(VkDebugUtilsMessageSeverityFlagBitsEXT severity);
 char const *getDbgMessageTypeStr(VkDebugUtilsMessageTypeFlagsEXT type);
 
-#endif // SCOP_VULKAN_VKDEBUG_HPP
+#endif // SCOP_VULKAN_VULKANDEBUG_HPP

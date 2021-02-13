@@ -2,8 +2,12 @@ cmake_minimum_required(VERSION 3.16)
 project(lib_vulkan_renderer)
 
 add_library(vulkan_renderer STATIC
-        private/VkRenderer.cpp
-        private/VkDebug.cpp)
+        private/VulkanRenderer.cpp
+        private/VulkanDebug.cpp
+        private/VulkanInstance.cpp
+        private/VulkanRenderPass.cpp
+        private/VulkanSync.cpp
+        private/VulkanTextureManager.cpp)
 target_include_directories(vulkan_renderer
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/public
@@ -14,12 +18,10 @@ set_target_properties(vulkan_renderer PROPERTIES
         CXX_STANDARD_REQUIRED YES
         CXX_EXTENSIONS NO)
 add_dependencies(vulkan_renderer
-        vulkan_texture_manager
         vulkan_utils
         fmt)
 target_link_libraries(vulkan_renderer
         glm
         fmt
-        vulkan_utils
-        vulkan_texture_manager)
+        vulkan_utils)
 target_compile_options(vulkan_renderer PRIVATE -Wall -Wextra -Werror)

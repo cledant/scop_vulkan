@@ -19,7 +19,7 @@ struct DeviceRequirement
     [[nodiscard]] bool isValid() const;
 };
 
-static constexpr std::array const DEVICE_EXTENSIONS{
+[[maybe_unused]] constexpr std::array const DEVICE_EXTENSIONS{
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 };
 

@@ -36,7 +36,7 @@ EventHandler::setPerspectiveData(Perspective *perspective)
 }
 
 void
-EventHandler::setVkRenderer(VkRenderer *renderer)
+EventHandler::setVkRenderer(VulkanRenderer *renderer)
 {
     _renderer = renderer;
 }
@@ -99,7 +99,7 @@ EventHandler::processEvents(IOEvents const &events)
     if (_io_manager->wasResized()) {
         // VK Renderer related
         auto fb_size = _io_manager->getFramebufferSize();
-        _renderer->resizeResources(fb_size.x, fb_size.y);
+        _renderer->resize(fb_size.x, fb_size.y);
 
         // Perspective related
         _perspective->ratio = _io_manager->getWindowRatio();

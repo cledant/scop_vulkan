@@ -81,12 +81,11 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/fmt ${CMAKE_BINARY_DIR}/ex
 add_subdirectory(libraries/io_manager)
 add_subdirectory(libraries/engine)
 add_subdirectory(libraries/vulkan_utils)
-add_subdirectory(libraries/vulkan_texture_manager)
 add_subdirectory(libraries/vulkan_renderer)
 add_subdirectory(libraries/model)
 
 #Shaders
-add_subdirectory(shaders/trivial)
+add_subdirectory(shaders/model)
 
 #Main binary
 add_executable(scop
@@ -96,7 +95,7 @@ target_include_directories(scop
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/binary/private)
 target_link_libraries(scop iomanager engine vulkan)
-add_dependencies(scop iomanager engine trivial_shader)
+add_dependencies(scop iomanager engine model_shader)
 set_target_properties(scop PROPERTIES
         CXX_STANDARD 20
         CXX_STANDARD_REQUIRED YES

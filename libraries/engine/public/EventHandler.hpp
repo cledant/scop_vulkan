@@ -7,7 +7,7 @@
 #include "Camera.hpp"
 #include "IOManager.hpp"
 #include "Perspective.hpp"
-#include "VkRenderer.hpp"
+#include "VulkanRenderer.hpp"
 
 class EventHandler final
 {
@@ -22,7 +22,7 @@ class EventHandler final
     void setCamera(Camera *camera);
     void setIOManager(IOManager *io_manager);
     void setPerspectiveData(Perspective *perspective);
-    void setVkRenderer(VkRenderer *renderer);
+    void setVkRenderer(VulkanRenderer *renderer);
     void setInvertYAxis(uint8_t val);
 
     void processEvents(IOEvents const &events);
@@ -83,7 +83,7 @@ class EventHandler final
     Camera *_camera;
     IOManager *_io_manager;
     Perspective *_perspective;
-    VkRenderer *_renderer;
+    VulkanRenderer *_renderer;
 
     EventTimers _timers;
 

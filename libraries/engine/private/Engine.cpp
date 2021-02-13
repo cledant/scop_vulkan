@@ -36,10 +36,11 @@ Engine::init(EngineOptions const &opts)
                                 VK_MAKE_VERSION(1, 0, 0),
                                 VK_MAKE_VERSION(1, 0, 0),
                                 IOManager::getRequiredInstanceExtension());
-    _vk_renderer.initInstance(
-      _io_manager.createVulkanSurface(_vk_renderer.getVkInstance()));
     auto fb_size = _io_manager.getFramebufferSize();
-    _vk_renderer.initResources(fb_size.x, fb_size.y);
+    _vk_renderer.init(
+      _io_manager.createVulkanSurface(_vk_renderer.getVkInstance()),
+      fb_size.x,
+      fb_size.y);
     _perspective_data.near_far = DEFAULT_NEAR_FAR;
     _perspective_data.fov = DEFAULT_FOV;
     _perspective_data.ratio = _io_manager.getWindowRatio();
@@ -62,7 +63,7 @@ Engine::run()
         _compute_fps();
     }
     _vk_renderer.deviceWaitIdle();
-    _vk_renderer.clearAll();
+    _vk_renderer.clear();
     _io_manager.deleteWindow();
 }
 

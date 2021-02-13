@@ -8,17 +8,17 @@
 
 struct SwapChainSupportInfo
 {
-    VkSurfaceCapabilitiesKHR capabilities;
+    VkSurfaceCapabilitiesKHR capabilities{};
     std::vector<VkSurfaceFormatKHR> formats;
     std::vector<VkPresentModeKHR> present_mode;
 };
 
 struct SwapChainSupport
 {
-    VkSurfaceCapabilitiesKHR capabilities;
+    VkSurfaceCapabilitiesKHR capabilities{};
     std::optional<VkSurfaceFormatKHR> surface_format;
     std::optional<VkPresentModeKHR> present_mode;
-    VkExtent2D extent;
+    VkExtent2D extent{};
 
     [[nodiscard]] bool isValid() const;
 };

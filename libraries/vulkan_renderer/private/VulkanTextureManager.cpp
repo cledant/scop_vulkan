@@ -1,23 +1,20 @@
-#include "VkTextureManager.hpp"
+#include "VulkanTextureManager.hpp"
 
 #include <stdexcept>
 
 #include "VkImage.hpp"
 
 void
-VkTextureManager::init(VkDevice device,
-                       VkPhysicalDevice physical_device,
-                       VkQueue gfx_queue,
-                       VkCommandPool command_pool)
+VulkanTextureManager::init(VulkanInstance const &vkInstance)
 {
-    _device = device;
-    _physical_device = physical_device;
-    _gfx_queue = gfx_queue;
-    _command_pool = command_pool;
+    _device = vkInstance.device;
+    _physical_device = vkInstance.physicalDevice;
+    _gfx_queue = vkInstance.graphicQueue;
+    _command_pool = vkInstance.commandPool;
 }
 
 void
-VkTextureManager::clear()
+VulkanTextureManager::clear()
 {
     for (auto &it : _textures) {
         vkDestroySampler(_device, it.second.texture_sampler, nullptr);
@@ -29,7 +26,7 @@ VkTextureManager::clear()
 }
 
 void
-VkTextureManager::loadTexture(std::string const &texturePath)
+VulkanTextureManager::loadTexture(std::string const &texturePath)
 {
     auto existing_tex = _textures.find(texturePath);
     if (existing_tex != _textures.end()) {
@@ -45,7 +42,7 @@ VkTextureManager::loadTexture(std::string const &texturePath)
 }
 
 bool
-VkTextureManager::getTexture(std::string const &texturePath, Texture &tex)
+VulkanTextureManager::getTexture(std::string const &texturePath, Texture &tex)
 {
     auto existing_tex = _textures.find(texturePath);
     if (existing_tex != _textures.end()) {
@@ -56,7 +53,7 @@ VkTextureManager::getTexture(std::string const &texturePath, Texture &tex)
 }
 
 Texture
-VkTextureManager::loadAndGetTexture(std::string const &texturePath)
+VulkanTextureManager::loadAndGetTexture(std::string const &texturePath)
 {
     auto existing_tex = _textures.find(texturePath);
     if (existing_tex != _textures.end()) {
@@ -73,9 +70,9 @@ VkTextureManager::loadAndGetTexture(std::string const &texturePath)
 }
 
 void
-VkTextureManager::_create_texture_image(std::string const &texturePath,
-                                        VkImage &texture_img,
-                                        VkDeviceMemory &texture_img_memory)
+VulkanTextureManager::_create_texture_image(std::string const &texturePath,
+                                            VkImage &texture_img,
+                                            VkDeviceMemory &texture_img_memory)
 {
     VkBuffer staging_buffer{};
     VkDeviceMemory staging_buffer_memory{};
@@ -128,7 +125,7 @@ VkTextureManager::_create_texture_image(std::string const &texturePath,
 }
 
 VkImageView
-VkTextureManager::_create_texture_image_view(VkImage texture_img)
+VulkanTextureManager::_create_texture_image_view(VkImage texture_img)
 {
     return (createImageView(_device,
                             texture_img,
@@ -137,7 +134,7 @@ VkTextureManager::_create_texture_image_view(VkImage texture_img)
 }
 
 VkSampler
-VkTextureManager::_create_texture_sampler()
+VulkanTextureManager::_create_texture_sampler()
 {
     VkPhysicalDeviceProperties properties{};
     vkGetPhysicalDeviceProperties(_physical_device, &properties);
