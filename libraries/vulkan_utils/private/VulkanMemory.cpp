@@ -1,8 +1,8 @@
-#include "VkMemory.hpp"
+#include "VulkanMemory.hpp"
 
 #include <stdexcept>
 
-#include "VkCommandBuffer.hpp"
+#include "VulkanCommandBuffer.hpp"
 
 uint32_t
 findMemoryType(VkPhysicalDevice physical_device,

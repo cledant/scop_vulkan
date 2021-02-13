@@ -1,5 +1,5 @@
-#ifndef SCOP_VULKAN_VKMEMORY_HPP
-#define SCOP_VULKAN_VKMEMORY_HPP
+#ifndef SCOP_VULKAN_VULKANMEMORY_HPP
+#define SCOP_VULKAN_VULKANMEMORY_HPP
 
 #include <cstdint>
 #include <vulkan/vulkan.h>
@@ -23,4 +23,4 @@ void copyBuffer(VkDevice device,
                 VkBuffer src_buffer,
                 VkDeviceSize size);
 
-#endif // SCOP_VULKAN_VKMEMORY_HPP
+#endif // SCOP_VULKAN_VULKANMEMORY_HPP

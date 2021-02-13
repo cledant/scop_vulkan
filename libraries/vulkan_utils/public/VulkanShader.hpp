@@ -1,5 +1,5 @@
-#ifndef SCOP_VULKAN_VKSHADER_HPP
-#define SCOP_VULKAN_VKSHADER_HPP
+#ifndef SCOP_VULKAN_VULKANSHADER_HPP
+#define SCOP_VULKAN_VULKANSHADER_HPP
 
 #include <vector>
 #include <string>
@@ -11,4 +11,4 @@ VkShaderModule createShaderModule(VkDevice device,
                                   std::string const &shaderName);
 VkShaderModule loadShader(VkDevice device, std::string const &filepath);
 
-#endif // SCOP_VULKAN_VKSHADER_HPP
+#endif // SCOP_VULKAN_VULKANSHADER_HPP

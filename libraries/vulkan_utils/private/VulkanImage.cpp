@@ -1,12 +1,12 @@
-#include "VkImage.hpp"
+#include "VulkanImage.hpp"
 
 #include <stdexcept>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#include "VkMemory.hpp"
-#include "VkCommandBuffer.hpp"
+#include "VulkanMemory.hpp"
+#include "VulkanCommandBuffer.hpp"
 
 VkDeviceSize
 loadTextureInBuffer(VkPhysicalDevice physical_device,

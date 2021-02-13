@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-#include "VkImage.hpp"
+#include "VulkanImage.hpp"
 
 void
 VulkanTextureManager::init(VulkanInstance const &vkInstance)

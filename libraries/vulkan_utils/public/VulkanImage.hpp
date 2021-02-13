@@ -1,5 +1,5 @@
-#ifndef SCOP_VULKAN_VKIMAGE_HPP
-#define SCOP_VULKAN_VKIMAGE_HPP
+#ifndef SCOP_VULKAN_VULKANIMAGE_HPP
+#define SCOP_VULKAN_VULKANIMAGE_HPP
 
 #include <string>
 #include <vector>
@@ -48,4 +48,4 @@ VkFormat findSupportedFormat(VkPhysicalDevice physical_device,
                              VkFormatFeatureFlags features);
 bool hasStencilComponent(VkFormat format);
 
-#endif // SCOP_VULKAN_VKIMAGE_HPP
+#endif // SCOP_VULKAN_VULKANIMAGE_HPP

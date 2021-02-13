@@ -1,5 +1,5 @@
-#ifndef SCOP_VULKAN_VKCOMMANDBUFFER_HPP
-#define SCOP_VULKAN_VKCOMMANDBUFFER_HPP
+#ifndef SCOP_VULKAN_VULKANCOMMANDBUFFER_HPP
+#define SCOP_VULKAN_VULKANCOMMANDBUFFER_HPP
 
 #include <vulkan/vulkan.h>
 
@@ -10,4 +10,4 @@ void endSingleTimeCommands(VkDevice device,
                            VkCommandBuffer command_buffer,
                            VkQueue gfx_queue);
 
-#endif // SCOP_VULKAN_VKCOMMANDBUFFER_HPP
+#endif // SCOP_VULKAN_VULKANCOMMANDBUFFER_HPP

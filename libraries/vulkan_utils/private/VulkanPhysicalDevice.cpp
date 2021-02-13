@@ -1,4 +1,4 @@
-#include "VkPhysicalDevice.hpp"
+#include "VulkanPhysicalDevice.hpp"
 
 #include <map>
 #include <cstring>
@@ -6,7 +6,7 @@
 #include <set>
 #include <string>
 
-#include "VkSwapChain.hpp"
+#include "VulkanSwapChain.hpp"
 
 bool
 DeviceRequirement::isValid() const

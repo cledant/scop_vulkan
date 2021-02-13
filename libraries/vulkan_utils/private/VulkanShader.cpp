@@ -1,4 +1,4 @@
-#include "VkShader.hpp"
+#include "VulkanShader.hpp"
 
 #include <stdexcept>
 #include <cstdio>

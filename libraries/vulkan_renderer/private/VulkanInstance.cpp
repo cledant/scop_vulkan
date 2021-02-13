@@ -7,7 +7,7 @@
 #include "fmt/core.h"
 
 #include "VulkanDebug.hpp"
-#include "VkPhysicalDevice.hpp"
+#include "VulkanPhysicalDevice.hpp"
 
 VkInstance
 VulkanInstance::createInstance(std::string const &app_name,

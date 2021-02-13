@@ -1,5 +1,5 @@
-#ifndef SCOP_VULKAN_VKPHYSICALDEVICE_HPP
-#define SCOP_VULKAN_VKPHYSICALDEVICE_HPP
+#ifndef SCOP_VULKAN_VULKANPHYSICALDEVICE_HPP
+#define SCOP_VULKAN_VULKANPHYSICALDEVICE_HPP
 
 #include <cstdint>
 #include <vector>
@@ -36,4 +36,4 @@ void getDeviceQueues(VkPhysicalDevice device,
                      VkSurfaceKHR surface,
                      DeviceRequirement &dr);
 
-#endif // SCOP_VULKAN_VKPHYSICALDEVICE_HPP
+#endif // SCOP_VULKAN_VULKANPHYSICALDEVICE_HPP

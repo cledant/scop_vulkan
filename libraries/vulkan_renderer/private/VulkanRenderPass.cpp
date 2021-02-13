@@ -3,9 +3,9 @@
 #include <array>
 #include <stdexcept>
 
-#include "VkImage.hpp"
-#include "VkSwapChain.hpp"
-#include "VkPhysicalDevice.hpp"
+#include "VulkanImage.hpp"
+#include "VulkanSwapChain.hpp"
+#include "VulkanPhysicalDevice.hpp"
 
 void
 VulkanRenderPass::init(VulkanInstance const &vkInstance,

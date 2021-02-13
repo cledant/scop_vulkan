@@ -2,12 +2,12 @@ cmake_minimum_required(VERSION 3.16)
 project(lib_vulkan_utils)
 
 add_library(vulkan_utils STATIC
-        private/VkPhysicalDevice.cpp
-        private/VkSwapChain.cpp
-        private/VkShader.cpp
-        private/VkImage.cpp
-        private/VkMemory.cpp
-        private/VkCommandBuffer.cpp)
+        private/VulkanPhysicalDevice.cpp
+        private/VulkanSwapChain.cpp
+        private/VulkanShader.cpp
+        private/VulkanImage.cpp
+        private/VulkanMemory.cpp
+        private/VulkanCommandBuffer.cpp)
 target_include_directories(vulkan_utils
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/public)

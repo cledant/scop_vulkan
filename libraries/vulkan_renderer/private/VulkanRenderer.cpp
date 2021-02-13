@@ -8,10 +8,10 @@
 #include "glm/gtc/matrix_transform.hpp"
 
 #include "VulkanDebug.hpp"
-#include "VkSwapChain.hpp"
-#include "VkShader.hpp"
-#include "VkMemory.hpp"
-#include "VkCommandBuffer.hpp"
+#include "VulkanSwapChain.hpp"
+#include "VulkanShader.hpp"
+#include "VulkanMemory.hpp"
+#include "VulkanCommandBuffer.hpp"
 #include "TestModelInstancing.hpp"
 
 void
