@@ -1,6 +1,7 @@
 #include "VulkanMemory.hpp"
 
 #include <stdexcept>
+#include <cstring>
 
 #include "VulkanCommandBuffer.hpp"
 
@@ -79,4 +80,18 @@ copyBuffer(VkDevice device,
     vkCmdCopyBuffer(cmd_buffer, src_buffer, dst_buffer, 1, &copy_region);
 
     endSingleTimeCommands(device, command_pool, cmd_buffer, gfx_queue);
+}
+
+void
+copyOnMappedMemory(VkDevice device,
+                   VkDeviceMemory memory,
+                   VkDeviceSize offset,
+                   VkDeviceSize size,
+                   void const *dataToCopy)
+{
+    void *mapped_data{};
+
+    vkMapMemory(device, memory, offset, size, 0, &mapped_data);
+    memcpy(mapped_data, dataToCopy, size);
+    vkUnmapMemory(device, memory);
 }

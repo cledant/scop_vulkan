@@ -13,7 +13,7 @@
 #include "VulkanRenderPass.hpp"
 #include "VulkanTextureManager.hpp"
 
-struct VulkanModelInfo
+struct ModelInstanceInfo final
 {
     glm::vec3 position{};
     float pitch{};
@@ -23,7 +23,7 @@ struct VulkanModelInfo
 
 struct ModelPipelineUbo
 {
-    glm::mat4 view_proj;
+    alignas(16) glm::mat4 view_proj;
 };
 
 class VulkanModelPipeline final
@@ -44,9 +44,9 @@ class VulkanModelPipeline final
     void resize(VulkanRenderPass const &renderPass);
     void clear();
 
-    uint32_t addInstance(VulkanModelInfo const &info);
+    uint32_t addInstance(ModelInstanceInfo const &info);
     bool removeInstance(uint32_t index);
-    bool updateInstance(uint32_t index, VulkanModelInfo const &info);
+    bool updateInstance(uint32_t index, ModelInstanceInfo const &info);
 
     void generateCommands();
     void updateViewPerspectiveMatrix(glm::mat4 const &mat);
@@ -54,13 +54,16 @@ class VulkanModelPipeline final
   private:
     struct VulkanModelPipelineMesh
     {
-        VkBuffer _gfx_buffer{};
-        VkDeviceMemory _gfx_memory{};
-        Texture _diffuse_texture{};
-        size_t instanceMatricesOffset{};
-        size_t indicesOffset{};
-        size_t uboOffset{};
-        std::vector<VkDescriptorSet> _descriptor_sets;
+        VkBuffer buffer{};
+        VkDeviceMemory memory{};
+        Texture diffuseTexture{};
+        VkDeviceSize verticesSize{};
+        VkDeviceSize indicesSize{};
+        VkDeviceSize instanceMatricesOffset{};
+        VkDeviceSize indicesOffset{};
+        VkDeviceSize uboOffset{};
+        VkDescriptorPool descriptorPool{};
+        std::vector<VkDescriptorSet> descriptorSets;
     };
 
     static std::array<VkVertexInputBindingDescription, 2>
@@ -68,29 +71,35 @@ class VulkanModelPipeline final
     static std::array<VkVertexInputAttributeDescription, 9>
     _get_attribute_description();
 
-    VkDevice _device{};
-
     // Vulkan related
+    VkDevice _device{};
+    VkPhysicalDevice _physical_device{};
+    VkCommandPool _cmd_pool{};
+    VkQueue _gfx_queue{};
     VkDescriptorSetLayout _descriptor_set_layout{};
     VkPipelineLayout _pipeline_layout{};
     VkPipeline _graphic_pipeline{};
-    VkDescriptorPool _descriptor_pool{};
-    std::vector<VulkanModelPipelineMesh> _meshes;
+    std::vector<VulkanModelPipelineMesh> _pipeline_meshes;
 
     inline void _create_descriptor_layout();
     inline void _create_pipeline_layout();
     inline void _create_gfx_pipeline(VulkanRenderPass const &renderPass);
-
-    inline void _create_gfx_buffer();
-    inline void _create_descriptor_pool();
-    inline void _create_descriptor_sets();
+    inline VulkanModelPipelineMesh _create_pipeline_mesh(
+      Mesh const &mesh,
+      std::string const &modelFolder,
+      VulkanTextureManager &textureManager,
+      uint32_t currentSwapChainNbImg);
+    inline void _create_descriptor_pool(VulkanRenderPass const &renderPass,
+                                        VulkanModelPipelineMesh &pipelineMesh);
+    inline void _create_descriptor_sets(VulkanRenderPass const &renderPass,
+                                        VulkanModelPipelineMesh &pipelineMesh);
 
     // Instance related
     static uint32_t instance_index;
     uint32_t _max_model_nb{};
     uint32_t _current_model_nb{};
     std::unordered_map<uint32_t, uint32_t> _index_to_buffer_pairing;
-    std::vector<VulkanModelInfo> _model_instance_info;
+    std::vector<ModelInstanceInfo> _model_instance_info{};
 };
 
 #endif // SCOP_VULKAN_VULKANMODELPIPELINE_HPP

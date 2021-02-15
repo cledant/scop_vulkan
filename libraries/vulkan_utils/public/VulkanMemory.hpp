@@ -22,5 +22,10 @@ void copyBuffer(VkDevice device,
                 VkBuffer dst_buffer,
                 VkBuffer src_buffer,
                 VkDeviceSize size);
+void copyOnMappedMemory(VkDevice device,
+                        VkDeviceMemory memory,
+                        VkDeviceSize offset,
+                        VkDeviceSize size,
+                        void const *dataToCopy);
 
 #endif // SCOP_VULKAN_VULKANMEMORY_HPP

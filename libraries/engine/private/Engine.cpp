@@ -41,6 +41,7 @@ Engine::init(EngineOptions const &opts)
       _io_manager.createVulkanSurface(_vk_renderer.getVkInstance()),
       fb_size.x,
       fb_size.y);
+    _vk_renderer.loadModel(_model);
     _perspective_data.near_far = DEFAULT_NEAR_FAR;
     _perspective_data.fov = DEFAULT_FOV;
     _perspective_data.ratio = _io_manager.getWindowRatio();

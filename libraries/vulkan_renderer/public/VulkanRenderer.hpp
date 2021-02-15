@@ -40,11 +40,16 @@ class VulkanRenderer final
     [[nodiscard]] std::string const &getEngineName() const;
     [[nodiscard]] uint32_t getEngineVersion() const;
 
+    // Model Related
+    void loadModel(Model const &model);
+
     // Render related
     void draw(glm::mat4 const &view_proj_mat);
     void deviceWaitIdle();
 
   private:
+    static constexpr uint32_t MAX_MODEL_INSTANCE = 10;
+
     std::string _app_name;
     std::string _engine_name;
     uint32_t _app_version{};

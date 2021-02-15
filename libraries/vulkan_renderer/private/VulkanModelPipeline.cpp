@@ -5,6 +5,7 @@
 #include "glm/gtc/matrix_transform.hpp"
 
 #include "VulkanShader.hpp"
+#include "VulkanMemory.hpp"
 
 void
 VulkanModelPipeline::init(VulkanInstance const &vkInstance,
@@ -13,13 +14,25 @@ VulkanModelPipeline::init(VulkanInstance const &vkInstance,
                           VulkanTextureManager &texManager,
                           uint32_t maxModelNb)
 {
-    (void)model;
-    (void)texManager;
     _device = vkInstance.device;
+    _physical_device = vkInstance.physicalDevice;
+    _cmd_pool = vkInstance.commandPool;
+    _gfx_queue = vkInstance.graphicQueue;
     _max_model_nb = maxModelNb;
     _create_descriptor_layout();
     _create_pipeline_layout();
     _create_gfx_pipeline(renderPass);
+    _pipeline_meshes.resize(model.getMeshList().size());
+    auto mesh_list = model.getMeshList();
+    for (size_t i = 0; i < _pipeline_meshes.size(); ++i) {
+        _pipeline_meshes[i] =
+          _create_pipeline_mesh(mesh_list[i],
+                                model.getDirectory(),
+                                texManager,
+                                renderPass.currentSwapChainNbImg);
+        _create_descriptor_pool(renderPass, _pipeline_meshes[i]);
+        _create_descriptor_sets(renderPass, _pipeline_meshes[i]);
+    }
 }
 
 void
@@ -27,6 +40,7 @@ VulkanModelPipeline::resize(VulkanRenderPass const &renderPass)
 {
     vkDestroyPipeline(_device, _graphic_pipeline, nullptr);
     vkDestroyPipelineLayout(_device, _pipeline_layout, nullptr);
+
     _create_pipeline_layout();
     _create_gfx_pipeline(renderPass);
 
@@ -47,7 +61,7 @@ VulkanModelPipeline::clear()
 }
 
 uint32_t
-VulkanModelPipeline::addInstance(VulkanModelInfo const &info)
+VulkanModelPipeline::addInstance(ModelInstanceInfo const &info)
 {
     (void)info;
     return (instance_index++);
@@ -61,7 +75,8 @@ VulkanModelPipeline::removeInstance(uint32_t index)
 }
 
 bool
-VulkanModelPipeline::updateInstance(uint32_t index, VulkanModelInfo const &info)
+VulkanModelPipeline::updateInstance(uint32_t index,
+                                    ModelInstanceInfo const &info)
 {
     (void)index;
     (void)info;
@@ -114,32 +129,32 @@ VulkanModelPipeline::_get_attribute_description()
     attribute_description[2].format = VK_FORMAT_R32G32_SFLOAT;
 
     attribute_description[3].binding = 0;
-    attribute_description[3].location = 1;
+    attribute_description[3].location = 3;
     attribute_description[3].offset = offsetof(Vertex, tangent);
     attribute_description[3].format = VK_FORMAT_R32G32B32_SFLOAT;
 
     attribute_description[4].binding = 0;
-    attribute_description[4].location = 2;
+    attribute_description[4].location = 4;
     attribute_description[4].offset = offsetof(Vertex, bitangent);
     attribute_description[4].format = VK_FORMAT_R32G32_SFLOAT;
 
     attribute_description[5].binding = 1;
-    attribute_description[5].location = 3;
+    attribute_description[5].location = 5;
     attribute_description[5].offset = 0;
     attribute_description[5].format = VK_FORMAT_R32G32B32A32_SFLOAT;
 
     attribute_description[6].binding = 1;
-    attribute_description[6].location = 4;
+    attribute_description[6].location = 6;
     attribute_description[6].offset = sizeof(glm::vec4);
     attribute_description[6].format = VK_FORMAT_R32G32B32A32_SFLOAT;
 
     attribute_description[7].binding = 1;
-    attribute_description[7].location = 5;
+    attribute_description[7].location = 7;
     attribute_description[7].offset = sizeof(glm::vec4) * 2;
     attribute_description[7].format = VK_FORMAT_R32G32B32A32_SFLOAT;
 
     attribute_description[8].binding = 1;
-    attribute_description[8].location = 6;
+    attribute_description[8].location = 8;
     attribute_description[8].offset = sizeof(glm::vec4) * 3;
     attribute_description[8].format = VK_FORMAT_R32G32B32A32_SFLOAT;
     return (attribute_description);
@@ -174,7 +189,7 @@ VulkanModelPipeline::_create_descriptor_layout()
           _device, &layout_info, nullptr, &_descriptor_set_layout) !=
         VK_SUCCESS) {
         throw std::runtime_error(
-          "VulkanRenderer: failed to create descriptor set layout");
+          "VulkanModelPipeline: failed to create descriptor set layout");
     }
 }
 
@@ -191,7 +206,7 @@ VulkanModelPipeline::_create_pipeline_layout()
           _device, &pipeline_layout_info, nullptr, &_pipeline_layout) !=
         VK_SUCCESS) {
         throw std::runtime_error(
-          "VulkanRenderer: Failed to create pipeline layout");
+          "VulkanModelPipeline: Failed to create pipeline layout");
     }
 }
 
@@ -355,23 +370,175 @@ VulkanModelPipeline::_create_gfx_pipeline(VulkanRenderPass const &renderPass)
                                   nullptr,
                                   &_graphic_pipeline) != VK_SUCCESS) {
         throw std::runtime_error(
-          "VulkanRenderer: Failed to create graphic pipeline");
+          "VulkanModelPipeline: Failed to create graphic pipeline");
     }
 
     vkDestroyShaderModule(_device, vert_shader, nullptr);
     vkDestroyShaderModule(_device, frag_shader, nullptr);
 }
 
-void
-VulkanModelPipeline::_create_gfx_buffer()
-{}
+VulkanModelPipeline::VulkanModelPipelineMesh
+VulkanModelPipeline::_create_pipeline_mesh(Mesh const &mesh,
+                                           std::string const &modelFolder,
+                                           VulkanTextureManager &textureManager,
+                                           uint32_t currentSwapChainNbImg)
+{
+    VulkanModelPipelineMesh pipeline_mesh{};
+
+    pipeline_mesh.diffuseTexture = textureManager.loadAndGetTexture(
+      modelFolder + "/" + mesh.material.tex_diffuse_name);
+
+    pipeline_mesh.verticesSize = sizeof(Vertex) * mesh.vertex_list.size();
+    pipeline_mesh.indicesSize = sizeof(uint32_t) * mesh.indices.size();
+    VkDeviceSize instance_matrices_size = sizeof(glm::mat4) * _max_model_nb;
+    VkDeviceSize uniform_size =
+      sizeof(ModelPipelineUbo) * currentSwapChainNbImg;
+
+    pipeline_mesh.instanceMatricesOffset = pipeline_mesh.verticesSize;
+    pipeline_mesh.indicesOffset =
+      pipeline_mesh.verticesSize + instance_matrices_size;
+    pipeline_mesh.uboOffset = pipeline_mesh.verticesSize +
+                              instance_matrices_size +
+                              pipeline_mesh.indicesSize;
+    // UBO are required to be 0x40 aligned
+    pipeline_mesh.uboOffset += pipeline_mesh.uboOffset % 0x40;
+    VkDeviceSize total_size = pipeline_mesh.uboOffset + uniform_size;
+
+    // CPU => GPU transfer buffer
+    VkBuffer staging_buffer{};
+    VkDeviceMemory staging_buffer_memory{};
+    createBuffer(
+      _device, staging_buffer, total_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+    allocateBuffer(_physical_device,
+                   _device,
+                   staging_buffer,
+                   staging_buffer_memory,
+                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    // Copying data into staging buffer
+    copyOnMappedMemory(_device,
+                       staging_buffer_memory,
+                       0,
+                       pipeline_mesh.verticesSize,
+                       mesh.vertex_list.data());
+    copyOnMappedMemory(_device,
+                       staging_buffer_memory,
+                       pipeline_mesh.indicesOffset,
+                       pipeline_mesh.indicesSize,
+                       mesh.indices.data());
+
+    // GPU only memory
+    createBuffer(
+      _device,
+      pipeline_mesh.buffer,
+      total_size,
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+        VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+    allocateBuffer(_physical_device,
+                   _device,
+                   pipeline_mesh.buffer,
+                   pipeline_mesh.memory,
+                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    copyBuffer(_device,
+               _cmd_pool,
+               _gfx_queue,
+               pipeline_mesh.buffer,
+               staging_buffer,
+               total_size);
+
+    vkDestroyBuffer(_device, staging_buffer, nullptr);
+    vkFreeMemory(_device, staging_buffer_memory, nullptr);
+
+    return (pipeline_mesh);
+}
 
 void
-VulkanModelPipeline::_create_descriptor_pool()
-{}
+VulkanModelPipeline::_create_descriptor_pool(
+  VulkanRenderPass const &renderPass,
+  VulkanModelPipelineMesh &pipelineMesh)
+{
+    std::array<VkDescriptorPoolSize, 2> pool_size{};
+    pool_size[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    pool_size[0].descriptorCount = renderPass.currentSwapChainNbImg;
+    pool_size[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    pool_size[1].descriptorCount = renderPass.currentSwapChainNbImg;
+
+    VkDescriptorPoolCreateInfo pool_info{};
+    pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    pool_info.poolSizeCount = pool_size.size();
+    pool_info.pPoolSizes = pool_size.data();
+    pool_info.maxSets = renderPass.currentSwapChainNbImg;
+
+    if (vkCreateDescriptorPool(
+          _device, &pool_info, nullptr, &pipelineMesh.descriptorPool) !=
+        VK_SUCCESS) {
+        throw std::runtime_error(
+          "VulkanModelPipeline: failed to create descriptor pool");
+    }
+}
 
 void
-VulkanModelPipeline::_create_descriptor_sets()
-{}
+VulkanModelPipeline::_create_descriptor_sets(
+  VulkanRenderPass const &renderPass,
+  VulkanModelPipelineMesh &pipelineMesh)
+{
+    std::vector<VkDescriptorSetLayout> layouts(renderPass.currentSwapChainNbImg,
+                                               _descriptor_set_layout);
+    VkDescriptorSetAllocateInfo alloc_info{};
+    alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    alloc_info.descriptorPool = pipelineMesh.descriptorPool;
+    alloc_info.descriptorSetCount = renderPass.currentSwapChainNbImg;
+    alloc_info.pSetLayouts = layouts.data();
+
+    pipelineMesh.descriptorSets.resize(renderPass.currentSwapChainNbImg);
+    if (vkAllocateDescriptorSets(
+          _device, &alloc_info, pipelineMesh.descriptorSets.data()) !=
+        VK_SUCCESS) {
+        throw std::runtime_error(
+          "VulkanModelPipeline: failed to create descriptor sets");
+    }
+
+    for (size_t i = 0; i < renderPass.currentSwapChainNbImg; ++i) {
+        VkDescriptorBufferInfo buffer_info{};
+        buffer_info.buffer = pipelineMesh.buffer;
+        buffer_info.offset =
+          pipelineMesh.uboOffset + sizeof(ModelPipelineUbo) * i;
+        buffer_info.range = sizeof(ModelPipelineUbo);
+
+        VkDescriptorImageInfo img_info{};
+        img_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        img_info.imageView = pipelineMesh.diffuseTexture.texture_img_view;
+        img_info.sampler = pipelineMesh.diffuseTexture.texture_sampler;
+
+        std::array<VkWriteDescriptorSet, 2> descriptor_write{};
+        descriptor_write[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptor_write[0].dstSet = pipelineMesh.descriptorSets[i];
+        descriptor_write[0].dstBinding = 0;
+        descriptor_write[0].dstArrayElement = 0;
+        descriptor_write[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptor_write[0].descriptorCount = 1;
+        descriptor_write[0].pBufferInfo = &buffer_info;
+        descriptor_write[0].pImageInfo = nullptr;
+        descriptor_write[0].pTexelBufferView = nullptr;
+
+        descriptor_write[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptor_write[1].dstSet = pipelineMesh.descriptorSets[i];
+        descriptor_write[1].dstBinding = 1;
+        descriptor_write[1].dstArrayElement = 0;
+        descriptor_write[1].descriptorType =
+          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptor_write[1].descriptorCount = 1;
+        descriptor_write[1].pBufferInfo = nullptr;
+        descriptor_write[1].pImageInfo = &img_info;
+        descriptor_write[1].pTexelBufferView = nullptr;
+
+        vkUpdateDescriptorSets(_device,
+                               descriptor_write.size(),
+                               descriptor_write.data(),
+                               0,
+                               nullptr);
+    }
+}
 
 uint32_t VulkanModelPipeline::instance_index = 1;

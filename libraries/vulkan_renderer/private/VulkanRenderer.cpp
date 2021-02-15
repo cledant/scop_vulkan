@@ -132,6 +132,14 @@ VulkanRenderer::getEngineVersion() const
     return (_engine_version);
 }
 
+// Model Related
+void
+VulkanRenderer::loadModel(Model const &model)
+{
+    _model_pipeline.init(
+      _vk_instance, _render_pass, model, _tex_manager, MAX_MODEL_INSTANCE);
+}
+
 // Render Related
 void
 VulkanRenderer::draw(glm::mat4 const &view_proj_mat)
@@ -431,7 +439,8 @@ VulkanRenderer::_create_gfx_pipeline()
 void
 VulkanRenderer::_create_gfx_buffer()
 {
-    VkDeviceSize vertex_size = sizeof(TestVertex) * TEST_TRIANGLE_VERTICIES.size();
+    VkDeviceSize vertex_size =
+      sizeof(TestVertex) * TEST_TRIANGLE_VERTICIES.size();
     VkDeviceSize instance_matrices_size =
       sizeof(glm::mat4) * TEST_TRIANGLE_POS.size();
     VkDeviceSize indices_size = sizeof(uint32_t) * TEST_TRIANGLE_INDICES.size();
@@ -546,7 +555,8 @@ VulkanRenderer::_create_descriptor_sets()
           "VulkanRenderer: failed to create descriptor sets");
     }
 
-    VkDeviceSize vertex_size = sizeof(TestVertex) * TEST_TRIANGLE_VERTICIES.size();
+    VkDeviceSize vertex_size =
+      sizeof(TestVertex) * TEST_TRIANGLE_VERTICIES.size();
     VkDeviceSize instance_matrices_size =
       sizeof(glm::mat4) * TEST_TRIANGLE_POS.size();
     VkDeviceSize indices_size = sizeof(uint32_t) * TEST_TRIANGLE_INDICES.size();
@@ -647,7 +657,8 @@ VulkanRenderer::_create_command_buffers()
         vkCmdBindVertexBuffers(it, 0, 2, vertex_buffer, offsets);
         vkCmdBindIndexBuffer(it,
                              _gfx_buffer,
-                             sizeof(TestVertex) * TEST_TRIANGLE_VERTICIES.size() +
+                             sizeof(TestVertex) *
+                                 TEST_TRIANGLE_VERTICIES.size() +
                                sizeof(glm::mat4) * TEST_TRIANGLE_POS.size(),
                              VK_INDEX_TYPE_UINT32);
         vkCmdBindDescriptorSets(it,
@@ -672,7 +683,8 @@ VulkanRenderer::_create_command_buffers()
 void
 VulkanRenderer::_update_ubo(uint32_t img_index, glm::mat4 const &view_proj_mat)
 {
-    VkDeviceSize vertex_size = sizeof(TestVertex) * TEST_TRIANGLE_VERTICIES.size();
+    VkDeviceSize vertex_size =
+      sizeof(TestVertex) * TEST_TRIANGLE_VERTICIES.size();
     VkDeviceSize instance_matrices_size =
       sizeof(glm::mat4) * TEST_TRIANGLE_POS.size();
     VkDeviceSize indices_size = sizeof(uint32_t) * TEST_TRIANGLE_INDICES.size();
