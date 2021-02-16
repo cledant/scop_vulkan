@@ -6,6 +6,7 @@
 
 #include "VulkanShader.hpp"
 #include "VulkanMemory.hpp"
+#include "VulkanCommandBuffer.hpp"
 
 void
 VulkanModelPipeline::init(VulkanInstance const &vkInstance,
@@ -19,6 +20,8 @@ VulkanModelPipeline::init(VulkanInstance const &vkInstance,
     _cmd_pool = vkInstance.commandPool;
     _gfx_queue = vkInstance.graphicQueue;
     _max_model_nb = maxModelNb;
+    _model = &model;
+    _model_instance_info.reserve(maxModelNb);
     _create_descriptor_layout();
     _create_pipeline_layout();
     _create_gfx_pipeline(renderPass);
@@ -36,20 +39,28 @@ VulkanModelPipeline::init(VulkanInstance const &vkInstance,
 }
 
 void
-VulkanModelPipeline::resize(VulkanRenderPass const &renderPass)
+VulkanModelPipeline::resize(VulkanRenderPass const &renderPass,
+                            VulkanTextureManager &texManager)
 {
     vkDestroyPipeline(_device, _graphic_pipeline, nullptr);
     vkDestroyPipelineLayout(_device, _pipeline_layout, nullptr);
 
     _create_pipeline_layout();
     _create_gfx_pipeline(renderPass);
-
-    /*    if (renderPass.oldSwapChainNbImg != renderPass.currentSwapChainNbImg)
-       { vkDestroyDescriptorPool(_device, _descriptor_pool, nullptr);
-            _create_gfx_buffer();
-            _create_descriptor_pool();
-            _create_descriptor_sets();
-        }*/
+    auto mesh_list = _model->getMeshList();
+    for (size_t i = 0; i < _pipeline_meshes.size(); ++i) {
+        vkDestroyBuffer(_device, _pipeline_meshes[i].buffer, nullptr);
+        vkFreeMemory(_device, _pipeline_meshes[i].memory, nullptr);
+        vkDestroyDescriptorPool(
+          _device, _pipeline_meshes[i].descriptorPool, nullptr);
+        _pipeline_meshes[i] =
+          _create_pipeline_mesh(mesh_list[i],
+                                _model->getDirectory(),
+                                texManager,
+                                renderPass.currentSwapChainNbImg);
+        _create_descriptor_pool(renderPass, _pipeline_meshes[i]);
+        _create_descriptor_sets(renderPass, _pipeline_meshes[i]);
+    }
 }
 
 void
@@ -58,39 +69,133 @@ VulkanModelPipeline::clear()
     vkDestroyPipeline(_device, _graphic_pipeline, nullptr);
     vkDestroyPipelineLayout(_device, _pipeline_layout, nullptr);
     vkDestroyDescriptorSetLayout(_device, _descriptor_set_layout, nullptr);
+    for (auto &mesh : _pipeline_meshes) {
+        vkDestroyBuffer(_device, mesh.buffer, nullptr);
+        vkFreeMemory(_device, mesh.memory, nullptr);
+        vkDestroyDescriptorPool(_device, mesh.descriptorPool, nullptr);
+    }
 }
 
 uint32_t
 VulkanModelPipeline::addInstance(ModelInstanceInfo const &info)
 {
-    (void)info;
-    return (instance_index++);
+    if (_current_model_nb >= _max_model_nb) {
+        return (0);
+    }
+    _index_to_buffer_pairing.insert({ instance_index, _current_model_nb });
+    _model_instance_info.emplace_back(info);
+    _model_instance_index.emplace_back(_current_model_nb);
+    _set_instance_matrix_on_gpu(_current_model_nb, info);
+    ++_current_model_nb;
+    ++instance_index;
+    if (!instance_index) {
+        instance_index = 1;
+    }
+    return (instance_index);
 }
 
 bool
-VulkanModelPipeline::removeInstance(uint32_t index)
+VulkanModelPipeline::removeInstance(uint32_t instanceIndex)
 {
-    (void)index;
+    if (!_index_to_buffer_pairing.contains(instanceIndex)) {
+        return (false);
+    }
+
+    auto bufferIndex = _index_to_buffer_pairing[instanceIndex];
+    auto infoIt = _model_instance_info.begin() + bufferIndex;
+    auto indexIt = _model_instance_index.begin() + bufferIndex;
+    _index_to_buffer_pairing.erase(instanceIndex);
+    _index_to_buffer_pairing.insert_or_assign(*indexIt, bufferIndex);
+    *infoIt = _model_instance_info.back();
+    *indexIt = _model_instance_index.back();
+    _model_instance_info.pop_back();
+    _model_instance_index.pop_back();
+    --_current_model_nb;
+    _set_instance_matrix_on_gpu(bufferIndex, _model_instance_info[bufferIndex]);
     return (true);
 }
 
 bool
-VulkanModelPipeline::updateInstance(uint32_t index,
+VulkanModelPipeline::updateInstance(uint32_t instanceIndex,
                                     ModelInstanceInfo const &info)
 {
-    (void)index;
-    (void)info;
+    if (!_index_to_buffer_pairing.contains(instanceIndex)) {
+        return (false);
+    }
+    _set_instance_matrix_on_gpu(_index_to_buffer_pairing[instanceIndex], info);
     return (true);
 }
 
 void
-VulkanModelPipeline::generateCommands()
-{}
+VulkanModelPipeline::generateCommands(VkCommandBuffer cmdBuffer,
+                                      size_t descriptorSetIndex)
+{
+    for (auto &it : _pipeline_meshes) {
+        // Vertex related values
+        VkBuffer vertex_buffer[] = { it.buffer, it.buffer };
+        VkDeviceSize offsets[] = { 0, it.instanceMatricesOffset };
+
+        vkCmdBindPipeline(
+          cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphic_pipeline);
+        vkCmdBindVertexBuffers(cmdBuffer, 0, 2, vertex_buffer, offsets);
+        vkCmdBindIndexBuffer(
+          cmdBuffer, it.buffer, it.indicesOffset, VK_INDEX_TYPE_UINT32);
+        vkCmdBindDescriptorSets(cmdBuffer,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                _pipeline_layout,
+                                0,
+                                1,
+                                &it.descriptorSets[descriptorSetIndex],
+                                0,
+                                nullptr);
+        vkCmdDrawIndexed(cmdBuffer, it.indicesSize, _current_model_nb, 0, 0, 0);
+    }
+}
 
 void
-VulkanModelPipeline::updateViewPerspectiveMatrix(glm::mat4 const &mat)
+VulkanModelPipeline::updateViewProjMatrix(uint32_t img_index,
+                                          glm::mat4 const &mat)
 {
-    (void)mat;
+    _update_ubo(img_index,
+                &mat,
+                sizeof(glm::mat4),
+                offsetof(ModelPipelineUbo, view_proj));
+}
+
+void
+VulkanModelPipeline::_update_ubo(uint32_t img_index,
+                                 void const *data,
+                                 VkDeviceSize dataSize,
+                                 VkDeviceSize dataOffset)
+{
+    // CPU => GPU transfer buffer
+    VkBuffer staging_buffer{};
+    VkDeviceMemory staging_buffer_memory{};
+    createBuffer(
+      _device, staging_buffer, dataSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+    allocateBuffer(_physical_device,
+                   _device,
+                   staging_buffer,
+                   staging_buffer_memory,
+                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    copyOnMappedMemory(_device, staging_buffer_memory, 0, dataSize, data);
+
+    // Push on GPU
+    uint32_t n = _pipeline_meshes.size();
+    VkCommandBuffer cmd_buffer = beginNTimesCommands(_device, _cmd_pool, n);
+    for (auto &it : _pipeline_meshes) {
+        VkBufferCopy copy_region{};
+        copy_region.size = dataSize;
+        copy_region.dstOffset =
+          it.uboOffset + sizeof(ModelPipelineUbo) * img_index + dataOffset;
+        copy_region.srcOffset = 0;
+        vkCmdCopyBuffer(cmd_buffer, staging_buffer, it.buffer, 1, &copy_region);
+    }
+    endNTimesCommands(_device, _cmd_pool, cmd_buffer, _gfx_queue, n);
+
+    vkDestroyBuffer(_device, staging_buffer, nullptr);
+    vkFreeMemory(_device, staging_buffer_memory, nullptr);
 }
 
 std::array<VkVertexInputBindingDescription, 2>
@@ -401,7 +506,7 @@ VulkanModelPipeline::_create_pipeline_mesh(Mesh const &mesh,
                               instance_matrices_size +
                               pipeline_mesh.indicesSize;
     // UBO are required to be 0x40 aligned
-    pipeline_mesh.uboOffset += pipeline_mesh.uboOffset % 0x40;
+    pipeline_mesh.uboOffset += 0x40 - (pipeline_mesh.uboOffset % 0x40);
     VkDeviceSize total_size = pipeline_mesh.uboOffset + uniform_size;
 
     // CPU => GPU transfer buffer
@@ -539,6 +644,43 @@ VulkanModelPipeline::_create_descriptor_sets(
                                0,
                                nullptr);
     }
+}
+
+void
+VulkanModelPipeline::_set_instance_matrix_on_gpu(uint32_t instanceIndex,
+                                                 ModelInstanceInfo const &info)
+{
+    (void)instanceIndex;
+    (void)info;
+}
+
+glm::mat4
+VulkanModelPipeline::_compute_instance_matrix(ModelInstanceInfo const &info)
+{
+    (void)info;
+    /*
+
+    _translation_matrices.resize(TEST_TRIANGLE_POS.size());
+
+for (size_t i = 0; i < _translation_matrices.size(); ++i) {
+    _translation_matrices[i] = glm::mat4(1.0f);
+
+    _translation_matrices[i] =
+      glm::translate(_translation_matrices[i], TEST_TRIANGLE_POS[i]);
+    _translation_matrices[i] = glm::rotate(
+      _translation_matrices[i], 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+    _translation_matrices[i] = glm::rotate(
+      _translation_matrices[i], 0.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+    _translation_matrices[i] = glm::rotate(
+      _translation_matrices[i], 0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+    _translation_matrices[i] = glm::translate(_translation_matrices[i],
+                                              glm::vec3(0.0f, -1.0f, 0.0f));
+    _translation_matrices[i] =
+      glm::scale(_translation_matrices[i], glm::vec3(1.0f));
+}
+
+ */
+    return glm::mat4();
 }
 
 uint32_t VulkanModelPipeline::instance_index = 1;

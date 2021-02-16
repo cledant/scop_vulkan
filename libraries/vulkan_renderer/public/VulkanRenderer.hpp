@@ -42,10 +42,13 @@ class VulkanRenderer final
 
     // Model Related
     void loadModel(Model const &model);
+    uint32_t addModelInstance(ModelInstanceInfo const &info);
+    bool removeModelInstance(uint32_t index);
+    bool updateModelInstance(uint32_t index, ModelInstanceInfo const &info);
 
     // Render related
     void draw(glm::mat4 const &view_proj_mat);
-    void deviceWaitIdle();
+    void deviceWaitIdle() const;
 
   private:
     static constexpr uint32_t MAX_MODEL_INSTANCE = 10;
@@ -61,35 +64,11 @@ class VulkanRenderer final
     VulkanSync _sync;
     VulkanModelPipeline _model_pipeline;
 
-    // Pipeline + Model + model texture related
-    VkDescriptorSetLayout _descriptor_set_layout{};
-    VkPipelineLayout _pipeline_layout{};
-    VkPipeline _graphic_pipeline{};
-    VkBuffer _gfx_buffer{};
-    VkDeviceMemory _gfx_memory{};
-    Texture _tex;
-    std::vector<glm::mat4> _translation_matrices;
-    VkDescriptorPool _descriptor_pool{};
-    std::vector<VkDescriptorSet> _descriptor_sets;
-
     // Drawing related
     std::vector<VkCommandBuffer> _command_buffers;
 
-    // Gfx pipeline fct
-    inline void _create_descriptor_layout();
-    inline void _create_gfx_pipeline();
-    inline void _create_gfx_buffer();
-    inline void _create_descriptor_pool();
-    inline void _create_descriptor_sets();
-
     // Draw related fct
     inline void _create_command_buffers();
-
-    // Ubo related
-    inline void _update_ubo(uint32_t img_index, glm::mat4 const &view_proj_mat);
-
-    // Test instancing
-    inline void _init_instances_matrices();
 };
 
 #endif // SCOP_VULKAN_VULKANRENDERER_HPP

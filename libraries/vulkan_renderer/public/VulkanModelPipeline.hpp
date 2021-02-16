@@ -41,15 +41,16 @@ class VulkanModelPipeline final
               Model const &model,
               VulkanTextureManager &texManager,
               uint32_t maxModelNb);
-    void resize(VulkanRenderPass const &renderPass);
+    void resize(VulkanRenderPass const &renderPass,
+                VulkanTextureManager &texManager);
     void clear();
 
     uint32_t addInstance(ModelInstanceInfo const &info);
-    bool removeInstance(uint32_t index);
-    bool updateInstance(uint32_t index, ModelInstanceInfo const &info);
+    bool removeInstance(uint32_t instanceIndex);
+    bool updateInstance(uint32_t instanceIndex, ModelInstanceInfo const &info);
 
-    void generateCommands();
-    void updateViewPerspectiveMatrix(glm::mat4 const &mat);
+    void generateCommands(VkCommandBuffer cmdBuffer, size_t descriptorSetIndex);
+    void updateViewProjMatrix(uint32_t img_index, glm::mat4 const &mat);
 
   private:
     struct VulkanModelPipelineMesh
@@ -70,6 +71,9 @@ class VulkanModelPipeline final
     _get_binding_description();
     static std::array<VkVertexInputAttributeDescription, 9>
     _get_attribute_description();
+
+    // Model related
+    Model const *_model{};
 
     // Vulkan related
     VkDevice _device{};
@@ -93,13 +97,21 @@ class VulkanModelPipeline final
                                         VulkanModelPipelineMesh &pipelineMesh);
     inline void _create_descriptor_sets(VulkanRenderPass const &renderPass,
                                         VulkanModelPipelineMesh &pipelineMesh);
+    inline void _update_ubo(uint32_t img_index,
+                            void const *data,
+                            VkDeviceSize dataSize,
+                            VkDeviceSize dataOffset);
+    inline void _set_instance_matrix_on_gpu(uint32_t instanceIndex,
+                                            ModelInstanceInfo const &info);
+    inline glm::mat4 _compute_instance_matrix(ModelInstanceInfo const &info);
 
     // Instance related
     static uint32_t instance_index;
     uint32_t _max_model_nb{};
     uint32_t _current_model_nb{};
     std::unordered_map<uint32_t, uint32_t> _index_to_buffer_pairing;
-    std::vector<ModelInstanceInfo> _model_instance_info{};
+    std::vector<ModelInstanceInfo> _model_instance_info;
+    std::vector<uint32_t> _model_instance_index;
 };
 
 #endif // SCOP_VULKAN_VULKANMODELPIPELINE_HPP
