@@ -9,8 +9,6 @@
 
 #include "VulkanDebug.hpp"
 #include "VulkanSwapChain.hpp"
-#include "VulkanShader.hpp"
-#include "VulkanMemory.hpp"
 #include "VulkanCommandBuffer.hpp"
 #include "TestModelInstancing.hpp"
 
@@ -50,9 +48,6 @@ VulkanRenderer::init(VkSurfaceKHR surface, uint32_t win_w, uint32_t win_h)
     _vk_instance.init(surface);
     _tex_manager.init(_vk_instance);
     _render_pass.init(_vk_instance, win_w, win_h);
-
-    // Drawing related
-    _create_command_buffers();
     _sync.init(_vk_instance, _render_pass.swapChainFramebuffers.size());
 }
 
@@ -112,6 +107,9 @@ VulkanRenderer::loadModel(Model const &model)
 {
     _model_pipeline.init(
       _vk_instance, _render_pass, model, _tex_manager, MAX_MODEL_INSTANCE);
+
+    // Drawing related
+    _create_command_buffers();
 }
 
 uint32_t

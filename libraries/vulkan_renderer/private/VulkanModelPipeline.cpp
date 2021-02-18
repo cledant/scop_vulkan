@@ -148,7 +148,7 @@ VulkanModelPipeline::generateCommands(VkCommandBuffer cmdBuffer,
                                 &it.descriptorSets[descriptorSetIndex],
                                 0,
                                 nullptr);
-        vkCmdDrawIndexed(cmdBuffer, it.indicesSize, _current_model_nb, 0, 0, 0);
+        vkCmdDrawIndexed(cmdBuffer, it.nbindices, _current_model_nb, 0, 0, 0);
     }
 }
 
@@ -182,17 +182,16 @@ VulkanModelPipeline::_update_ubo(uint32_t img_index,
     copyOnMappedMemory(_device, staging_buffer_memory, 0, dataSize, data);
 
     // Push on GPU
-    uint32_t n = _pipeline_meshes.size();
-    VkCommandBuffer cmd_buffer = beginNTimesCommands(_device, _cmd_pool, n);
     for (auto &it : _pipeline_meshes) {
+        VkCommandBuffer cmd_buffer = beginSingleTimeCommands(_device, _cmd_pool);
         VkBufferCopy copy_region{};
         copy_region.size = dataSize;
         copy_region.dstOffset =
           it.uboOffset + sizeof(ModelPipelineUbo) * img_index + dataOffset;
         copy_region.srcOffset = 0;
         vkCmdCopyBuffer(cmd_buffer, staging_buffer, it.buffer, 1, &copy_region);
+        endSingleTimeCommands(_device, _cmd_pool, cmd_buffer, _gfx_queue);
     }
-    endNTimesCommands(_device, _cmd_pool, cmd_buffer, _gfx_queue, n);
 
     vkDestroyBuffer(_device, staging_buffer, nullptr);
     vkFreeMemory(_device, staging_buffer_memory, nullptr);
@@ -241,7 +240,7 @@ VulkanModelPipeline::_get_attribute_description()
     attribute_description[4].binding = 0;
     attribute_description[4].location = 4;
     attribute_description[4].offset = offsetof(Vertex, bitangent);
-    attribute_description[4].format = VK_FORMAT_R32G32_SFLOAT;
+    attribute_description[4].format = VK_FORMAT_R32G32B32_SFLOAT;
 
     attribute_description[5].binding = 1;
     attribute_description[5].location = 5;
@@ -494,6 +493,7 @@ VulkanModelPipeline::_create_pipeline_mesh(Mesh const &mesh,
       modelFolder + "/" + mesh.material.tex_diffuse_name);
 
     pipeline_mesh.verticesSize = sizeof(Vertex) * mesh.vertex_list.size();
+    pipeline_mesh.nbindices = mesh.indices.size();
     pipeline_mesh.indicesSize = sizeof(uint32_t) * mesh.indices.size();
     VkDeviceSize instance_matrices_size = sizeof(glm::mat4) * _max_model_nb;
     VkDeviceSize uniform_size =

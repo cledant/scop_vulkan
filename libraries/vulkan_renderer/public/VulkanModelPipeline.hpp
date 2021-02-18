@@ -60,6 +60,7 @@ class VulkanModelPipeline final
         Texture diffuseTexture{};
         VkDeviceSize verticesSize{};
         VkDeviceSize indicesSize{};
+        VkDeviceSize nbindices{};
         VkDeviceSize instanceMatricesOffset{};
         VkDeviceSize indicesOffset{};
         VkDeviceSize uboOffset{};
