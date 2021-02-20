@@ -83,6 +83,19 @@ copyBuffer(VkDevice device,
 }
 
 void
+copyBuffer(VkDevice device,
+           VkCommandPool command_pool,
+           VkQueue gfx_queue,
+           VkBuffer dst_buffer,
+           VkBuffer src_buffer,
+           VkBufferCopy copy_region)
+{
+    VkCommandBuffer cmd_buffer = beginSingleTimeCommands(device, command_pool);
+    vkCmdCopyBuffer(cmd_buffer, src_buffer, dst_buffer, 1, &copy_region);
+    endSingleTimeCommands(device, command_pool, cmd_buffer, gfx_queue);
+}
+
+void
 copyOnMappedMemory(VkDevice device,
                    VkDeviceMemory memory,
                    VkDeviceSize offset,

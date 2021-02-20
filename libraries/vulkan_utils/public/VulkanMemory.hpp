@@ -22,6 +22,12 @@ void copyBuffer(VkDevice device,
                 VkBuffer dst_buffer,
                 VkBuffer src_buffer,
                 VkDeviceSize size);
+void copyBuffer(VkDevice device,
+                VkCommandPool command_pool,
+                VkQueue gfx_queue,
+                VkBuffer dst_buffer,
+                VkBuffer src_buffer,
+                VkBufferCopy copy_region);
 void copyOnMappedMemory(VkDevice device,
                         VkDeviceMemory memory,
                         VkDeviceSize offset,

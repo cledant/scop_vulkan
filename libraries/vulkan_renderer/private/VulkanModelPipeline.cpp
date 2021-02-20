@@ -82,6 +82,7 @@ VulkanModelPipeline::addInstance(ModelInstanceInfo const &info)
     if (_current_model_nb >= _max_model_nb) {
         return (0);
     }
+
     _index_to_buffer_pairing.insert({ instance_index, _current_model_nb });
     _model_instance_info.emplace_back(info);
     _model_instance_index.emplace_back(_current_model_nb);
@@ -107,7 +108,7 @@ VulkanModelPipeline::removeInstance(uint32_t instanceIndex)
     _index_to_buffer_pairing.erase(instanceIndex);
     _index_to_buffer_pairing.insert_or_assign(*indexIt, bufferIndex);
     *infoIt = _model_instance_info.back();
-    *indexIt = _model_instance_index.back();
+    *indexIt = bufferIndex;
     _model_instance_info.pop_back();
     _model_instance_index.pop_back();
     --_current_model_nb;
@@ -122,6 +123,7 @@ VulkanModelPipeline::updateInstance(uint32_t instanceIndex,
     if (!_index_to_buffer_pairing.contains(instanceIndex)) {
         return (false);
     }
+
     _set_instance_matrix_on_gpu(_index_to_buffer_pairing[instanceIndex], info);
     return (true);
 }
@@ -148,7 +150,7 @@ VulkanModelPipeline::generateCommands(VkCommandBuffer cmdBuffer,
                                 &it.descriptorSets[descriptorSetIndex],
                                 0,
                                 nullptr);
-        vkCmdDrawIndexed(cmdBuffer, it.nbindices, _current_model_nb, 0, 0, 0);
+        vkCmdDrawIndexed(cmdBuffer, it.nbIndices, _current_model_nb, 0, 0, 0);
     }
 }
 
@@ -183,14 +185,19 @@ VulkanModelPipeline::_update_ubo(uint32_t img_index,
 
     // Push on GPU
     for (auto &it : _pipeline_meshes) {
-        VkCommandBuffer cmd_buffer = beginSingleTimeCommands(_device, _cmd_pool);
         VkBufferCopy copy_region{};
         copy_region.size = dataSize;
         copy_region.dstOffset =
           it.uboOffset + sizeof(ModelPipelineUbo) * img_index + dataOffset;
         copy_region.srcOffset = 0;
-        vkCmdCopyBuffer(cmd_buffer, staging_buffer, it.buffer, 1, &copy_region);
-        endSingleTimeCommands(_device, _cmd_pool, cmd_buffer, _gfx_queue);
+
+        // Copy on GPU
+        copyBuffer(_device,
+                   _cmd_pool,
+                   _gfx_queue,
+                   it.buffer,
+                   staging_buffer,
+                   copy_region);
     }
 
     vkDestroyBuffer(_device, staging_buffer, nullptr);
@@ -493,7 +500,7 @@ VulkanModelPipeline::_create_pipeline_mesh(Mesh const &mesh,
       modelFolder + "/" + mesh.material.tex_diffuse_name);
 
     pipeline_mesh.verticesSize = sizeof(Vertex) * mesh.vertex_list.size();
-    pipeline_mesh.nbindices = mesh.indices.size();
+    pipeline_mesh.nbIndices = mesh.indices.size();
     pipeline_mesh.indicesSize = sizeof(uint32_t) * mesh.indices.size();
     VkDeviceSize instance_matrices_size = sizeof(glm::mat4) * _max_model_nb;
     VkDeviceSize uniform_size =
@@ -647,40 +654,63 @@ VulkanModelPipeline::_create_descriptor_sets(
 }
 
 void
-VulkanModelPipeline::_set_instance_matrix_on_gpu(uint32_t instanceIndex,
+VulkanModelPipeline::_set_instance_matrix_on_gpu(uint32_t bufferIndex,
                                                  ModelInstanceInfo const &info)
 {
-    (void)instanceIndex;
-    (void)info;
+    auto instance_mat = _compute_instance_matrix(info);
+
+    // Staging buffer on CPU
+    VkBuffer staging_buffer{};
+    VkDeviceMemory staging_buffer_memory{};
+    createBuffer(_device,
+                 staging_buffer,
+                 sizeof(glm::mat4),
+                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+    allocateBuffer(_physical_device,
+                   _device,
+                   staging_buffer,
+                   staging_buffer_memory,
+                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    copyOnMappedMemory(
+      _device, staging_buffer_memory, 0, sizeof(glm::mat4), &instance_mat);
+
+    for (auto const &mesh : _pipeline_meshes) {
+        VkBufferCopy copy_region{};
+        copy_region.size = sizeof(glm::mat4);
+        copy_region.dstOffset =
+          mesh.instanceMatricesOffset + sizeof(glm::mat4) * bufferIndex;
+        copy_region.srcOffset = 0;
+
+        // Copy on GPU
+        copyBuffer(_device,
+                   _cmd_pool,
+                   _gfx_queue,
+                   mesh.buffer,
+                   staging_buffer,
+                   copy_region);
+    }
+
+    vkDestroyBuffer(_device, staging_buffer, nullptr);
+    vkFreeMemory(_device, staging_buffer_memory, nullptr);
 }
 
 glm::mat4
 VulkanModelPipeline::_compute_instance_matrix(ModelInstanceInfo const &info)
 {
-    (void)info;
-    /*
+    auto instance_matrix = glm::mat4(1.0f);
 
-    _translation_matrices.resize(TEST_TRIANGLE_POS.size());
+    instance_matrix = glm::translate(instance_matrix, info.position);
+    instance_matrix =
+      glm::rotate(instance_matrix, info.pitch, glm::vec3(0.0f, 1.0f, 0.0f));
+    instance_matrix =
+      glm::rotate(instance_matrix, info.yaw, glm::vec3(1.0f, 0.0f, 0.0f));
+    instance_matrix =
+      glm::rotate(instance_matrix, info.roll, glm::vec3(0.0f, 0.0f, 1.0f));
+    instance_matrix = glm::translate(instance_matrix, -info.position);
+    instance_matrix = glm::scale(instance_matrix, info.scale);
 
-for (size_t i = 0; i < _translation_matrices.size(); ++i) {
-    _translation_matrices[i] = glm::mat4(1.0f);
-
-    _translation_matrices[i] =
-      glm::translate(_translation_matrices[i], TEST_TRIANGLE_POS[i]);
-    _translation_matrices[i] = glm::rotate(
-      _translation_matrices[i], 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
-    _translation_matrices[i] = glm::rotate(
-      _translation_matrices[i], 0.0f, glm::vec3(1.0f, 0.0f, 0.0f));
-    _translation_matrices[i] = glm::rotate(
-      _translation_matrices[i], 0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
-    _translation_matrices[i] = glm::translate(_translation_matrices[i],
-                                              glm::vec3(0.0f, -1.0f, 0.0f));
-    _translation_matrices[i] =
-      glm::scale(_translation_matrices[i], glm::vec3(1.0f));
-}
-
- */
-    return glm::mat4();
+    return (instance_matrix);
 }
 
 uint32_t VulkanModelPipeline::instance_index = 1;

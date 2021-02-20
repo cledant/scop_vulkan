@@ -19,11 +19,12 @@ struct ModelInstanceInfo final
     float pitch{};
     float yaw{};
     float roll{};
+    glm::vec3 scale = glm::vec3(1.0f);
 };
 
 struct ModelPipelineUbo
 {
-    alignas(16) glm::mat4 view_proj;
+    alignas(16) glm::mat4 view_proj{};
 };
 
 class VulkanModelPipeline final
@@ -60,7 +61,7 @@ class VulkanModelPipeline final
         Texture diffuseTexture{};
         VkDeviceSize verticesSize{};
         VkDeviceSize indicesSize{};
-        VkDeviceSize nbindices{};
+        VkDeviceSize nbIndices{};
         VkDeviceSize instanceMatricesOffset{};
         VkDeviceSize indicesOffset{};
         VkDeviceSize uboOffset{};
@@ -102,9 +103,10 @@ class VulkanModelPipeline final
                             void const *data,
                             VkDeviceSize dataSize,
                             VkDeviceSize dataOffset);
-    inline void _set_instance_matrix_on_gpu(uint32_t instanceIndex,
+    inline void _set_instance_matrix_on_gpu(uint32_t bufferIndex,
                                             ModelInstanceInfo const &info);
-    inline glm::mat4 _compute_instance_matrix(ModelInstanceInfo const &info);
+    static inline glm::mat4 _compute_instance_matrix(
+      ModelInstanceInfo const &info);
 
     // Instance related
     static uint32_t instance_index;
