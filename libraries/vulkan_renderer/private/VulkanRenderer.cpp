@@ -55,15 +55,10 @@ void
 VulkanRenderer::resize(uint32_t win_w, uint32_t win_h)
 {
     vkDeviceWaitIdle(_vk_instance.device);
+
     _render_pass.resize(win_w, win_h);
-
-    // Pipeline + Model + model texture related
-    if (_render_pass.oldSwapChainNbImg != _render_pass.currentSwapChainNbImg) {
-        _sync.init(_vk_instance, _render_pass.swapChainFramebuffers.size());
-        _model_pipeline.resize(_render_pass, _tex_manager);
-    }
-
-    // Drawing related
+    _sync.resize(_render_pass.currentSwapChainNbImg);
+    _model_pipeline.resize(_render_pass, _tex_manager);
     _create_command_buffers();
 }
 
@@ -115,13 +110,17 @@ VulkanRenderer::loadModel(Model const &model)
 uint32_t
 VulkanRenderer::addModelInstance(ModelInstanceInfo const &info)
 {
-    return (_model_pipeline.addInstance(info));
+    auto index = _model_pipeline.addInstance(info);
+    _create_command_buffers();
+    return (index);
 }
 
 bool
 VulkanRenderer::removeModelInstance(uint32_t index)
 {
-    return (_model_pipeline.removeInstance(index));
+    auto ret = _model_pipeline.removeInstance(index);
+    _create_command_buffers();
+    return (ret);
 }
 bool
 VulkanRenderer::updateModelInstance(uint32_t index,

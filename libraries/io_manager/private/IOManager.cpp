@@ -5,16 +5,6 @@
 #define THIS_WIN_PTR static_cast<IOManager *>(glfwGetWindowUserPointer(win))
 
 IOManager::IOManager()
-  : _keys()
-  , _mouse_button()
-  , _mouse_position(0.0f)
-  , _mouse_scroll(0.0f)
-  , _win(nullptr)
-  , _fullscreen(0)
-  , _win_size()
-  , _framebuffer_size()
-  , _mouse_exclusive(0)
-  , _cursor_hidden_on_window(0)
 {
     if (!glfwInit()) {
         throw std::runtime_error("Glfw : failed to init");
@@ -262,8 +252,12 @@ IOManager::_initCallbacks()
 
     // Window
     auto window_size_callback = [](GLFWwindow *win, int w, int h) {
+        auto prev_size = THIS_WIN_PTR->_win_size;
+
         THIS_WIN_PTR->_win_size = glm::ivec2(w, h);
-        THIS_WIN_PTR->_resized = 1;
+        if (prev_size != THIS_WIN_PTR->_win_size) {
+            THIS_WIN_PTR->_resized = 1;
+        }
     };
     glfwSetWindowSizeCallback(_win, window_size_callback);
 

@@ -52,20 +52,20 @@ class IOManager final
 
   private:
     // Input
-    std::array<uint8_t, KEYS_BUFF_SIZE> _keys;
-    std::array<uint8_t, MOUSE_KEYS_BUFF_SIZE> _mouse_button;
-    glm::vec2 _mouse_position;
-    float _mouse_scroll;
+    std::array<uint8_t, KEYS_BUFF_SIZE> _keys{};
+    std::array<uint8_t, MOUSE_KEYS_BUFF_SIZE> _mouse_button{};
+    glm::vec2 _mouse_position{};
+    float _mouse_scroll{};
 
     // Window related
-    GLFWwindow *_win;
-    uint8_t _fullscreen;
-    uint8_t _resized;
-    glm::ivec2 _win_size;
-    glm::ivec2 _framebuffer_size;
+    GLFWwindow *_win{};
+    uint8_t _fullscreen{};
+    uint8_t _resized{};
+    glm::ivec2 _win_size{};
+    glm::ivec2 _framebuffer_size{};
 
-    uint8_t _mouse_exclusive;
-    uint8_t _cursor_hidden_on_window;
+    uint8_t _mouse_exclusive{};
+    uint8_t _cursor_hidden_on_window{};
 
     // Callbacks
     inline void _initCallbacks();

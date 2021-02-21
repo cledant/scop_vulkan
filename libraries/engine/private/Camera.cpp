@@ -155,7 +155,7 @@ Camera::_extractFrustumPlanes()
     _frustum_planes[F_FAR] =
       glm::row(_perspec_mult_view, 3) - glm::row(_perspec_mult_view, 2);
     uint32_t i = 0;
-    for (auto it : _frustum_planes) {
+    for (auto &it : _frustum_planes) {
         it = glm::normalize(it);
         _abs_frustum_planes[i] = glm::abs(_frustum_planes[i]);
         ++i;

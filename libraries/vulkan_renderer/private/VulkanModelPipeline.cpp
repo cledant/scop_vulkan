@@ -42,6 +42,8 @@ void
 VulkanModelPipeline::resize(VulkanRenderPass const &renderPass,
                             VulkanTextureManager &texManager)
 {
+    assert(_model);
+
     vkDestroyPipeline(_device, _graphic_pipeline, nullptr);
     vkDestroyPipelineLayout(_device, _pipeline_layout, nullptr);
 
@@ -60,6 +62,9 @@ VulkanModelPipeline::resize(VulkanRenderPass const &renderPass,
                                 renderPass.currentSwapChainNbImg);
         _create_descriptor_pool(renderPass, _pipeline_meshes[i]);
         _create_descriptor_sets(renderPass, _pipeline_meshes[i]);
+    }
+    for (uint32_t i = 0; i < _current_model_nb; ++i) {
+        _set_instance_matrix_on_gpu(i, _model_instance_info[i]);
     }
 }
 
@@ -702,20 +707,22 @@ VulkanModelPipeline::_compute_instance_matrix(glm::vec3 const &meshCenter,
                                               ModelInstanceInfo const &info)
 {
     (void)info;
+    (void)meshCenter;
     auto instance_matrix = glm::mat4(1.0f);
-    instance_matrix = glm::scale(instance_matrix,
-                                 glm::vec3(0.1f)); // info.scale);
+    //    instance_matrix = glm::scale(instance_matrix,
+    //                                 glm::vec3(0.1f)); // info.scale);
     instance_matrix = glm::translate(instance_matrix, -meshCenter);
 
-/*    instance_matrix =
-      glm::rotate(instance_matrix, info.pitch, glm::vec3(1.0f, 0.0f, 0.0f));
-    instance_matrix =
-      glm::rotate(instance_matrix, info.yaw, glm::vec3(0.0f, 1.0f, 0.0f));
-    instance_matrix =
-      glm::rotate(instance_matrix, info.roll, glm::vec3(0.0f, 0.0f, 1.0f));
-*/
-    instance_matrix = glm::translate(
-      instance_matrix, meshCenter); // - _model->getCenter() + info.position);
+    /*    instance_matrix =
+          glm::rotate(instance_matrix, info.pitch, glm::vec3(1.0f, 0.0f, 0.0f));
+        instance_matrix =
+          glm::rotate(instance_matrix, info.yaw, glm::vec3(0.0f, 1.0f, 0.0f));
+        instance_matrix =
+          glm::rotate(instance_matrix, info.roll, glm::vec3(0.0f, 0.0f, 1.0f));
+    */
+    //    instance_matrix = glm::translate(
+    //      instance_matrix, _model->getCenter()); // - _model->getCenter() +
+    //      info.position);
 
     return (instance_matrix);
 }
