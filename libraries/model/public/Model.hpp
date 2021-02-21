@@ -25,6 +25,7 @@ class Model final
 
     [[nodiscard]] std::vector<Mesh> const &getMeshList() const;
     [[nodiscard]] std::string const &getDirectory() const;
+    [[nodiscard]] glm::vec3 const &getCenter() const;
 
   private:
     std::vector<Mesh> _mesh_list;

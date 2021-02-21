@@ -81,6 +81,13 @@ Model::getDirectory() const
     return (_directory);
 }
 
+glm::vec3 const &
+Model::getCenter() const
+{
+    return (_center);
+}
+
+
 void
 Model::_compute_min_max_points_and_center()
 {

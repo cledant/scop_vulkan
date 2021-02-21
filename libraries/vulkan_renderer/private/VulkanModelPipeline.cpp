@@ -496,6 +496,7 @@ VulkanModelPipeline::_create_pipeline_mesh(Mesh const &mesh,
 {
     VulkanModelPipelineMesh pipeline_mesh{};
 
+    pipeline_mesh.meshCenter = mesh.center;
     pipeline_mesh.diffuseTexture = textureManager.loadAndGetTexture(
       modelFolder + "/" + mesh.material.tex_diffuse_name);
 
@@ -657,8 +658,6 @@ void
 VulkanModelPipeline::_set_instance_matrix_on_gpu(uint32_t bufferIndex,
                                                  ModelInstanceInfo const &info)
 {
-    auto instance_mat = _compute_instance_matrix(info);
-
     // Staging buffer on CPU
     VkBuffer staging_buffer{};
     VkDeviceMemory staging_buffer_memory{};
@@ -672,10 +671,13 @@ VulkanModelPipeline::_set_instance_matrix_on_gpu(uint32_t bufferIndex,
                    staging_buffer_memory,
                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                      VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    copyOnMappedMemory(
-      _device, staging_buffer_memory, 0, sizeof(glm::mat4), &instance_mat);
 
     for (auto const &mesh : _pipeline_meshes) {
+        auto instance_mat = _compute_instance_matrix(mesh.meshCenter, info);
+
+        copyOnMappedMemory(
+          _device, staging_buffer_memory, 0, sizeof(glm::mat4), &instance_mat);
+
         VkBufferCopy copy_region{};
         copy_region.size = sizeof(glm::mat4);
         copy_region.dstOffset =
@@ -696,19 +698,24 @@ VulkanModelPipeline::_set_instance_matrix_on_gpu(uint32_t bufferIndex,
 }
 
 glm::mat4
-VulkanModelPipeline::_compute_instance_matrix(ModelInstanceInfo const &info)
+VulkanModelPipeline::_compute_instance_matrix(glm::vec3 const &meshCenter,
+                                              ModelInstanceInfo const &info)
 {
+    (void)info;
     auto instance_matrix = glm::mat4(1.0f);
+    instance_matrix = glm::scale(instance_matrix,
+                                 glm::vec3(0.1f)); // info.scale);
+    instance_matrix = glm::translate(instance_matrix, -meshCenter);
 
-    instance_matrix = glm::translate(instance_matrix, info.position);
+/*    instance_matrix =
+      glm::rotate(instance_matrix, info.pitch, glm::vec3(1.0f, 0.0f, 0.0f));
     instance_matrix =
-      glm::rotate(instance_matrix, info.pitch, glm::vec3(0.0f, 1.0f, 0.0f));
-    instance_matrix =
-      glm::rotate(instance_matrix, info.yaw, glm::vec3(1.0f, 0.0f, 0.0f));
+      glm::rotate(instance_matrix, info.yaw, glm::vec3(0.0f, 1.0f, 0.0f));
     instance_matrix =
       glm::rotate(instance_matrix, info.roll, glm::vec3(0.0f, 0.0f, 1.0f));
-    instance_matrix = glm::translate(instance_matrix, -info.position);
-    instance_matrix = glm::scale(instance_matrix, info.scale);
+*/
+    instance_matrix = glm::translate(
+      instance_matrix, meshCenter); // - _model->getCenter() + info.position);
 
     return (instance_matrix);
 }

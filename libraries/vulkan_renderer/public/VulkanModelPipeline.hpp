@@ -67,6 +67,7 @@ class VulkanModelPipeline final
         VkDeviceSize uboOffset{};
         VkDescriptorPool descriptorPool{};
         std::vector<VkDescriptorSet> descriptorSets;
+        glm::vec3 meshCenter{};
     };
 
     static std::array<VkVertexInputBindingDescription, 2>
@@ -105,8 +106,8 @@ class VulkanModelPipeline final
                             VkDeviceSize dataOffset);
     inline void _set_instance_matrix_on_gpu(uint32_t bufferIndex,
                                             ModelInstanceInfo const &info);
-    static inline glm::mat4 _compute_instance_matrix(
-      ModelInstanceInfo const &info);
+    inline glm::mat4 _compute_instance_matrix(glm::vec3 const &meshCenter,
+                                              ModelInstanceInfo const &info);
 
     // Instance related
     static uint32_t instance_index;

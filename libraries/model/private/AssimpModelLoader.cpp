@@ -55,6 +55,7 @@ assimpLoadMesh(aiMesh *mesh, aiScene const *scene, std::vector<Mesh> &mesh_list)
 
     // Vertices
     std::unordered_map<Vertex, uint32_t> unique_vertices{};
+    uint32_t loaded_indices = 0;
     for (size_t i = 0; i < mesh->mNumVertices; ++i) {
         Vertex loaded_vertex{};
 
@@ -75,8 +76,9 @@ assimpLoadMesh(aiMesh *mesh, aiScene const *scene, std::vector<Mesh> &mesh_list)
                                         mesh->mBitangents[i].z };
         }
         if (!unique_vertices.contains(loaded_vertex)) {
-            unique_vertices[loaded_vertex] = i;
+            unique_vertices[loaded_vertex] = loaded_indices;
             loaded_mesh.vertex_list.emplace_back(loaded_vertex);
+            ++loaded_indices;
         }
 
         // Indices
