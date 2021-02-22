@@ -5,12 +5,9 @@
 #include <cassert>
 #include <cstring>
 
-#include "glm/gtc/matrix_transform.hpp"
-
 #include "VulkanDebug.hpp"
 #include "VulkanSwapChain.hpp"
 #include "VulkanCommandBuffer.hpp"
-#include "TestModelInstancing.hpp"
 
 void
 VulkanRenderer::createInstance(std::string &&app_name,
