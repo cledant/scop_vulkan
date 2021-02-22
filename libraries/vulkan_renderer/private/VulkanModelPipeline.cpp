@@ -378,8 +378,8 @@ VulkanModelPipeline::_create_gfx_pipeline(VulkanRenderPass const &renderPass)
     // Viewport
     VkViewport viewport{};
     viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    viewport.height = renderPass.swapChainExtent.height;
+    viewport.y = static_cast<float>(renderPass.swapChainExtent.height);
+    viewport.height = -static_cast<float>(renderPass.swapChainExtent.height);
     viewport.width = renderPass.swapChainExtent.width;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
