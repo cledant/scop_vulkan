@@ -1,5 +1,7 @@
 #include "Camera.hpp"
 
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/matrix_access.hpp"
 
@@ -56,7 +58,6 @@ Camera::update_matricies()
     _up = glm::normalize(glm::cross(_right, _front));
     _view = glm::lookAt(_pos, _pos + _front, _up);
     _perspec_mult_view = _perspective * _view;
-    _perspec_mult_view[1][1] *= -1.0f;
     _extractFrustumPlanes();
     _updated = 0;
 }

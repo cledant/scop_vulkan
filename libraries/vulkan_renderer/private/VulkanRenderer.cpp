@@ -240,7 +240,7 @@ VulkanRenderer::_create_command_buffers()
 
         // Begin render pass values
         std::array<VkClearValue, 2> clear_vals{};
-        clear_vals[0].color = { { 0.2f, 0.3f, 0.3f, 1.0f } };
+        clear_vals[0].color = { { 0.2f, 0.2f, 0.2f, 1.0f } };
         clear_vals[1].depthStencil = { 1.0f, 0 };
         VkRenderPassBeginInfo rp_begin_info{};
         rp_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
