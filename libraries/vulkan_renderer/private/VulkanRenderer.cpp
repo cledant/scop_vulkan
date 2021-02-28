@@ -138,6 +138,12 @@ VulkanRenderer::updateModelInstance(uint32_t index,
     return (_model_pipeline.updateInstance(index, info));
 }
 
+bool
+VulkanRenderer::getModelInstance(uint32_t index, ModelInstanceInfo &info)
+{
+    return (_model_pipeline.getInstance(index, info));
+}
+
 // Render Related
 void
 VulkanRenderer::draw(glm::mat4 const &view_proj_mat)

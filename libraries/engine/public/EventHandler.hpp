@@ -8,6 +8,7 @@
 #include "IOManager.hpp"
 #include "Perspective.hpp"
 #include "VulkanRenderer.hpp"
+#include "EngineOptions.hpp"
 
 class EventHandler final
 {
@@ -29,6 +30,7 @@ class EventHandler final
 
   private:
     static constexpr double const TARGET_PLAYER_TICK = 20.0f;
+    static constexpr float const SCALING_PER_SCROLL = MINIMAL_MODEL_SCALE;
 
     // Timer related
     static constexpr double const SYSTEM_TIMER_SECONDS = 1.0;

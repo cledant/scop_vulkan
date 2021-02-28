@@ -45,6 +45,7 @@ class VulkanRenderer final
     uint32_t addModelInstance(ModelInstanceInfo const &info);
     bool removeModelInstance(uint32_t index);
     bool updateModelInstance(uint32_t index, ModelInstanceInfo const &info);
+    bool getModelInstance(uint32_t index, ModelInstanceInfo &info);
 
     // Render related
     void draw(glm::mat4 const &view_proj_mat);

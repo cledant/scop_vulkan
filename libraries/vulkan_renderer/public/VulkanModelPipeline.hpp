@@ -46,6 +46,7 @@ class VulkanModelPipeline final
     uint32_t addInstance(ModelInstanceInfo const &info);
     bool removeInstance(uint32_t instanceIndex);
     bool updateInstance(uint32_t instanceIndex, ModelInstanceInfo const &info);
+    bool getInstance(uint32_t instanceIndex, ModelInstanceInfo &info);
 
     void generateCommands(VkCommandBuffer cmdBuffer, size_t descriptorSetIndex);
 

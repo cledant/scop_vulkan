@@ -110,6 +110,19 @@ EventHandler::processEvents(IOEvents const &events)
                            _perspective->near_far.y));
     }
 
+    // Update model size
+    if (events.mouse_scroll != 0.0f) {
+        ModelInstanceInfo model_info{};
+
+        _renderer->getModelInstance(1, model_info);
+        model_info.scale += SCALING_PER_SCROLL * glm::vec3(events.mouse_scroll);
+        if (model_info.scale.x < SCALING_PER_SCROLL) {
+            model_info.scale = glm::vec3(SCALING_PER_SCROLL);
+        }
+        _renderer->updateModelInstance(1, model_info);
+        _io_manager->resetMouseScroll();
+    }
+
     // Setting timers origin
     for (uint8_t i = 0; i < ET_NB_EVENT_TIMER_TYPES; ++i) {
         if (_timers.updated[i]) {

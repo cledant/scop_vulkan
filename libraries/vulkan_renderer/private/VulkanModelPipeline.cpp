@@ -134,7 +134,22 @@ VulkanModelPipeline::updateInstance(uint32_t instanceIndex,
         return (false);
     }
 
-    _set_instance_matrix_on_gpu(_index_to_buffer_pairing[instanceIndex], info);
+    auto bufferIndex = _index_to_buffer_pairing[instanceIndex];
+    _model_instance_info[bufferIndex] = info;
+    _set_instance_matrix_on_gpu(_index_to_buffer_pairing[bufferIndex], info);
+    return (true);
+}
+
+bool
+VulkanModelPipeline::getInstance(uint32_t instanceIndex,
+                                 ModelInstanceInfo &info)
+{
+    if (!_index_to_buffer_pairing.contains(instanceIndex)) {
+        return (false);
+    }
+
+    auto bufferIndex = _index_to_buffer_pairing[instanceIndex];
+    info = _model_instance_info[bufferIndex];
     return (true);
 }
 

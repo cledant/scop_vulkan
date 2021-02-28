@@ -42,7 +42,8 @@ Engine::init(EngineOptions const &opts)
       fb_size.x,
       fb_size.y);
     _vk_renderer.loadModel(_model);
-    _vk_renderer.addModelInstance({});
+    _vk_renderer.addModelInstance(
+      { {}, 0.0f, 0.0f, 0.0f, glm::vec3(opts.scale) });
     _perspective_data.near_far = DEFAULT_NEAR_FAR;
     _perspective_data.fov = DEFAULT_FOV;
     _perspective_data.ratio = _io_manager.getWindowRatio();
