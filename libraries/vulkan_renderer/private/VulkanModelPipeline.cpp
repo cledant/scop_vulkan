@@ -8,6 +8,7 @@
 
 #include "VulkanShader.hpp"
 #include "VulkanMemory.hpp"
+#include "VulkanPhysicalDevice.hpp"
 #include "VulkanCommandBuffer.hpp"
 #include "VulkanUboStructs.hpp"
 
@@ -487,8 +488,6 @@ VulkanModelPipeline::_create_pipeline_mesh(Mesh const &mesh,
     pipeline_mesh.nbIndices = mesh.indices.size();
     pipeline_mesh.indicesSize = sizeof(uint32_t) * mesh.indices.size();
     VkDeviceSize instance_matrices_size = sizeof(glm::mat4) * _max_model_nb;
-    VkDeviceSize model_ubo_size =
-      sizeof(ModelPipelineUbo) * currentSwapChainNbImg;
 
     pipeline_mesh.instanceMatricesOffset = pipeline_mesh.verticesSize;
     pipeline_mesh.indicesOffset =
@@ -496,15 +495,23 @@ VulkanModelPipeline::_create_pipeline_mesh(Mesh const &mesh,
     pipeline_mesh.uboOffset = pipeline_mesh.verticesSize +
                               instance_matrices_size +
                               pipeline_mesh.indicesSize;
-    // UBO are required to be 0x40 aligned
-    pipeline_mesh.uboOffset += 0x40 - (pipeline_mesh.uboOffset % 0x40);
+    // UBO offset are required to be aligned with
+    // minUniformBufferOffsetAlignment prop
+    auto ubo_alignment = getMinUniformBufferOffsetAlignment(_physical_device);
+    pipeline_mesh.singleUboSize =
+      (sizeof(ModelPipelineUbo) > ubo_alignment)
+        ? sizeof(ModelPipelineUbo) + sizeof(ModelPipelineUbo) % ubo_alignment
+        : ubo_alignment;
+    VkDeviceSize model_ubo_size =
+      pipeline_mesh.singleUboSize * currentSwapChainNbImg;
+    pipeline_mesh.uboOffset +=
+      ubo_alignment - (pipeline_mesh.uboOffset % ubo_alignment);
     VkDeviceSize total_size = pipeline_mesh.uboOffset + model_ubo_size;
 
     // Ubo values
     ModelPipelineUbo m_ubo = { mesh.material.diffuse,
                                mesh.material.specular,
-                               mesh.material.shininess,
-                               glm::vec4(0.0f) };
+                               mesh.material.shininess };
 
     // CPU => GPU transfer buffer
     VkBuffer staging_buffer{};
@@ -533,7 +540,7 @@ VulkanModelPipeline::_create_pipeline_mesh(Mesh const &mesh,
         copyOnMappedMemory(_device,
                            staging_buffer_memory,
                            pipeline_mesh.uboOffset +
-                             sizeof(ModelPipelineUbo) * i,
+                             pipeline_mesh.singleUboSize * i,
                            sizeof(ModelPipelineUbo),
                            &m_ubo);
     }
@@ -634,7 +641,7 @@ VulkanModelPipeline::_create_descriptor_sets(
         VkDescriptorBufferInfo model_buffer_info{};
         model_buffer_info.buffer = pipelineMesh.buffer;
         model_buffer_info.offset =
-          pipelineMesh.uboOffset + sizeof(ModelPipelineUbo) * i;
+          pipelineMesh.uboOffset + pipelineMesh.singleUboSize * i;
         model_buffer_info.range = sizeof(ModelPipelineUbo);
         descriptor_write[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptor_write[1].dstSet = pipelineMesh.descriptorSets[i];

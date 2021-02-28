@@ -35,5 +35,6 @@ void checkDeviceExtensionSupport(VkPhysicalDevice device,
 void getDeviceQueues(VkPhysicalDevice device,
                      VkSurfaceKHR surface,
                      DeviceRequirement &dr);
+VkDeviceSize getMinUniformBufferOffsetAlignment(VkPhysicalDevice device);
 
 #endif // SCOP_VULKAN_VULKANPHYSICALDEVICE_HPP

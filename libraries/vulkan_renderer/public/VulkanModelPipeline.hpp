@@ -59,6 +59,7 @@ class VulkanModelPipeline final
         VkDeviceSize verticesSize{};
         VkDeviceSize indicesSize{};
         VkDeviceSize nbIndices{};
+        VkDeviceSize singleUboSize{};
         VkDeviceSize instanceMatricesOffset{};
         VkDeviceSize indicesOffset{};
         VkDeviceSize uboOffset{};

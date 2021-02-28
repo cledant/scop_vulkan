@@ -168,3 +168,12 @@ getDeviceQueues(VkPhysicalDevice device,
         ++index;
     }
 }
+
+VkDeviceSize
+getMinUniformBufferOffsetAlignment(VkPhysicalDevice device)
+{
+    VkPhysicalDeviceProperties properties;
+    vkGetPhysicalDeviceProperties(device, &properties);
+
+    return (properties.limits.minUniformBufferOffsetAlignment);
+}
