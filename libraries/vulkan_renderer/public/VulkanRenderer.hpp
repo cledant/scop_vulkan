@@ -13,6 +13,7 @@
 #include "VulkanRenderPass.hpp"
 #include "VulkanSync.hpp"
 #include "VulkanModelPipeline.hpp"
+#include "IndexedBuffer.hpp"
 
 class VulkanRenderer final
 {

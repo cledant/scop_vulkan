@@ -23,6 +23,7 @@ add_dependencies(vulkan_renderer
         fmt
         model)
 target_link_libraries(vulkan_renderer
+        instance_manager
         glm
         fmt
         vulkan_utils

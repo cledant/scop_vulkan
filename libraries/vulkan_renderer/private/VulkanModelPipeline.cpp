@@ -20,13 +20,12 @@ VulkanModelPipeline::init(VulkanInstance const &vkInstance,
                           VkBuffer systemUbo,
                           uint32_t maxModelNb)
 {
+    _instance_handler.setMaxInstanceNb(maxModelNb);
     _device = vkInstance.device;
     _physical_device = vkInstance.physicalDevice;
     _cmd_pool = vkInstance.commandPool;
     _gfx_queue = vkInstance.graphicQueue;
-    _max_model_nb = maxModelNb;
     _model = &model;
-    _model_instance_info.reserve(maxModelNb);
     _create_descriptor_layout();
     _create_pipeline_layout();
     _create_gfx_pipeline(renderPass);
@@ -69,9 +68,12 @@ VulkanModelPipeline::resize(VulkanRenderPass const &renderPass,
         _create_descriptor_pool(renderPass, _pipeline_meshes[i]);
         _create_descriptor_sets(renderPass, _pipeline_meshes[i], systemUbo);
     }
-    for (uint32_t i = 0; i < _current_model_nb; ++i) {
-        _set_instance_matrix_on_gpu(i, _model_instance_info[i]);
-    }
+
+    auto updater = [&](uint32_t index,
+                       ModelInstanceInfo const &inst_info) -> void {
+        _set_instance_matrix_on_gpu(index, inst_info);
+    };
+    _instance_handler.update(updater);
 }
 
 void
@@ -90,68 +92,42 @@ VulkanModelPipeline::clear()
 uint32_t
 VulkanModelPipeline::addInstance(ModelInstanceInfo const &info)
 {
-    if (_current_model_nb >= _max_model_nb) {
-        return (0);
-    }
+    auto updater = [&](uint32_t index,
+                       ModelInstanceInfo const &inst_info) -> void {
+        _set_instance_matrix_on_gpu(index, inst_info);
+    };
 
-    _index_to_buffer_pairing.insert({ instance_index, _current_model_nb });
-    _model_instance_info.emplace_back(info);
-    _model_instance_index.emplace_back(_current_model_nb);
-    _set_instance_matrix_on_gpu(_current_model_nb, info);
-    ++_current_model_nb;
-    ++instance_index;
-    if (!instance_index) {
-        instance_index = 1;
-    }
-    return (instance_index);
+    return (_instance_handler.addInstance(info, updater));
 }
 
 bool
 VulkanModelPipeline::removeInstance(uint32_t instanceIndex)
 {
-    if (!_index_to_buffer_pairing.contains(instanceIndex)) {
-        return (false);
-    }
+    auto updater = [&](uint32_t index,
+                       ModelInstanceInfo const &inst_info) -> void {
+        _set_instance_matrix_on_gpu(index, inst_info);
+    };
 
-    auto bufferIndex = _index_to_buffer_pairing[instanceIndex];
-    auto infoIt = _model_instance_info.begin() + bufferIndex;
-    auto indexIt = _model_instance_index.begin() + bufferIndex;
-    _index_to_buffer_pairing.erase(instanceIndex);
-    _index_to_buffer_pairing.insert_or_assign(*indexIt, bufferIndex);
-    *infoIt = _model_instance_info.back();
-    *indexIt = bufferIndex;
-    _model_instance_info.pop_back();
-    _model_instance_index.pop_back();
-    --_current_model_nb;
-    _set_instance_matrix_on_gpu(bufferIndex, _model_instance_info[bufferIndex]);
-    return (true);
+    return (_instance_handler.removeInstance(instanceIndex, updater));
 }
 
 bool
 VulkanModelPipeline::updateInstance(uint32_t instanceIndex,
                                     ModelInstanceInfo const &info)
 {
-    if (!_index_to_buffer_pairing.contains(instanceIndex)) {
-        return (false);
-    }
+    auto updater = [&](uint32_t index,
+                       ModelInstanceInfo const &inst_info) -> void {
+        _set_instance_matrix_on_gpu(index, inst_info);
+    };
 
-    auto bufferIndex = _index_to_buffer_pairing[instanceIndex];
-    _model_instance_info[bufferIndex] = info;
-    _set_instance_matrix_on_gpu(_index_to_buffer_pairing[bufferIndex], info);
-    return (true);
+    return (_instance_handler.updateInstance(instanceIndex, info, updater));
 }
 
 bool
 VulkanModelPipeline::getInstance(uint32_t instanceIndex,
                                  ModelInstanceInfo &info)
 {
-    if (!_index_to_buffer_pairing.contains(instanceIndex)) {
-        return (false);
-    }
-
-    auto bufferIndex = _index_to_buffer_pairing[instanceIndex];
-    info = _model_instance_info[bufferIndex];
-    return (true);
+    return (_instance_handler.getInstance(instanceIndex, info));
 }
 
 void
@@ -176,7 +152,12 @@ VulkanModelPipeline::generateCommands(VkCommandBuffer cmdBuffer,
                                 &it.descriptorSets[descriptorSetIndex],
                                 0,
                                 nullptr);
-        vkCmdDrawIndexed(cmdBuffer, it.nbIndices, _current_model_nb, 0, 0, 0);
+        vkCmdDrawIndexed(cmdBuffer,
+                         it.nbIndices,
+                         _instance_handler.getCurrentInstanceNb(),
+                         0,
+                         0,
+                         0);
     }
 }
 
@@ -487,7 +468,8 @@ VulkanModelPipeline::_create_pipeline_mesh(Mesh const &mesh,
     pipeline_mesh.verticesSize = sizeof(Vertex) * mesh.vertex_list.size();
     pipeline_mesh.nbIndices = mesh.indices.size();
     pipeline_mesh.indicesSize = sizeof(uint32_t) * mesh.indices.size();
-    VkDeviceSize instance_matrices_size = sizeof(glm::mat4) * _max_model_nb;
+    VkDeviceSize instance_matrices_size =
+      sizeof(glm::mat4) * _instance_handler.getMaxInstanceNb();
 
     pipeline_mesh.instanceMatricesOffset = pipeline_mesh.verticesSize;
     pipeline_mesh.indicesOffset =
@@ -739,5 +721,3 @@ VulkanModelPipeline::_compute_instance_matrix(glm::vec3 const &meshCenter,
 
     return (instance_matrix);
 }
-
-uint32_t VulkanModelPipeline::instance_index = 1;

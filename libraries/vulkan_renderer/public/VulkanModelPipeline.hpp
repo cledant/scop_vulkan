@@ -12,6 +12,7 @@
 #include "VulkanInstance.hpp"
 #include "VulkanRenderPass.hpp"
 #include "VulkanTextureManager.hpp"
+#include "IndexedBuffer.hpp"
 
 struct ModelInstanceInfo final
 {
@@ -86,6 +87,9 @@ class VulkanModelPipeline final
     VkPipeline _graphic_pipeline{};
     std::vector<VulkanModelPipelineMesh> _pipeline_meshes;
 
+    // Instance related
+    IndexedBuffer<ModelInstanceInfo> _instance_handler;
+
     inline void _create_descriptor_layout();
     inline void _create_pipeline_layout();
     inline void _create_gfx_pipeline(VulkanRenderPass const &renderPass);
@@ -103,14 +107,6 @@ class VulkanModelPipeline final
                                             ModelInstanceInfo const &info);
     inline glm::mat4 _compute_instance_matrix(glm::vec3 const &meshCenter,
                                               ModelInstanceInfo const &info);
-
-    // Instance related
-    static uint32_t instance_index;
-    uint32_t _max_model_nb{};
-    uint32_t _current_model_nb{};
-    std::unordered_map<uint32_t, uint32_t> _index_to_buffer_pairing;
-    std::vector<ModelInstanceInfo> _model_instance_info;
-    std::vector<uint32_t> _model_instance_index;
 };
 
 #endif // SCOP_VULKAN_VULKANMODELPIPELINE_HPP
