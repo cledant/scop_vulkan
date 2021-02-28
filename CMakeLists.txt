@@ -101,4 +101,3 @@ set_target_properties(scop PROPERTIES
         CXX_STANDARD_REQUIRED YES
         CXX_EXTENSIONS NO)
 target_compile_options(scop PRIVATE -Wall -Wextra -Werror)
-file(COPY ${CMAKE_SOURCE_DIR}/texture/texture.jpg DESTINATION ${CMAKE_BINARY_DIR}/resources/texture)

@@ -8,6 +8,8 @@
 #include "VulkanDebug.hpp"
 #include "VulkanSwapChain.hpp"
 #include "VulkanCommandBuffer.hpp"
+#include "VulkanMemory.hpp"
+#include "VulkanUboStructs.hpp"
 
 void
 VulkanRenderer::createInstance(std::string &&app_name,
@@ -46,6 +48,7 @@ VulkanRenderer::init(VkSurfaceKHR surface, uint32_t win_w, uint32_t win_h)
     _tex_manager.init(_vk_instance);
     _render_pass.init(_vk_instance, win_w, win_h);
     _sync.init(_vk_instance, _render_pass.swapChainFramebuffers.size());
+    _create_system_uniform_buffer();
 }
 
 void
@@ -55,7 +58,10 @@ VulkanRenderer::resize(uint32_t win_w, uint32_t win_h)
 
     _render_pass.resize(win_w, win_h);
     _sync.resize(_render_pass.currentSwapChainNbImg);
-    _model_pipeline.resize(_render_pass, _tex_manager);
+    vkDestroyBuffer(_vk_instance.device, _system_uniform, nullptr);
+    vkFreeMemory(_vk_instance.device, _system_uniform_memory, nullptr);
+    _create_system_uniform_buffer();
+    _model_pipeline.resize(_render_pass, _tex_manager, _system_uniform);
     _create_command_buffers();
 }
 
@@ -66,6 +72,8 @@ VulkanRenderer::clear()
     _sync.clear();
     _render_pass.clear();
     _tex_manager.clear();
+    vkDestroyBuffer(_vk_instance.device, _system_uniform, nullptr);
+    vkFreeMemory(_vk_instance.device, _system_uniform_memory, nullptr);
     _vk_instance.clear();
 }
 
@@ -97,8 +105,12 @@ VulkanRenderer::getEngineVersion() const
 void
 VulkanRenderer::loadModel(Model const &model)
 {
-    _model_pipeline.init(
-      _vk_instance, _render_pass, model, _tex_manager, MAX_MODEL_INSTANCE);
+    _model_pipeline.init(_vk_instance,
+                         _render_pass,
+                         model,
+                         _tex_manager,
+                         _system_uniform,
+                         MAX_MODEL_INSTANCE);
 
     // Drawing related
     _create_command_buffers();
@@ -159,7 +171,13 @@ VulkanRenderer::draw(glm::mat4 const &view_proj_mat)
     _sync.imgsInflightFence[img_index] =
       _sync.inflightFence[_sync.currentFrame];
 
-    _model_pipeline.updateViewProjMatrix(img_index, view_proj_mat);
+    // Update view_proj matrix
+    copyOnMappedMemory(_vk_instance.device,
+                       _system_uniform_memory,
+                       img_index * sizeof(SystemUbo) +
+                         offsetof(SystemUbo, view_proj),
+                       sizeof(glm::mat4),
+                       &view_proj_mat);
 
     VkSemaphore wait_sems[] = { _sync.imageAvailableSem[_sync.currentFrame] };
     VkPipelineStageFlags wait_stages[] = {
@@ -257,4 +275,19 @@ VulkanRenderer::_create_command_buffers()
         }
         ++i;
     }
+}
+
+void
+VulkanRenderer::_create_system_uniform_buffer()
+{
+    createBuffer(_vk_instance.device,
+                 _system_uniform,
+                 sizeof(SystemUbo) * _render_pass.currentSwapChainNbImg,
+                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+    allocateBuffer(_vk_instance.physicalDevice,
+                   _vk_instance.device,
+                   _system_uniform,
+                   _system_uniform_memory,
+                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 }

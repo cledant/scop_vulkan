@@ -22,11 +22,6 @@ struct ModelInstanceInfo final
     glm::vec3 scale = glm::vec3(1.0f);
 };
 
-struct ModelPipelineUbo
-{
-    alignas(16) glm::mat4 view_proj{};
-};
-
 class VulkanModelPipeline final
 {
   public:
@@ -41,9 +36,11 @@ class VulkanModelPipeline final
               VulkanRenderPass const &renderPass,
               Model const &model,
               VulkanTextureManager &texManager,
+              VkBuffer systemUbo,
               uint32_t maxModelNb);
     void resize(VulkanRenderPass const &renderPass,
-                VulkanTextureManager &texManager);
+                VulkanTextureManager &texManager,
+                VkBuffer systemUbo);
     void clear();
 
     uint32_t addInstance(ModelInstanceInfo const &info);
@@ -51,7 +48,6 @@ class VulkanModelPipeline final
     bool updateInstance(uint32_t instanceIndex, ModelInstanceInfo const &info);
 
     void generateCommands(VkCommandBuffer cmdBuffer, size_t descriptorSetIndex);
-    void updateViewProjMatrix(uint32_t img_index, glm::mat4 const &mat);
 
   private:
     struct VulkanModelPipelineMesh
@@ -71,9 +67,9 @@ class VulkanModelPipeline final
     };
 
     static std::array<VkVertexInputBindingDescription, 2>
-    _get_binding_description();
+    _get_input_binding_description();
     static std::array<VkVertexInputAttributeDescription, 9>
-    _get_attribute_description();
+    _get_input_attribute_description();
 
     // Model related
     Model const *_model{};
@@ -99,11 +95,8 @@ class VulkanModelPipeline final
     inline void _create_descriptor_pool(VulkanRenderPass const &renderPass,
                                         VulkanModelPipelineMesh &pipelineMesh);
     inline void _create_descriptor_sets(VulkanRenderPass const &renderPass,
-                                        VulkanModelPipelineMesh &pipelineMesh);
-    inline void _update_ubo(uint32_t img_index,
-                            void const *data,
-                            VkDeviceSize dataSize,
-                            VkDeviceSize dataOffset);
+                                        VulkanModelPipelineMesh &pipelineMesh,
+                                        VkBuffer systemUbo);
     inline void _set_instance_matrix_on_gpu(uint32_t bufferIndex,
                                             ModelInstanceInfo const &info);
     inline glm::mat4 _compute_instance_matrix(glm::vec3 const &meshCenter,

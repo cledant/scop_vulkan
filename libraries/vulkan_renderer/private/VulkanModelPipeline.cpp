@@ -9,12 +9,14 @@
 #include "VulkanShader.hpp"
 #include "VulkanMemory.hpp"
 #include "VulkanCommandBuffer.hpp"
+#include "VulkanUboStructs.hpp"
 
 void
 VulkanModelPipeline::init(VulkanInstance const &vkInstance,
                           VulkanRenderPass const &renderPass,
                           Model const &model,
                           VulkanTextureManager &texManager,
+                          VkBuffer systemUbo,
                           uint32_t maxModelNb)
 {
     _device = vkInstance.device;
@@ -36,13 +38,14 @@ VulkanModelPipeline::init(VulkanInstance const &vkInstance,
                                 texManager,
                                 renderPass.currentSwapChainNbImg);
         _create_descriptor_pool(renderPass, _pipeline_meshes[i]);
-        _create_descriptor_sets(renderPass, _pipeline_meshes[i]);
+        _create_descriptor_sets(renderPass, _pipeline_meshes[i], systemUbo);
     }
 }
 
 void
 VulkanModelPipeline::resize(VulkanRenderPass const &renderPass,
-                            VulkanTextureManager &texManager)
+                            VulkanTextureManager &texManager,
+                            VkBuffer systemUbo)
 {
     assert(_model);
 
@@ -63,7 +66,7 @@ VulkanModelPipeline::resize(VulkanRenderPass const &renderPass,
                                 texManager,
                                 renderPass.currentSwapChainNbImg);
         _create_descriptor_pool(renderPass, _pipeline_meshes[i]);
-        _create_descriptor_sets(renderPass, _pipeline_meshes[i]);
+        _create_descriptor_sets(renderPass, _pipeline_meshes[i], systemUbo);
     }
     for (uint32_t i = 0; i < _current_model_nb; ++i) {
         _set_instance_matrix_on_gpu(i, _model_instance_info[i]);
@@ -161,58 +164,8 @@ VulkanModelPipeline::generateCommands(VkCommandBuffer cmdBuffer,
     }
 }
 
-void
-VulkanModelPipeline::updateViewProjMatrix(uint32_t img_index,
-                                          glm::mat4 const &mat)
-{
-    _update_ubo(img_index,
-                &mat,
-                sizeof(glm::mat4),
-                offsetof(ModelPipelineUbo, view_proj));
-}
-
-void
-VulkanModelPipeline::_update_ubo(uint32_t img_index,
-                                 void const *data,
-                                 VkDeviceSize dataSize,
-                                 VkDeviceSize dataOffset)
-{
-    // CPU => GPU transfer buffer
-    VkBuffer staging_buffer{};
-    VkDeviceMemory staging_buffer_memory{};
-    createBuffer(
-      _device, staging_buffer, dataSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-    allocateBuffer(_physical_device,
-                   _device,
-                   staging_buffer,
-                   staging_buffer_memory,
-                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    copyOnMappedMemory(_device, staging_buffer_memory, 0, dataSize, data);
-
-    // Push on GPU
-    for (auto &it : _pipeline_meshes) {
-        VkBufferCopy copy_region{};
-        copy_region.size = dataSize;
-        copy_region.dstOffset =
-          it.uboOffset + sizeof(ModelPipelineUbo) * img_index + dataOffset;
-        copy_region.srcOffset = 0;
-
-        // Copy on GPU
-        copyBuffer(_device,
-                   _cmd_pool,
-                   _gfx_queue,
-                   it.buffer,
-                   staging_buffer,
-                   copy_region);
-    }
-
-    vkDestroyBuffer(_device, staging_buffer, nullptr);
-    vkFreeMemory(_device, staging_buffer_memory, nullptr);
-}
-
 std::array<VkVertexInputBindingDescription, 2>
-VulkanModelPipeline::_get_binding_description()
+VulkanModelPipeline::_get_input_binding_description()
 {
     std::array<VkVertexInputBindingDescription, 2> binding_description{};
     binding_description[0].binding = 0;
@@ -227,7 +180,7 @@ VulkanModelPipeline::_get_binding_description()
 }
 
 std::array<VkVertexInputAttributeDescription, 9>
-VulkanModelPipeline::_get_attribute_description()
+VulkanModelPipeline::_get_input_attribute_description()
 {
     std::array<VkVertexInputAttributeDescription, 9> attribute_description{};
 
@@ -281,22 +234,32 @@ VulkanModelPipeline::_get_attribute_description()
 void
 VulkanModelPipeline::_create_descriptor_layout()
 {
-    VkDescriptorSetLayoutBinding ubo_layout_binding{};
-    ubo_layout_binding.binding = 0;
-    ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    ubo_layout_binding.descriptorCount = 1;
-    ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    ubo_layout_binding.pImmutableSamplers = nullptr;
+    VkDescriptorSetLayoutBinding system_ubo_layout_binding{};
+    system_ubo_layout_binding.binding = 0;
+    system_ubo_layout_binding.descriptorType =
+      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    system_ubo_layout_binding.descriptorCount = 1;
+    system_ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    system_ubo_layout_binding.pImmutableSamplers = nullptr;
+
+    VkDescriptorSetLayoutBinding model_ubo_layout_binding{};
+    model_ubo_layout_binding.binding = 1;
+    model_ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    model_ubo_layout_binding.descriptorCount = 1;
+    model_ubo_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    model_ubo_layout_binding.pImmutableSamplers = nullptr;
 
     VkDescriptorSetLayoutBinding sampler_layout_binding{};
-    sampler_layout_binding.binding = 1;
+    sampler_layout_binding.binding = 2;
     sampler_layout_binding.descriptorType =
       VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     sampler_layout_binding.descriptorCount = 1;
     sampler_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     sampler_layout_binding.pImmutableSamplers = nullptr;
 
-    std::array bindings{ ubo_layout_binding, sampler_layout_binding };
+    std::array bindings{ system_ubo_layout_binding,
+                         model_ubo_layout_binding,
+                         sampler_layout_binding };
 
     VkDescriptorSetLayoutCreateInfo layout_info{};
     layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -356,8 +319,8 @@ VulkanModelPipeline::_create_gfx_pipeline(VulkanRenderPass const &renderPass)
 
     // Vertex input
     VkPipelineVertexInputStateCreateInfo vertex_input_info{};
-    auto binding_description = _get_binding_description();
-    auto attribute_description = _get_attribute_description();
+    auto binding_description = _get_input_binding_description();
+    auto attribute_description = _get_input_attribute_description();
     vertex_input_info.sType =
       VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertex_input_info.vertexBindingDescriptionCount =
@@ -404,8 +367,6 @@ VulkanModelPipeline::_create_gfx_pipeline(VulkanRenderPass const &renderPass)
     rasterizer_info.rasterizerDiscardEnable = VK_FALSE;
     rasterizer_info.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer_info.lineWidth = 1.0f;
-    // rasterizer_info.cullMode = VK_CULL_MODE_BACK_BIT;
-    // rasterizer_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizer_info.cullMode = VK_CULL_MODE_NONE;
     rasterizer_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizer_info.depthBiasEnable = VK_FALSE;
@@ -511,7 +472,7 @@ VulkanModelPipeline::_create_pipeline_mesh(Mesh const &mesh,
     pipeline_mesh.nbIndices = mesh.indices.size();
     pipeline_mesh.indicesSize = sizeof(uint32_t) * mesh.indices.size();
     VkDeviceSize instance_matrices_size = sizeof(glm::mat4) * _max_model_nb;
-    VkDeviceSize uniform_size =
+    VkDeviceSize model_ubo_size =
       sizeof(ModelPipelineUbo) * currentSwapChainNbImg;
 
     pipeline_mesh.instanceMatricesOffset = pipeline_mesh.verticesSize;
@@ -522,7 +483,13 @@ VulkanModelPipeline::_create_pipeline_mesh(Mesh const &mesh,
                               pipeline_mesh.indicesSize;
     // UBO are required to be 0x40 aligned
     pipeline_mesh.uboOffset += 0x40 - (pipeline_mesh.uboOffset % 0x40);
-    VkDeviceSize total_size = pipeline_mesh.uboOffset + uniform_size;
+    VkDeviceSize total_size = pipeline_mesh.uboOffset + model_ubo_size;
+
+    // Ubo values
+    ModelPipelineUbo m_ubo = { mesh.material.diffuse,
+                               mesh.material.specular,
+                               mesh.material.shininess,
+                               glm::vec4(0.0f) };
 
     // CPU => GPU transfer buffer
     VkBuffer staging_buffer{};
@@ -547,6 +514,14 @@ VulkanModelPipeline::_create_pipeline_mesh(Mesh const &mesh,
                        pipeline_mesh.indicesOffset,
                        pipeline_mesh.indicesSize,
                        mesh.indices.data());
+    for (size_t i = 0; i < currentSwapChainNbImg; ++i) {
+        copyOnMappedMemory(_device,
+                           staging_buffer_memory,
+                           pipeline_mesh.uboOffset +
+                             sizeof(ModelPipelineUbo) * i,
+                           sizeof(ModelPipelineUbo),
+                           &m_ubo);
+    }
 
     // GPU only memory
     createBuffer(
@@ -578,11 +553,13 @@ VulkanModelPipeline::_create_descriptor_pool(
   VulkanRenderPass const &renderPass,
   VulkanModelPipelineMesh &pipelineMesh)
 {
-    std::array<VkDescriptorPoolSize, 2> pool_size{};
+    std::array<VkDescriptorPoolSize, 3> pool_size{};
     pool_size[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     pool_size[0].descriptorCount = renderPass.currentSwapChainNbImg;
-    pool_size[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    pool_size[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     pool_size[1].descriptorCount = renderPass.currentSwapChainNbImg;
+    pool_size[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    pool_size[2].descriptorCount = renderPass.currentSwapChainNbImg;
 
     VkDescriptorPoolCreateInfo pool_info{};
     pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -601,7 +578,8 @@ VulkanModelPipeline::_create_descriptor_pool(
 void
 VulkanModelPipeline::_create_descriptor_sets(
   VulkanRenderPass const &renderPass,
-  VulkanModelPipelineMesh &pipelineMesh)
+  VulkanModelPipelineMesh &pipelineMesh,
+  VkBuffer systemUbo)
 {
     std::vector<VkDescriptorSetLayout> layouts(renderPass.currentSwapChainNbImg,
                                                _descriptor_set_layout);
@@ -620,38 +598,54 @@ VulkanModelPipeline::_create_descriptor_sets(
     }
 
     for (size_t i = 0; i < renderPass.currentSwapChainNbImg; ++i) {
-        VkDescriptorBufferInfo buffer_info{};
-        buffer_info.buffer = pipelineMesh.buffer;
-        buffer_info.offset =
-          pipelineMesh.uboOffset + sizeof(ModelPipelineUbo) * i;
-        buffer_info.range = sizeof(ModelPipelineUbo);
+        std::array<VkWriteDescriptorSet, 3> descriptor_write{};
 
-        VkDescriptorImageInfo img_info{};
-        img_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        img_info.imageView = pipelineMesh.diffuseTexture.texture_img_view;
-        img_info.sampler = pipelineMesh.diffuseTexture.texture_sampler;
-
-        std::array<VkWriteDescriptorSet, 2> descriptor_write{};
+        // System UBO
+        VkDescriptorBufferInfo system_buffer_info{};
+        system_buffer_info.buffer = systemUbo;
+        system_buffer_info.offset = 0;
+        system_buffer_info.range = sizeof(SystemUbo);
         descriptor_write[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptor_write[0].dstSet = pipelineMesh.descriptorSets[i];
         descriptor_write[0].dstBinding = 0;
         descriptor_write[0].dstArrayElement = 0;
         descriptor_write[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         descriptor_write[0].descriptorCount = 1;
-        descriptor_write[0].pBufferInfo = &buffer_info;
+        descriptor_write[0].pBufferInfo = &system_buffer_info;
         descriptor_write[0].pImageInfo = nullptr;
         descriptor_write[0].pTexelBufferView = nullptr;
 
+        // Model UBO
+        VkDescriptorBufferInfo model_buffer_info{};
+        model_buffer_info.buffer = pipelineMesh.buffer;
+        model_buffer_info.offset =
+          pipelineMesh.uboOffset + sizeof(ModelPipelineUbo) * i;
+        model_buffer_info.range = sizeof(ModelPipelineUbo);
         descriptor_write[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptor_write[1].dstSet = pipelineMesh.descriptorSets[i];
         descriptor_write[1].dstBinding = 1;
         descriptor_write[1].dstArrayElement = 0;
-        descriptor_write[1].descriptorType =
-          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptor_write[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         descriptor_write[1].descriptorCount = 1;
-        descriptor_write[1].pBufferInfo = nullptr;
-        descriptor_write[1].pImageInfo = &img_info;
+        descriptor_write[1].pBufferInfo = &model_buffer_info;
+        descriptor_write[1].pImageInfo = nullptr;
         descriptor_write[1].pTexelBufferView = nullptr;
+
+        // Texture
+        VkDescriptorImageInfo img_info{};
+        img_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        img_info.imageView = pipelineMesh.diffuseTexture.texture_img_view;
+        img_info.sampler = pipelineMesh.diffuseTexture.texture_sampler;
+        descriptor_write[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptor_write[2].dstSet = pipelineMesh.descriptorSets[i];
+        descriptor_write[2].dstBinding = 2;
+        descriptor_write[2].dstArrayElement = 0;
+        descriptor_write[2].descriptorType =
+          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptor_write[2].descriptorCount = 1;
+        descriptor_write[2].pBufferInfo = nullptr;
+        descriptor_write[2].pImageInfo = &img_info;
+        descriptor_write[2].pTexelBufferView = nullptr;
 
         vkUpdateDescriptorSets(_device,
                                descriptor_write.size(),

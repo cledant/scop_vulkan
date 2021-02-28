@@ -64,11 +64,18 @@ class VulkanRenderer final
     VulkanSync _sync;
     VulkanModelPipeline _model_pipeline;
 
+    // Renderer global uniform
+    VkBuffer _system_uniform{};
+    VkDeviceMemory _system_uniform_memory{};
+
     // Drawing related
     std::vector<VkCommandBuffer> _command_buffers;
 
     // Draw related fct
     inline void _create_command_buffers();
+
+    // Renderer global uniform related fct
+    inline void _create_system_uniform_buffer();
 };
 
 #endif // SCOP_VULKAN_VULKANRENDERER_HPP
