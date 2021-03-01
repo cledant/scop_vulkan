@@ -83,7 +83,7 @@ add_subdirectory(libraries/engine)
 add_subdirectory(libraries/vulkan_utils)
 add_subdirectory(libraries/vulkan_renderer)
 add_subdirectory(libraries/model)
-add_subdirectory(libraries/instance_manager)
+add_subdirectory(libraries/indexed_buffer)
 
 #Shaders
 add_subdirectory(shaders/model)

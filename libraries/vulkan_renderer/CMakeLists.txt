@@ -8,7 +8,8 @@ add_library(vulkan_renderer STATIC
         private/VulkanRenderPass.cpp
         private/VulkanSync.cpp
         private/VulkanTextureManager.cpp
-        private/VulkanModelPipeline.cpp)
+        private/VulkanModelPipeline.cpp
+        private/VulkanModelPipelineMesh.cpp)
 target_include_directories(vulkan_renderer
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/public

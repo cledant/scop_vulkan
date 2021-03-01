@@ -16,22 +16,29 @@ void allocateBuffer(VkPhysicalDevice physical_device,
                     VkBuffer &buffer,
                     VkDeviceMemory &buffer_memory,
                     VkMemoryPropertyFlags properties);
-void copyBuffer(VkDevice device,
-                VkCommandPool command_pool,
-                VkQueue gfx_queue,
-                VkBuffer dst_buffer,
-                VkBuffer src_buffer,
-                VkDeviceSize size);
-void copyBuffer(VkDevice device,
-                VkCommandPool command_pool,
-                VkQueue gfx_queue,
-                VkBuffer dst_buffer,
-                VkBuffer src_buffer,
-                VkBufferCopy copy_region);
-void copyOnMappedMemory(VkDevice device,
-                        VkDeviceMemory memory,
-                        VkDeviceSize offset,
-                        VkDeviceSize size,
-                        void const *dataToCopy);
+void copyBufferOnGpu(VkDevice device,
+                     VkCommandPool command_pool,
+                     VkQueue gfx_queue,
+                     VkBuffer dst_buffer,
+                     VkBuffer src_buffer,
+                     VkDeviceSize size);
+void copyBufferOnGpu(VkDevice device,
+                     VkCommandPool command_pool,
+                     VkQueue gfx_queue,
+                     VkBuffer dst_buffer,
+                     VkBuffer src_buffer,
+                     VkBufferCopy copy_region);
+void copyOnCpuCoherentMemory(VkDevice device,
+                             VkDeviceMemory memory,
+                             VkDeviceSize offset,
+                             VkDeviceSize size,
+                             void const *dataToCopy);
+void copyCpuBufferToGpu(VkDevice device,
+                        VkPhysicalDevice physicalDevice,
+                        VkCommandPool commandPool,
+                        VkQueue queue,
+                        VkBuffer dstBuffer,
+                        void *srcData,
+                        VkBufferCopy copyRegion);
 
 #endif // SCOP_VULKAN_VULKANMEMORY_HPP

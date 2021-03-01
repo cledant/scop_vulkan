@@ -178,12 +178,12 @@ VulkanRenderer::draw(glm::mat4 const &view_proj_mat)
       _sync.inflightFence[_sync.currentFrame];
 
     // Update view_proj matrix
-    copyOnMappedMemory(_vk_instance.device,
-                       _system_uniform_memory,
-                       img_index * sizeof(SystemUbo) +
-                         offsetof(SystemUbo, view_proj),
-                       sizeof(glm::mat4),
-                       &view_proj_mat);
+    copyOnCpuCoherentMemory(_vk_instance.device,
+                            _system_uniform_memory,
+                            img_index * sizeof(SystemUbo) +
+                              offsetof(SystemUbo, view_proj),
+                            sizeof(glm::mat4),
+                            &view_proj_mat);
 
     VkSemaphore wait_sems[] = { _sync.imageAvailableSem[_sync.currentFrame] };
     VkPipelineStageFlags wait_stages[] = {

@@ -2,10 +2,6 @@
 
 #include <stdexcept>
 
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-
-#include "glm/gtc/matrix_transform.hpp"
-
 #include "VulkanShader.hpp"
 #include "VulkanMemory.hpp"
 #include "VulkanPhysicalDevice.hpp"
@@ -73,7 +69,7 @@ VulkanModelPipeline::resize(VulkanRenderPass const &renderPass,
                        ModelInstanceInfo const &inst_info) -> void {
         _set_instance_matrix_on_gpu(index, inst_info);
     };
-    _instance_handler.update(updater);
+    _instance_handler.executeUpdateFctOnInstances(updater);
 }
 
 void
@@ -159,73 +155,6 @@ VulkanModelPipeline::generateCommands(VkCommandBuffer cmdBuffer,
                          0,
                          0);
     }
-}
-
-std::array<VkVertexInputBindingDescription, 2>
-VulkanModelPipeline::_get_input_binding_description()
-{
-    std::array<VkVertexInputBindingDescription, 2> binding_description{};
-    binding_description[0].binding = 0;
-    binding_description[0].stride = sizeof(Vertex);
-    binding_description[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-    binding_description[1].binding = 1;
-    binding_description[1].stride = sizeof(glm::mat4);
-    binding_description[1].inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
-
-    return (binding_description);
-}
-
-std::array<VkVertexInputAttributeDescription, 9>
-VulkanModelPipeline::_get_input_attribute_description()
-{
-    std::array<VkVertexInputAttributeDescription, 9> attribute_description{};
-
-    attribute_description[0].binding = 0;
-    attribute_description[0].location = 0;
-    attribute_description[0].offset = 0;
-    attribute_description[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-
-    attribute_description[1].binding = 0;
-    attribute_description[1].location = 1;
-    attribute_description[1].offset = offsetof(Vertex, normal);
-    attribute_description[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-
-    attribute_description[2].binding = 0;
-    attribute_description[2].location = 2;
-    attribute_description[2].offset = offsetof(Vertex, tex_coords);
-    attribute_description[2].format = VK_FORMAT_R32G32_SFLOAT;
-
-    attribute_description[3].binding = 0;
-    attribute_description[3].location = 3;
-    attribute_description[3].offset = offsetof(Vertex, tangent);
-    attribute_description[3].format = VK_FORMAT_R32G32B32_SFLOAT;
-
-    attribute_description[4].binding = 0;
-    attribute_description[4].location = 4;
-    attribute_description[4].offset = offsetof(Vertex, bitangent);
-    attribute_description[4].format = VK_FORMAT_R32G32B32_SFLOAT;
-
-    attribute_description[5].binding = 1;
-    attribute_description[5].location = 5;
-    attribute_description[5].offset = 0;
-    attribute_description[5].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-
-    attribute_description[6].binding = 1;
-    attribute_description[6].location = 6;
-    attribute_description[6].offset = sizeof(glm::vec4);
-    attribute_description[6].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-
-    attribute_description[7].binding = 1;
-    attribute_description[7].location = 7;
-    attribute_description[7].offset = sizeof(glm::vec4) * 2;
-    attribute_description[7].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-
-    attribute_description[8].binding = 1;
-    attribute_description[8].location = 8;
-    attribute_description[8].offset = sizeof(glm::vec4) * 3;
-    attribute_description[8].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-    return (attribute_description);
 }
 
 void
@@ -316,8 +245,10 @@ VulkanModelPipeline::_create_gfx_pipeline(VulkanRenderPass const &renderPass)
 
     // Vertex input
     VkPipelineVertexInputStateCreateInfo vertex_input_info{};
-    auto binding_description = _get_input_binding_description();
-    auto attribute_description = _get_input_attribute_description();
+    auto binding_description =
+      VulkanModelPipelineMesh::getInputBindingDescription();
+    auto attribute_description =
+      VulkanModelPipelineMesh::getInputAttributeDescription();
     vertex_input_info.sType =
       VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertex_input_info.vertexBindingDescriptionCount =
@@ -453,7 +384,7 @@ VulkanModelPipeline::_create_gfx_pipeline(VulkanRenderPass const &renderPass)
     vkDestroyShaderModule(_device, frag_shader, nullptr);
 }
 
-VulkanModelPipeline::VulkanModelPipelineMesh
+VulkanModelPipelineMesh
 VulkanModelPipeline::_create_pipeline_mesh(Mesh const &mesh,
                                            std::string const &modelFolder,
                                            VulkanTextureManager &textureManager,
@@ -508,23 +439,23 @@ VulkanModelPipeline::_create_pipeline_mesh(Mesh const &mesh,
                      VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
     // Copying data into staging buffer
-    copyOnMappedMemory(_device,
-                       staging_buffer_memory,
-                       0,
-                       pipeline_mesh.verticesSize,
-                       mesh.vertex_list.data());
-    copyOnMappedMemory(_device,
-                       staging_buffer_memory,
-                       pipeline_mesh.indicesOffset,
-                       pipeline_mesh.indicesSize,
-                       mesh.indices.data());
+    copyOnCpuCoherentMemory(_device,
+                            staging_buffer_memory,
+                            0,
+                            pipeline_mesh.verticesSize,
+                            mesh.vertex_list.data());
+    copyOnCpuCoherentMemory(_device,
+                            staging_buffer_memory,
+                            pipeline_mesh.indicesOffset,
+                            pipeline_mesh.indicesSize,
+                            mesh.indices.data());
     for (size_t i = 0; i < currentSwapChainNbImg; ++i) {
-        copyOnMappedMemory(_device,
-                           staging_buffer_memory,
-                           pipeline_mesh.uboOffset +
-                             pipeline_mesh.singleUboSize * i,
-                           sizeof(ModelPipelineUbo),
-                           &m_ubo);
+        copyOnCpuCoherentMemory(_device,
+                                staging_buffer_memory,
+                                pipeline_mesh.uboOffset +
+                                  pipeline_mesh.singleUboSize * i,
+                                sizeof(ModelPipelineUbo),
+                                &m_ubo);
     }
 
     // GPU only memory
@@ -539,12 +470,12 @@ VulkanModelPipeline::_create_pipeline_mesh(Mesh const &mesh,
                    pipeline_mesh.buffer,
                    pipeline_mesh.memory,
                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    copyBuffer(_device,
-               _cmd_pool,
-               _gfx_queue,
-               pipeline_mesh.buffer,
-               staging_buffer,
-               total_size);
+    copyBufferOnGpu(_device,
+                    _cmd_pool,
+                    _gfx_queue,
+                    pipeline_mesh.buffer,
+                    staging_buffer,
+                    total_size);
 
     vkDestroyBuffer(_device, staging_buffer, nullptr);
     vkFreeMemory(_device, staging_buffer_memory, nullptr);
@@ -663,25 +594,9 @@ void
 VulkanModelPipeline::_set_instance_matrix_on_gpu(uint32_t bufferIndex,
                                                  ModelInstanceInfo const &info)
 {
-    // Staging buffer on CPU
-    VkBuffer staging_buffer{};
-    VkDeviceMemory staging_buffer_memory{};
-    createBuffer(_device,
-                 staging_buffer,
-                 sizeof(glm::mat4),
-                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-    allocateBuffer(_physical_device,
-                   _device,
-                   staging_buffer,
-                   staging_buffer_memory,
-                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
     for (auto const &mesh : _pipeline_meshes) {
-        auto instance_mat = _compute_instance_matrix(mesh.meshCenter, info);
-
-        copyOnMappedMemory(
-          _device, staging_buffer_memory, 0, sizeof(glm::mat4), &instance_mat);
+        auto instance_mat =
+          computeInstanceMatrix(mesh.meshCenter, _model->getCenter(), info);
 
         VkBufferCopy copy_region{};
         copy_region.size = sizeof(glm::mat4);
@@ -689,35 +604,12 @@ VulkanModelPipeline::_set_instance_matrix_on_gpu(uint32_t bufferIndex,
           mesh.instanceMatricesOffset + sizeof(glm::mat4) * bufferIndex;
         copy_region.srcOffset = 0;
 
-        // Copy on GPU
-        copyBuffer(_device,
-                   _cmd_pool,
-                   _gfx_queue,
-                   mesh.buffer,
-                   staging_buffer,
-                   copy_region);
+        copyCpuBufferToGpu(_device,
+                           _physical_device,
+                           _cmd_pool,
+                           _gfx_queue,
+                           mesh.buffer,
+                           &instance_mat,
+                           copy_region);
     }
-
-    vkDestroyBuffer(_device, staging_buffer, nullptr);
-    vkFreeMemory(_device, staging_buffer_memory, nullptr);
-}
-
-glm::mat4
-VulkanModelPipeline::_compute_instance_matrix(glm::vec3 const &meshCenter,
-                                              ModelInstanceInfo const &info)
-{
-    auto instance_matrix = glm::mat4(1.0f);
-    instance_matrix = glm::scale(instance_matrix, info.scale);
-    instance_matrix = glm::translate(instance_matrix, -meshCenter);
-
-    instance_matrix =
-      glm::rotate(instance_matrix, info.pitch, glm::vec3(1.0f, 0.0f, 0.0f));
-    instance_matrix =
-      glm::rotate(instance_matrix, info.yaw, glm::vec3(0.0f, 1.0f, 0.0f));
-    instance_matrix =
-      glm::rotate(instance_matrix, info.roll, glm::vec3(0.0f, 0.0f, 1.0f));
-    instance_matrix = glm::translate(
-      instance_matrix, meshCenter - _model->getCenter() + info.position);
-
-    return (instance_matrix);
 }

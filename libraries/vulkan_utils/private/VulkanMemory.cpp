@@ -64,12 +64,12 @@ allocateBuffer(VkPhysicalDevice physical_device,
 }
 
 void
-copyBuffer(VkDevice device,
-           VkCommandPool command_pool,
-           VkQueue gfx_queue,
-           VkBuffer dst_buffer,
-           VkBuffer src_buffer,
-           VkDeviceSize size)
+copyBufferOnGpu(VkDevice device,
+                VkCommandPool command_pool,
+                VkQueue gfx_queue,
+                VkBuffer dst_buffer,
+                VkBuffer src_buffer,
+                VkDeviceSize size)
 {
     VkCommandBuffer cmd_buffer = beginSingleTimeCommands(device, command_pool);
 
@@ -83,12 +83,12 @@ copyBuffer(VkDevice device,
 }
 
 void
-copyBuffer(VkDevice device,
-           VkCommandPool command_pool,
-           VkQueue gfx_queue,
-           VkBuffer dst_buffer,
-           VkBuffer src_buffer,
-           VkBufferCopy copy_region)
+copyBufferOnGpu(VkDevice device,
+                VkCommandPool command_pool,
+                VkQueue gfx_queue,
+                VkBuffer dst_buffer,
+                VkBuffer src_buffer,
+                VkBufferCopy copy_region)
 {
     VkCommandBuffer cmd_buffer = beginSingleTimeCommands(device, command_pool);
     vkCmdCopyBuffer(cmd_buffer, src_buffer, dst_buffer, 1, &copy_region);
@@ -96,15 +96,51 @@ copyBuffer(VkDevice device,
 }
 
 void
-copyOnMappedMemory(VkDevice device,
-                   VkDeviceMemory memory,
-                   VkDeviceSize offset,
-                   VkDeviceSize size,
-                   void const *dataToCopy)
+copyOnCpuCoherentMemory(VkDevice device,
+                        VkDeviceMemory memory,
+                        VkDeviceSize offset,
+                        VkDeviceSize size,
+                        void const *dataToCopy)
 {
     void *mapped_data{};
 
     vkMapMemory(device, memory, offset, size, 0, &mapped_data);
     memcpy(mapped_data, dataToCopy, size);
     vkUnmapMemory(device, memory);
+}
+
+void
+copyCpuBufferToGpu(VkDevice device,
+                   VkPhysicalDevice physicalDevice,
+                   VkCommandPool commandPool,
+                   VkQueue queue,
+                   VkBuffer dstBuffer,
+                   void *srcData,
+                   VkBufferCopy copyRegion)
+{
+    // Staging buffer on CPU
+    VkBuffer staging_buffer{};
+    VkDeviceMemory staging_buffer_memory{};
+    createBuffer(device,
+                 staging_buffer,
+                 copyRegion.size,
+                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+    allocateBuffer(physicalDevice,
+                   device,
+                   staging_buffer,
+                   staging_buffer_memory,
+                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    // Copy on staging buffer
+    copyOnCpuCoherentMemory(
+      device, staging_buffer_memory, 0, copyRegion.size, srcData);
+
+    // Copy on GPU
+    copyBufferOnGpu(
+      device, commandPool, queue, dstBuffer, staging_buffer, copyRegion);
+
+    // Cleaning
+    vkDestroyBuffer(device, staging_buffer, nullptr);
+    vkFreeMemory(device, staging_buffer_memory, nullptr);
 }

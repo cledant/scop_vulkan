@@ -3,6 +3,7 @@ project(lib_model)
 
 add_library(model STATIC
         private/Model.cpp
+        private/ModelInstanceInfo.cpp
         private/Mesh.cpp
         private/AssimpModelLoader.cpp)
 target_include_directories(model

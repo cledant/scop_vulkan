@@ -2,7 +2,7 @@
 #define SCOP_VULKAN_INDEXEDBUFFER_HPP
 
 template<typename InstanceType>
-using UpdaterFct =
+using InsatnceUpdateFct =
   std::function<void(uint32_t bufferIndex, InstanceType const &info)>;
 
 template<typename InstanceType>
@@ -21,14 +21,15 @@ class IndexedBuffer
     uint32_t getMaxInstanceNb() const;
 
     uint32_t addInstance(InstanceType const &info,
-                         UpdaterFct<InstanceType> update = nullptr);
+                         InsatnceUpdateFct<InstanceType> update = nullptr);
     bool removeInstance(uint32_t instanceIndex,
-                        UpdaterFct<InstanceType> update = nullptr);
+                        InsatnceUpdateFct<InstanceType> update = nullptr);
     bool updateInstance(uint32_t instanceIndex,
                         InstanceType const &info,
-                        UpdaterFct<InstanceType> update = nullptr);
+                        InsatnceUpdateFct<InstanceType> update = nullptr);
     bool getInstance(uint32_t instanceIndex, InstanceType &info) const;
-    void update(UpdaterFct<InstanceType> update) const;
+    void executeUpdateFctOnInstances(
+      InsatnceUpdateFct<InstanceType> update) const;
 
   private:
     uint32_t instance_index = 1;
@@ -76,7 +77,7 @@ IndexedBuffer<InstanceType>::getMaxInstanceNb() const
 template<typename InstanceType>
 uint32_t
 IndexedBuffer<InstanceType>::addInstance(InstanceType const &info,
-                                         UpdaterFct<InstanceType> update)
+                                         InsatnceUpdateFct<InstanceType> update)
 {
     if (_current_instance_nb >= _max_instance_nb) {
         return (0);
@@ -98,8 +99,9 @@ IndexedBuffer<InstanceType>::addInstance(InstanceType const &info,
 
 template<typename InstanceType>
 bool
-IndexedBuffer<InstanceType>::removeInstance(uint32_t instanceIndex,
-                                            UpdaterFct<InstanceType> update)
+IndexedBuffer<InstanceType>::removeInstance(
+  uint32_t instanceIndex,
+  InsatnceUpdateFct<InstanceType> update)
 {
     if (!_index_to_buffer_pairing.contains(instanceIndex)) {
         return (false);
@@ -123,9 +125,10 @@ IndexedBuffer<InstanceType>::removeInstance(uint32_t instanceIndex,
 
 template<typename InstanceType>
 bool
-IndexedBuffer<InstanceType>::updateInstance(uint32_t instanceIndex,
-                                            InstanceType const &info,
-                                            UpdaterFct<InstanceType> update)
+IndexedBuffer<InstanceType>::updateInstance(
+  uint32_t instanceIndex,
+  InstanceType const &info,
+  InsatnceUpdateFct<InstanceType> update)
 {
     if (!_index_to_buffer_pairing.contains(instanceIndex)) {
         return (false);
@@ -155,7 +158,8 @@ IndexedBuffer<InstanceType>::getInstance(uint32_t instanceIndex,
 
 template<typename InstanceType>
 void
-IndexedBuffer<InstanceType>::update(UpdaterFct<InstanceType> update) const
+IndexedBuffer<InstanceType>::executeUpdateFctOnInstances(
+  InsatnceUpdateFct<InstanceType> update) const
 {
     assert(update);
     for (uint32_t i = 0; i < _current_instance_nb; ++i) {

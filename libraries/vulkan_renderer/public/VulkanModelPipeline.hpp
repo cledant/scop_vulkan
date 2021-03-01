@@ -13,15 +13,8 @@
 #include "VulkanRenderPass.hpp"
 #include "VulkanTextureManager.hpp"
 #include "IndexedBuffer.hpp"
-
-struct ModelInstanceInfo final
-{
-    glm::vec3 position{};
-    float pitch{};
-    float yaw{};
-    float roll{};
-    glm::vec3 scale = glm::vec3(1.0f);
-};
+#include "ModelInstanceInfo.hpp"
+#include "VulkanModelPipelineMesh.hpp"
 
 class VulkanModelPipeline final
 {
@@ -52,28 +45,6 @@ class VulkanModelPipeline final
     void generateCommands(VkCommandBuffer cmdBuffer, size_t descriptorSetIndex);
 
   private:
-    struct VulkanModelPipelineMesh
-    {
-        VkBuffer buffer{};
-        VkDeviceMemory memory{};
-        Texture diffuseTexture{};
-        VkDeviceSize verticesSize{};
-        VkDeviceSize indicesSize{};
-        VkDeviceSize nbIndices{};
-        VkDeviceSize singleUboSize{};
-        VkDeviceSize instanceMatricesOffset{};
-        VkDeviceSize indicesOffset{};
-        VkDeviceSize uboOffset{};
-        VkDescriptorPool descriptorPool{};
-        std::vector<VkDescriptorSet> descriptorSets;
-        glm::vec3 meshCenter{};
-    };
-
-    static std::array<VkVertexInputBindingDescription, 2>
-    _get_input_binding_description();
-    static std::array<VkVertexInputAttributeDescription, 9>
-    _get_input_attribute_description();
-
     // Model related
     Model const *_model{};
 
@@ -105,8 +76,6 @@ class VulkanModelPipeline final
                                         VkBuffer systemUbo);
     inline void _set_instance_matrix_on_gpu(uint32_t bufferIndex,
                                             ModelInstanceInfo const &info);
-    inline glm::mat4 _compute_instance_matrix(glm::vec3 const &meshCenter,
-                                              ModelInstanceInfo const &info);
 };
 
 #endif // SCOP_VULKAN_VULKANMODELPIPELINE_HPP
