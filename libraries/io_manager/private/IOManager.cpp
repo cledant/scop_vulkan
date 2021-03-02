@@ -56,11 +56,11 @@ IOManager::deleteWindow()
     }
 }
 
-uint8_t
+bool
 IOManager::wasResized()
 {
     auto tmp = _resized;
-    _resized = 0;
+    _resized = false;
     return (tmp);
 }
 
@@ -93,7 +93,7 @@ IOManager::toggleFullscreen()
     }
 }
 
-uint8_t
+bool
 IOManager::shouldClose() const
 {
     return (glfwWindowShouldClose(_win));
@@ -119,7 +119,7 @@ IOManager::toggleMouseVisibility()
     _apply_mouse_visibility();
 }
 
-uint8_t
+bool
 IOManager::isMouseExclusive() const
 {
     return (_mouse_exclusive);

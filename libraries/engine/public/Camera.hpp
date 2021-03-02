@@ -11,16 +11,16 @@
 class Camera final
 {
   public:
-    Camera();
+    Camera() = default;
     ~Camera() = default;
     Camera(const Camera &src) = default;
     Camera &operator=(Camera const &rhs) = default;
     Camera(Camera &&src) = default;
     Camera &operator=(Camera &&rhs) = default;
 
-    void update_position(glm::ivec3 const &mov, float coeff);
-    void update_front(glm::vec2 const &offsets, float coeff);
-    void update_matricies();
+    void updatePosition(glm::ivec3 const &mov, float coeff);
+    void updateFront(glm::vec2 const &offsets, float coeff);
+    void updateMatrices();
 
     // Setters
     void setPosition(glm::vec3 const &pos);
@@ -43,16 +43,16 @@ class Camera final
     static constexpr glm::vec3 const DEFAULT_WORLD_UP =
       glm::vec3(0.0f, 1.0f, 0.0f);
 
-    uint8_t _updated;
-    glm::vec3 _pos;
-    glm::vec3 _world_up;
-    glm::vec3 _right;
-    glm::vec3 _up;
-    glm::vec3 _front;
+    bool _updated = true;
+    glm::vec3 _pos = glm::vec3(1.0f);
+    glm::vec3 _world_up = DEFAULT_WORLD_UP;
+    glm::vec3 _right{};
+    glm::vec3 _up{};
+    glm::vec3 _front{};
 
-    glm::mat4 _view;
-    glm::mat4 _perspective;
-    glm::mat4 _perspec_mult_view;
+    glm::mat4 _view = glm::mat4(1.0f);
+    glm::mat4 _perspective = glm::mat4(1.0f);
+    glm::mat4 _perspec_mult_view = glm::mat4(1.0f);
 
     enum frustumPlane
     {
@@ -64,15 +64,15 @@ class Camera final
         F_FAR,
         F_NB_PLANE
     };
-    std::array<glm::vec4, F_NB_PLANE> _frustum_planes;
-    std::array<glm::vec4, F_NB_PLANE> _abs_frustum_planes;
+    std::array<glm::vec4, F_NB_PLANE> _frustum_planes{};
+    std::array<glm::vec4, F_NB_PLANE> _abs_frustum_planes{};
     inline void _extractFrustumPlanes();
 
-    float _mouse_sensitivity;
-    float _movement_speed;
+    float _mouse_sensitivity = DEFAULT_MOUSE_SENSITIVITY;
+    float _movement_speed = DEFAULT_MOVEMENT_SPEED;
 
-    float _yaw;
-    float _pitch;
+    float _yaw{};
+    float _pitch{};
 };
 
 #endif // SCOP_VULKAN_CAMERA_HPP

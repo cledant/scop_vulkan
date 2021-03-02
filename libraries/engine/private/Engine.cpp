@@ -2,23 +2,12 @@
 
 #include "glm/gtc/matrix_transform.hpp"
 
-Engine::Engine()
-  : _io_manager()
-  , _vk_renderer()
-  , _camera()
-  , _event_handler()
-  , _perspective_data()
-  , _nb_frame(0)
-  , _fps_count_timeref()
-  , _str_fps("0")
-{}
-
 void
 Engine::init(EngineOptions const &opts)
 {
     auto cpy_app_name = opts.app_name;
     IOManagerWindowCreationOption win_opts{
-        0, 0, opts.fullscreen, 0, DEFAULT_WIN_SIZE, opts.app_name
+        false, false, opts.fullscreen, false, DEFAULT_WIN_SIZE, opts.app_name
     };
 
     _event_handler.setCamera(&_camera);
@@ -53,7 +42,7 @@ Engine::init(EngineOptions const &opts)
                                             _perspective_data.near_far.y));
     _camera.setPosition(START_POS);
     _camera.setYawPitch(START_YAW, START_PITCH);
-    _camera.update_matricies();
+    _camera.updateMatrices();
     _fps_count_timeref = std::chrono::steady_clock::now();
 }
 

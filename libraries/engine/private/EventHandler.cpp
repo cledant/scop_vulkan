@@ -4,19 +4,6 @@
 
 #include <functional>
 
-EventHandler::EventHandler()
-  : _camera(nullptr)
-  , _io_manager(nullptr)
-  , _perspective(nullptr)
-  , _renderer(nullptr)
-  , _timers()
-  , _movements(0)
-  , _mouse_pos(0.0)
-  , _previous_mouse_pos(0.0)
-  , _print_ui(1)
-  , _invert_y_axis(0)
-{}
-
 void
 EventHandler::setCamera(Camera *camera)
 {
@@ -42,7 +29,7 @@ EventHandler::setVkRenderer(VulkanRenderer *renderer)
 }
 
 void
-EventHandler::setInvertYAxis(uint8_t val)
+EventHandler::setInvertYAxis(bool val)
 {
     _invert_y_axis = val;
 }
@@ -76,14 +63,14 @@ EventHandler::processEvents(IOEvents const &events)
 
     // Checking Timers
     auto now = std::chrono::steady_clock::now();
-    for (uint8_t i = 0; i < ET_NB_EVENT_TIMER_TYPES; ++i) {
+    for (uint32_t i = 0; i < ET_NB_EVENT_TIMER_TYPES; ++i) {
         std::chrono::duration<double> time_diff = now - _timers.time_ref[i];
         _timers.timer_diff[i] = time_diff.count();
         _timers.accept_event[i] = (time_diff.count() > _timers.timer_values[i]);
     }
 
     // Looping over events types
-    for (uint8_t i = 0; i < NB_IO_EVENTS; ++i) {
+    for (uint32_t i = 0; i < NB_IO_EVENTS; ++i) {
         if (events.events[i]) {
             std::invoke(keyboard_events[i], this);
         }
@@ -124,7 +111,7 @@ EventHandler::processEvents(IOEvents const &events)
     }
 
     // Setting timers origin
-    for (uint8_t i = 0; i < ET_NB_EVENT_TIMER_TYPES; ++i) {
+    for (uint32_t i = 0; i < ET_NB_EVENT_TIMER_TYPES; ++i) {
         if (_timers.updated[i]) {
             _timers.time_ref[i] = now;
         }
@@ -244,7 +231,7 @@ EventHandler::_right_mouse()
 void
 EventHandler::_updateCamera(glm::vec2 const &mouse_pos)
 {
-    static uint8_t first_run = 1;
+    static bool first_run = true;
 
     _mouse_pos = mouse_pos;
     if (_invert_y_axis) {
@@ -252,18 +239,18 @@ EventHandler::_updateCamera(glm::vec2 const &mouse_pos)
     }
     if (first_run) {
         _previous_mouse_pos = _mouse_pos;
-        first_run = 0;
+        first_run = false;
     }
     glm::vec2 offset = _mouse_pos - _previous_mouse_pos;
 
     if (_movements != glm::ivec3(0)) {
-        _camera->update_position(_movements,
-                                 _timers.timer_diff[ET_CAMERA] /
-                                   _timers.timer_values[ET_CAMERA]);
+        _camera->updatePosition(_movements,
+                                _timers.timer_diff[ET_CAMERA] /
+                                  _timers.timer_values[ET_CAMERA]);
     }
     if (offset != glm::vec2(0.0)) {
-        _camera->update_front(offset, 0.5f);
+        _camera->updateFront(offset, 0.5f);
         _previous_mouse_pos = _mouse_pos;
     }
-    _camera->update_matricies();
+    _camera->updateMatrices();
 }

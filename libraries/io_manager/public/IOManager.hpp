@@ -30,13 +30,13 @@ class IOManager final
     // Window related
     void createWindow(IOManagerWindowCreationOption &&opts);
     void deleteWindow();
-    [[nodiscard]] uint8_t wasResized();
+    [[nodiscard]] bool wasResized();
     void toggleFullscreen();
-    [[nodiscard]] uint8_t shouldClose() const;
+    [[nodiscard]] bool shouldClose() const;
     void triggerClose() const;
     void toggleMouseExclusive();
     void toggleMouseVisibility();
-    [[nodiscard]] uint8_t isMouseExclusive() const;
+    [[nodiscard]] bool isMouseExclusive() const;
     [[nodiscard]] float getWindowRatio() const;
     [[nodiscard]] glm::ivec2 getWindowSize() const;
     [[nodiscard]] glm::ivec2 getFramebufferSize() const;
@@ -59,13 +59,13 @@ class IOManager final
 
     // Window related
     GLFWwindow *_win{};
-    uint8_t _fullscreen{};
-    uint8_t _resized{};
+    bool _fullscreen{};
+    bool _resized{};
     glm::ivec2 _win_size{};
     glm::ivec2 _framebuffer_size{};
 
-    uint8_t _mouse_exclusive{};
-    uint8_t _cursor_hidden_on_window{};
+    bool _mouse_exclusive{};
+    bool _cursor_hidden_on_window{};
 
     // Callbacks
     inline void _initCallbacks();

@@ -13,7 +13,7 @@
 class EventHandler final
 {
   public:
-    EventHandler();
+    EventHandler() = default;
     ~EventHandler() = default;
     EventHandler(EventHandler const &src) = delete;
     EventHandler &operator=(EventHandler const &rhs) = delete;
@@ -24,7 +24,7 @@ class EventHandler final
     void setIOManager(IOManager *io_manager);
     void setPerspectiveData(Perspective *perspective);
     void setVkRenderer(VulkanRenderer *renderer);
-    void setInvertYAxis(uint8_t val);
+    void setInvertYAxis(bool val);
 
     void processEvents(IOEvents const &events);
 
@@ -82,19 +82,19 @@ class EventHandler final
     // Camera Related
     inline void _updateCamera(glm::vec2 const &mouse_pos);
 
-    Camera *_camera;
-    IOManager *_io_manager;
-    Perspective *_perspective;
-    VulkanRenderer *_renderer;
+    Camera *_camera{};
+    IOManager *_io_manager{};
+    Perspective *_perspective{};
+    VulkanRenderer *_renderer{};
 
     EventTimers _timers;
 
-    glm::ivec3 _movements;
-    glm::vec2 _mouse_pos;
-    glm::vec2 _previous_mouse_pos;
+    glm::ivec3 _movements{};
+    glm::vec2 _mouse_pos{};
+    glm::vec2 _previous_mouse_pos{};
 
-    uint8_t _print_ui;
-    uint8_t _invert_y_axis;
+    bool _print_ui = true;
+    bool _invert_y_axis = false;
 };
 
 #endif // SCOP_VULKAN_EVENTHANDLER_HPP

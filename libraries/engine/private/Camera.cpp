@@ -5,35 +5,17 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/matrix_access.hpp"
 
-Camera::Camera()
-  : _updated(1)
-  , _pos(1.0)
-  , _world_up(DEFAULT_WORLD_UP)
-  , _right(0.0)
-  , _up(0.0)
-  , _front(0.0)
-  , _view(1.0)
-  , _perspective(1.0)
-  , _perspec_mult_view(1.0)
-  , _frustum_planes()
-  , _abs_frustum_planes()
-  , _mouse_sensitivity(DEFAULT_MOUSE_SENSITIVITY)
-  , _movement_speed(DEFAULT_MOVEMENT_SPEED)
-  , _yaw(0.0f)
-  , _pitch(0.0f)
-{}
-
 void
-Camera::update_position(glm::ivec3 const &mov, float coeff)
+Camera::updatePosition(glm::ivec3 const &mov, float coeff)
 {
     _pos += mov.x * _movement_speed * coeff * _front;
     _pos += mov.y * _movement_speed * coeff * _right;
     _pos += mov.z * _movement_speed * coeff * glm::vec3(0.0f, 1.0f, 0.0f);
-    _updated = 1;
+    _updated = true;
 }
 
 void
-Camera::update_front(glm::vec2 const &offsets, float coeff)
+Camera::updateFront(glm::vec2 const &offsets, float coeff)
 {
     _yaw += offsets.x * _mouse_sensitivity * coeff;
     _pitch += offsets.y * _mouse_sensitivity * coeff;
@@ -41,11 +23,11 @@ Camera::update_front(glm::vec2 const &offsets, float coeff)
         _pitch = 89.0f;
     if (_pitch < -89.0f)
         _pitch = -89.0f;
-    _updated = 1;
+    _updated = true;
 }
 
 void
-Camera::update_matricies()
+Camera::updateMatrices()
 {
     if (!_updated) {
         return;
@@ -59,7 +41,7 @@ Camera::update_matricies()
     _view = glm::lookAt(_pos, _pos + _front, _up);
     _perspec_mult_view = _perspective * _view;
     _extractFrustumPlanes();
-    _updated = 0;
+    _updated = false;
 }
 
 // Setters
@@ -67,7 +49,7 @@ void
 Camera::setPosition(glm::vec3 const &pos)
 {
     _pos = pos;
-    _updated = 1;
+    _updated = true;
 }
 
 void
@@ -79,14 +61,14 @@ Camera::setYawPitch(float yaw, float pitch)
         _pitch = 89.0f;
     if (_pitch < -89.0f)
         _pitch = -89.0f;
-    _updated = 1;
+    _updated = true;
 }
 
 void
 Camera::setWorldUp(glm::vec3 const &world_up)
 {
     _world_up = world_up;
-    _updated = 1;
+    _updated = true;
 }
 
 void

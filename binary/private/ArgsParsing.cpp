@@ -36,7 +36,7 @@ setInvertMouseY(EngineOptions &opts, std::string_view arg)
     if (arg.size() != std::strlen(POSSIBLE_OPTIONS[AO_INVERT_MOUSE_Y])) {
         return;
     }
-    opts.invert_y_axis = 1;
+    opts.invert_y_axis = true;
 }
 
 void
@@ -45,7 +45,7 @@ setFullscreen(EngineOptions &opts, std::string_view arg)
     if (arg.size() != std::strlen(POSSIBLE_OPTIONS[AO_FULLSCREEN])) {
         return;
     }
-    opts.fullscreen = 1;
+    opts.fullscreen = true;
 }
 
 void

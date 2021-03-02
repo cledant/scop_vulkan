@@ -12,7 +12,7 @@
 class Engine final
 {
   public:
-    Engine();
+    Engine() = default;
     ~Engine() = default;
     Engine(Engine const &src) = delete;
     Engine &operator=(Engine const &rhs) = delete;
@@ -36,13 +36,13 @@ class Engine final
     VulkanRenderer _vk_renderer;
     Camera _camera;
     EventHandler _event_handler;
-    Perspective _perspective_data;
+    Perspective _perspective_data{};
     Model _model;
 
     // Fps related
-    uint64_t _nb_frame;
-    std::chrono::steady_clock::time_point _fps_count_timeref;
-    std::string _str_fps;
+    uint64_t _nb_frame{};
+    std::chrono::steady_clock::time_point _fps_count_timeref{};
+    std::string _str_fps = "0";
 };
 
 #endif // SCOP_VULKAN_ENGINE_HPP

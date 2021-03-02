@@ -5,9 +5,9 @@
 
 struct Perspective final
 {
-    float ratio;
-    glm::vec2 near_far;
-    float fov;
+    float ratio{};
+    glm::vec2 near_far{};
+    float fov{};
 };
 
 #endif // SCOP_VULKAN_PERSPECTIVE_HPP

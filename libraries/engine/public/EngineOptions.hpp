@@ -8,8 +8,8 @@ static constexpr float const MINIMAL_MODEL_SCALE = 0.01f;
 
 struct EngineOptions
 {
-    uint8_t invert_y_axis{};
-    uint8_t fullscreen{};
+    bool invert_y_axis{};
+    bool fullscreen{};
     std::string app_name;
     std::string model_path;
     float scale = 1.0f;

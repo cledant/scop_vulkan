@@ -23,11 +23,11 @@ enum IOEventsTypes
     NB_IO_EVENTS,
 };
 
-struct IOEvents
+struct IOEvents final
 {
-    std::array<uint8_t, NB_IO_EVENTS> events;
-    glm::vec2 mouse_position;
-    float mouse_scroll;
+    std::array<uint8_t, NB_IO_EVENTS> events{};
+    glm::vec2 mouse_position{};
+    float mouse_scroll{};
 };
 
 #endif // SCOP_IOEVENTS_HPP
