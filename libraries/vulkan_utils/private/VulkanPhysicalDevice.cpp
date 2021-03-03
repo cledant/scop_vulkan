@@ -177,3 +177,13 @@ getMinUniformBufferOffsetAlignment(VkPhysicalDevice device)
 
     return (properties.limits.minUniformBufferOffsetAlignment);
 }
+
+bool
+getLinearBlittingSupport(VkPhysicalDevice device, VkFormat imgFormat)
+{
+    VkFormatProperties prop;
+    vkGetPhysicalDeviceFormatProperties(device, imgFormat, &prop);
+
+    return (prop.optimalTilingFeatures &
+            VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT);
+}

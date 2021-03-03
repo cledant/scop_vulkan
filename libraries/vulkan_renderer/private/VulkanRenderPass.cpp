@@ -121,9 +121,10 @@ VulkanRenderPass::_create_image_view()
 {
     swapChainImageViews.resize(swapChainImages.size());
     for (size_t i = 0; i < swapChainImages.size(); ++i) {
-        swapChainImageViews[i] = createImageView(_device,
-                                                 swapChainImages[i],
+        swapChainImageViews[i] = createImageView(swapChainImages[i],
                                                  swapChainImageFormat,
+                                                 1,
+                                                 _device,
                                                  VK_IMAGE_ASPECT_COLOR_BIT);
     }
 }
@@ -208,25 +209,26 @@ VulkanRenderPass::_create_render_pass()
 void
 VulkanRenderPass::_create_depth_resources()
 {
-    createImage(_device,
-                depthImage,
-                swapChainExtent.width,
-                swapChainExtent.height,
-                depthFormat,
-                VK_IMAGE_TILING_OPTIMAL,
-                VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+    depthImage = createImage(_device,
+                             swapChainExtent.width,
+                             swapChainExtent.height,
+                             1,
+                             depthFormat,
+                             VK_IMAGE_TILING_OPTIMAL,
+                             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
     allocateImage(_physical_device,
                   _device,
                   depthImage,
                   depthImgMemory,
                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     depthImgView = createImageView(
-      _device, depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+      depthImage, depthFormat, 1, _device, VK_IMAGE_ASPECT_DEPTH_BIT);
     transitionImageLayout(_device,
                           _command_pool,
                           _gfx_queue,
                           depthImage,
                           depthFormat,
+                          1,
                           VK_IMAGE_LAYOUT_UNDEFINED,
                           VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 }

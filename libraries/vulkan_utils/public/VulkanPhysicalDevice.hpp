@@ -36,5 +36,6 @@ void getDeviceQueues(VkPhysicalDevice device,
                      VkSurfaceKHR surface,
                      DeviceRequirement &dr);
 VkDeviceSize getMinUniformBufferOffsetAlignment(VkPhysicalDevice device);
+bool getLinearBlittingSupport(VkPhysicalDevice device, VkFormat imgFormat);
 
 #endif // SCOP_VULKAN_VULKANPHYSICALDEVICE_HPP

@@ -1,6 +1,7 @@
 #include "VulkanTextureManager.hpp"
 
 #include <stdexcept>
+#include <cmath>
 
 #include "VulkanImage.hpp"
 
@@ -35,9 +36,14 @@ VulkanTextureManager::loadTexture(std::string const &texturePath)
 
     Texture tex{};
 
-    _create_texture_image(texturePath, tex.texture_img, tex.texture_img_memory);
-    tex.texture_img_view = _create_texture_image_view(tex.texture_img);
-    tex.texture_sampler = _create_texture_sampler();
+    tex.texture_img = _create_texture_image(texturePath,
+                                            tex.texture_img_memory,
+                                            tex.width,
+                                            tex.height,
+                                            tex.mip_level);
+    tex.texture_img_view =
+      _create_texture_image_view(tex.texture_img, tex.mip_level);
+    tex.texture_sampler = _create_texture_sampler(tex.mip_level);
     _textures.emplace(texturePath, tex);
 }
 
@@ -62,79 +68,97 @@ VulkanTextureManager::loadAndGetTexture(std::string const &texturePath)
 
     Texture tex{};
 
-    _create_texture_image(texturePath, tex.texture_img, tex.texture_img_memory);
-    tex.texture_img_view = _create_texture_image_view(tex.texture_img);
-    tex.texture_sampler = _create_texture_sampler();
+    tex.texture_img = _create_texture_image(texturePath,
+                                            tex.texture_img_memory,
+                                            tex.width,
+                                            tex.height,
+                                            tex.mip_level);
+    tex.texture_img_view =
+      _create_texture_image_view(tex.texture_img, tex.mip_level);
+    tex.texture_sampler = _create_texture_sampler(tex.mip_level);
     _textures.emplace(texturePath, tex);
     return (tex);
 }
 
-void
+VkImage
 VulkanTextureManager::_create_texture_image(std::string const &texturePath,
-                                            VkImage &texture_img,
-                                            VkDeviceMemory &texture_img_memory)
+                                            VkDeviceMemory &texture_img_memory,
+                                            int32_t &tex_img_w,
+                                            int32_t &tex_img_h,
+                                            uint32_t &mip_level)
 {
     VkBuffer staging_buffer{};
     VkDeviceMemory staging_buffer_memory{};
-    int img_w = 0;
-    int img_h = 0;
 
     loadTextureInBuffer(_physical_device,
                         _device,
                         texturePath,
                         staging_buffer,
                         staging_buffer_memory,
-                        img_w,
-                        img_h);
-    createImage(_device,
-                texture_img,
-                img_w,
-                img_h,
-                VK_FORMAT_R8G8B8A8_SRGB,
-                VK_IMAGE_TILING_OPTIMAL,
-                VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+                        tex_img_w,
+                        tex_img_h);
+    mip_level = static_cast<uint32_t>(
+                  std::floor(std::log2(std::max(tex_img_w, tex_img_h)))) +
+                1;
+    auto tex_img = createImage(_device,
+                               tex_img_w,
+                               tex_img_h,
+                               mip_level,
+                               VK_FORMAT_R8G8B8A8_SRGB,
+                               VK_IMAGE_TILING_OPTIMAL,
+                               VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                                 VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                                 VK_IMAGE_USAGE_SAMPLED_BIT);
     allocateImage(_physical_device,
                   _device,
-                  texture_img,
+                  tex_img,
                   texture_img_memory,
                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     transitionImageLayout(_device,
                           _command_pool,
                           _gfx_queue,
-                          texture_img,
+                          tex_img,
                           VK_FORMAT_R8G8B8A8_SRGB,
+                          mip_level,
                           VK_IMAGE_LAYOUT_UNDEFINED,
                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     copyBufferToImage(_device,
                       _command_pool,
                       _gfx_queue,
                       staging_buffer,
-                      texture_img,
-                      img_w,
-                      img_h);
-    transitionImageLayout(_device,
-                          _command_pool,
-                          _gfx_queue,
-                          texture_img,
-                          VK_FORMAT_R8G8B8A8_SRGB,
-                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+                      tex_img,
+                      tex_img_w,
+                      tex_img_h);
 
     vkDestroyBuffer(_device, staging_buffer, nullptr);
     vkFreeMemory(_device, staging_buffer_memory, nullptr);
+
+    generateMipmaps(_physical_device,
+                    _device,
+                    _command_pool,
+                    _gfx_queue,
+                    tex_img,
+                    VK_FORMAT_R8G8B8A8_SRGB,
+                    tex_img_w,
+                    tex_img_h,
+                    mip_level);
+
+    return (tex_img);
 }
 
 VkImageView
-VulkanTextureManager::_create_texture_image_view(VkImage texture_img)
+VulkanTextureManager::_create_texture_image_view(VkImage texture_img,
+                                                 uint32_t mip_level)
 {
-    return (createImageView(_device,
-                            texture_img,
+    return (createImageView(texture_img,
                             VK_FORMAT_R8G8B8A8_SRGB,
+                            mip_level,
+                            _device,
                             VK_IMAGE_ASPECT_COLOR_BIT));
 }
 
 VkSampler
-VulkanTextureManager::_create_texture_sampler()
+VulkanTextureManager::_create_texture_sampler(uint32_t mip_level)
 {
     VkPhysicalDeviceProperties properties{};
     vkGetPhysicalDeviceProperties(_physical_device, &properties);
@@ -155,6 +179,10 @@ VulkanTextureManager::_create_texture_sampler()
     sampler_info.unnormalizedCoordinates = VK_FALSE;
     sampler_info.compareEnable = VK_FALSE;
     sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
+    sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    sampler_info.mipLodBias = 0.0f;
+    sampler_info.minLod = 0.0f;
+    sampler_info.maxLod = static_cast<float>(mip_level);
 
     VkSampler texture_sampler;
     if (vkCreateSampler(_device, &sampler_info, nullptr, &texture_sampler) !=

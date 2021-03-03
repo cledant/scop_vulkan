@@ -14,6 +14,9 @@ struct Texture final
     VkDeviceMemory texture_img_memory{};
     VkImageView texture_img_view{};
     VkSampler texture_sampler{};
+    int32_t width{};
+    int32_t height{};
+    uint32_t mip_level{};
 };
 
 class VulkanTextureManager final
@@ -39,11 +42,14 @@ class VulkanTextureManager final
     VkCommandPool _command_pool{};
     std::unordered_map<std::string, Texture> _textures;
 
-    inline void _create_texture_image(std::string const &texturePath,
-                                      VkImage &texture_img,
-                                      VkDeviceMemory &texture_img_memory);
-    inline VkImageView _create_texture_image_view(VkImage texture_img);
-    inline VkSampler _create_texture_sampler();
+    inline VkImage _create_texture_image(std::string const &texturePath,
+                                         VkDeviceMemory &texture_img_memory,
+                                         int32_t &tex_img_w,
+                                         int32_t &tex_img_h,
+                                         uint32_t &mip_level);
+    inline VkImageView _create_texture_image_view(VkImage texture_img,
+                                                  uint32_t mip_level);
+    inline VkSampler _create_texture_sampler(uint32_t mip_level);
 };
 
 #endif // SCOP_VULKAN_VULKANTEXTUREMANAGER_HPP
