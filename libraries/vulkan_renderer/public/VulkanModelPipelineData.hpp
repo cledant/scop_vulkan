@@ -1,5 +1,5 @@
-#ifndef SCOP_VULKAN_VULKANMODELPIPELINEMESH_HPP
-#define SCOP_VULKAN_VULKANMODELPIPELINEMESH_HPP
+#ifndef SCOP_VULKAN_VULKANMODELPIPELINEDATA_HPP
+#define SCOP_VULKAN_VULKANMODELPIPELINEDATA_HPP
 
 #include <array>
 #include <vector>
@@ -10,7 +10,7 @@
 
 #include "VulkanTextureManager.hpp"
 
-struct VulkanModelPipelineMesh
+struct VulkanModelPipelineData
 {
     VkBuffer buffer{};
     VkDeviceMemory memory{};
@@ -32,4 +32,4 @@ struct VulkanModelPipelineMesh
     getInputAttributeDescription();
 };
 
-#endif // SCOP_VULKAN_VULKANMODELPIPELINEMESH_HPP
+#endif // SCOP_VULKAN_VULKANMODELPIPELINEDATA_HPP

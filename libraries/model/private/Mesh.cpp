@@ -39,7 +39,7 @@ Mesh::printMesh() const
                max_point.z);
     fmt::print("\t\tCenter: ( {} | {} | {} )\n", center.x, center.y, center.z);
     fmt::print("\tNb Faces: {}\n", nb_faces);
-    fmt::print("\tNb Vertices: {}\n", vertex_list.size());
-    fmt::print("\tNb Indices: {}\n", indices.size());
+    fmt::print("\tNb Indices: {}\n", nb_indices);
+    fmt::print("\tIndices buffer offset: {}\n", indices_offset);
     fmt::print("----- END MESH -----\n");
 }

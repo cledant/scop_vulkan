@@ -23,11 +23,15 @@ class Model final
     void loadModel(char const *model_path);
     void printModel() const;
 
+    [[nodiscard]] std::vector<Vertex> const &getVertexList() const;
+    [[nodiscard]] std::vector<uint32_t> const &getIndicesList() const;
     [[nodiscard]] std::vector<Mesh> const &getMeshList() const;
     [[nodiscard]] std::string const &getDirectory() const;
     [[nodiscard]] glm::vec3 const &getCenter() const;
 
   private:
+    std::vector<Vertex> _vertex_list;
+    std::vector<uint32_t> _indices_list;
     std::vector<Mesh> _mesh_list;
     glm::vec3 _center{};
     glm::vec3 _min_point{};

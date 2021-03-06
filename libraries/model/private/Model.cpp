@@ -26,7 +26,8 @@ Model::loadModel(const std::string &model_path)
     } else {
         _directory = model_path.substr(0, pos);
     }
-    assimpLoadModel(model_path.c_str(), _mesh_list);
+    assimpLoadModel(
+      model_path.c_str(), _vertex_list, _indices_list, _mesh_list);
     _compute_min_max_points_and_center();
 }
 
@@ -42,7 +43,7 @@ Model::loadModel(const char *model_path)
         uintptr_t size = pos - model_path;
         _directory = std::string(model_path, size);
     }
-    assimpLoadModel(model_path, _mesh_list);
+    assimpLoadModel(model_path, _vertex_list, _indices_list, _mesh_list);
     _compute_min_max_points_and_center();
 }
 
@@ -69,6 +70,18 @@ Model::printModel() const
     fmt::print("===== END MODEL =====\n");
 }
 
+std::vector<Vertex> const &
+Model::getVertexList() const
+{
+    return (_vertex_list);
+}
+
+std::vector<uint32_t> const &
+Model::getIndicesList() const
+{
+    return (_indices_list);
+}
+
 std::vector<Mesh> const &
 Model::getMeshList() const
 {
@@ -86,7 +99,6 @@ Model::getCenter() const
 {
     return (_center);
 }
-
 
 void
 Model::_compute_min_max_points_and_center()

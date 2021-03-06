@@ -1,9 +1,9 @@
-#include "VulkanModelPipelineMesh.hpp"
+#include "VulkanModelPipelineData.hpp"
 
 #include "Mesh.hpp"
 
 std::array<VkVertexInputBindingDescription, 2>
-VulkanModelPipelineMesh::getInputBindingDescription()
+VulkanModelPipelineData::getInputBindingDescription()
 {
     std::array<VkVertexInputBindingDescription, 2> binding_description{};
     binding_description[0].binding = 0;
@@ -18,7 +18,7 @@ VulkanModelPipelineMesh::getInputBindingDescription()
 }
 
 std::array<VkVertexInputAttributeDescription, 9>
-VulkanModelPipelineMesh::getInputAttributeDescription()
+VulkanModelPipelineData::getInputAttributeDescription()
 {
     std::array<VkVertexInputAttributeDescription, 9> attribute_description{};
 

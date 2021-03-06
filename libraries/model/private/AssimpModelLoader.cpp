@@ -10,13 +10,16 @@
 #include "assimp/postprocess.h"
 
 void
-assimpLoadModel(char const *model_path, std::vector<Mesh> &mesh_list)
+assimpLoadModel(char const *model_path,
+                std::vector<Vertex> &vertex_list,
+                std::vector<uint32_t> &indices_list,
+                std::vector<Mesh> &mesh_list)
 {
     assert(model_path);
     Assimp::Importer importer{};
-    aiScene const *scene{};
+    std::unordered_map<Vertex, uint32_t> unique_vertices{};
 
-    scene =
+    aiScene const *scene =
       importer.ReadFile(model_path,
                         aiProcess_Triangulate | aiProcess_GenSmoothNormals |
                           aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
@@ -24,26 +27,52 @@ assimpLoadModel(char const *model_path, std::vector<Mesh> &mesh_list)
         !scene->mRootNode)
         throw std::runtime_error("AssimpLoader: Failed to load: " +
                                  std::string(model_path));
-    assimpLoadNode(scene->mRootNode, scene, mesh_list);
+    assimpLoadNode(scene->mRootNode,
+                   scene,
+                   unique_vertices,
+                   vertex_list,
+                   indices_list,
+                   mesh_list);
 }
 
 void
-assimpLoadNode(aiNode *node, aiScene const *scene, std::vector<Mesh> &mesh_list)
+assimpLoadNode(aiNode *node,
+               aiScene const *scene,
+               std::unordered_map<Vertex, uint32_t> &unique_vertices,
+               std::vector<Vertex> &vertex_list,
+               std::vector<uint32_t> &indices_list,
+               std::vector<Mesh> &mesh_list)
 {
     assert(node && scene);
     for (size_t i = 0; i < node->mNumMeshes; ++i) {
-        assimpLoadMesh(scene->mMeshes[node->mMeshes[i]], scene, mesh_list);
+        assimpLoadMesh(scene->mMeshes[node->mMeshes[i]],
+                       scene,
+                       unique_vertices,
+                       vertex_list,
+                       indices_list,
+                       mesh_list);
     }
     for (size_t j = 0; j < node->mNumChildren; ++j) {
-        assimpLoadNode(node->mChildren[j], scene, mesh_list);
+        assimpLoadNode(node->mChildren[j],
+                       scene,
+                       unique_vertices,
+                       vertex_list,
+                       indices_list,
+                       mesh_list);
     }
 }
 
 void
-assimpLoadMesh(aiMesh *mesh, aiScene const *scene, std::vector<Mesh> &mesh_list)
+assimpLoadMesh(aiMesh *mesh,
+               aiScene const *scene,
+               std::unordered_map<Vertex, uint32_t> &unique_vertices,
+               std::vector<Vertex> &vertex_list,
+               std::vector<uint32_t> &indices_list,
+               std::vector<Mesh> &mesh_list)
 {
     assert(mesh && scene);
     Mesh loaded_mesh;
+    loaded_mesh.indices_offset = unique_vertices.size();
 
     // Init Min / Max point
     if (mesh->mNumVertices) {
@@ -54,8 +83,7 @@ assimpLoadMesh(aiMesh *mesh, aiScene const *scene, std::vector<Mesh> &mesh_list)
     }
 
     // Vertices
-    std::unordered_map<Vertex, uint32_t> unique_vertices{};
-    uint32_t loaded_indices = 0;
+    uint32_t model_indices = unique_vertices.size();
     for (size_t i = 0; i < mesh->mNumVertices; ++i) {
         Vertex loaded_vertex{};
 
@@ -76,13 +104,14 @@ assimpLoadMesh(aiMesh *mesh, aiScene const *scene, std::vector<Mesh> &mesh_list)
                                         mesh->mBitangents[i].z };
         }
         if (!unique_vertices.contains(loaded_vertex)) {
-            unique_vertices[loaded_vertex] = loaded_indices;
-            loaded_mesh.vertex_list.emplace_back(loaded_vertex);
-            ++loaded_indices;
+            unique_vertices[loaded_vertex] = model_indices;
+            vertex_list.emplace_back(loaded_vertex);
+            ++model_indices;
+            ++loaded_mesh.nb_indices;
         }
 
         // Indices
-        loaded_mesh.indices.emplace_back(unique_vertices[loaded_vertex]);
+        indices_list.emplace_back(unique_vertices[loaded_vertex]);
 
         // Min points
         loaded_mesh.min_point.x =

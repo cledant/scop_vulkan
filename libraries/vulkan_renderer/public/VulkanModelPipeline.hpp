@@ -14,7 +14,7 @@
 #include "VulkanTextureManager.hpp"
 #include "IndexedBuffer.hpp"
 #include "ModelInstanceInfo.hpp"
-#include "VulkanModelPipelineMesh.hpp"
+#include "VulkanModelPipelineData.hpp"
 
 class VulkanModelPipeline final
 {
@@ -56,7 +56,7 @@ class VulkanModelPipeline final
     VkDescriptorSetLayout _descriptor_set_layout{};
     VkPipelineLayout _pipeline_layout{};
     VkPipeline _graphic_pipeline{};
-    std::vector<VulkanModelPipelineMesh> _pipeline_meshes;
+    VulkanModelPipelineData _pipeline_model;
 
     // Instance related
     IndexedBuffer<ModelInstanceInfo> _instance_handler;
@@ -64,15 +64,15 @@ class VulkanModelPipeline final
     inline void _create_descriptor_layout();
     inline void _create_pipeline_layout();
     inline void _create_gfx_pipeline(VulkanRenderPass const &renderPass);
-    inline VulkanModelPipelineMesh _create_pipeline_mesh(
-      Mesh const &mesh,
+    inline VulkanModelPipelineData _create_pipeline_model(
+      Model const &model,
       std::string const &modelFolder,
       VulkanTextureManager &textureManager,
       uint32_t currentSwapChainNbImg);
     inline void _create_descriptor_pool(VulkanRenderPass const &renderPass,
-                                        VulkanModelPipelineMesh &pipelineMesh);
+                                        VulkanModelPipelineData &pipelineMesh);
     inline void _create_descriptor_sets(VulkanRenderPass const &renderPass,
-                                        VulkanModelPipelineMesh &pipelineMesh,
+                                        VulkanModelPipelineData &pipelineMesh,
                                         VkBuffer systemUbo);
     inline void _set_instance_matrix_on_gpu(uint32_t bufferIndex,
                                             ModelInstanceInfo const &info);

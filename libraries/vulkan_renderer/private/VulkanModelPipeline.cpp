@@ -25,17 +25,13 @@ VulkanModelPipeline::init(VulkanInstance const &vkInstance,
     _create_descriptor_layout();
     _create_pipeline_layout();
     _create_gfx_pipeline(renderPass);
-    _pipeline_meshes.resize(model.getMeshList().size());
     auto mesh_list = model.getMeshList();
-    for (size_t i = 0; i < _pipeline_meshes.size(); ++i) {
-        _pipeline_meshes[i] =
-          _create_pipeline_mesh(mesh_list[i],
-                                model.getDirectory(),
-                                texManager,
-                                renderPass.currentSwapChainNbImg);
-        _create_descriptor_pool(renderPass, _pipeline_meshes[i]);
-        _create_descriptor_sets(renderPass, _pipeline_meshes[i], systemUbo);
-    }
+    _pipeline_model = _create_pipeline_model(model,
+                                             model.getDirectory(),
+                                             texManager,
+                                             renderPass.currentSwapChainNbImg);
+    _create_descriptor_pool(renderPass, _pipeline_model);
+    _create_descriptor_sets(renderPass, _pipeline_model, systemUbo);
 }
 
 void
@@ -50,20 +46,15 @@ VulkanModelPipeline::resize(VulkanRenderPass const &renderPass,
 
     _create_pipeline_layout();
     _create_gfx_pipeline(renderPass);
-    auto mesh_list = _model->getMeshList();
-    for (size_t i = 0; i < _pipeline_meshes.size(); ++i) {
-        vkDestroyBuffer(_device, _pipeline_meshes[i].buffer, nullptr);
-        vkFreeMemory(_device, _pipeline_meshes[i].memory, nullptr);
-        vkDestroyDescriptorPool(
-          _device, _pipeline_meshes[i].descriptorPool, nullptr);
-        _pipeline_meshes[i] =
-          _create_pipeline_mesh(mesh_list[i],
-                                _model->getDirectory(),
-                                texManager,
-                                renderPass.currentSwapChainNbImg);
-        _create_descriptor_pool(renderPass, _pipeline_meshes[i]);
-        _create_descriptor_sets(renderPass, _pipeline_meshes[i], systemUbo);
-    }
+    vkDestroyBuffer(_device, _pipeline_model.buffer, nullptr);
+    vkFreeMemory(_device, _pipeline_model.memory, nullptr);
+    vkDestroyDescriptorPool(_device, _pipeline_model.descriptorPool, nullptr);
+    _pipeline_model = _create_pipeline_model(*_model,
+                                             _model->getDirectory(),
+                                             texManager,
+                                             renderPass.currentSwapChainNbImg);
+    _create_descriptor_pool(renderPass, _pipeline_model);
+    _create_descriptor_sets(renderPass, _pipeline_model, systemUbo);
 
     auto updater = [&](uint32_t index,
                        ModelInstanceInfo const &inst_info) -> void {
@@ -78,11 +69,9 @@ VulkanModelPipeline::clear()
     vkDestroyPipeline(_device, _graphic_pipeline, nullptr);
     vkDestroyPipelineLayout(_device, _pipeline_layout, nullptr);
     vkDestroyDescriptorSetLayout(_device, _descriptor_set_layout, nullptr);
-    for (auto &mesh : _pipeline_meshes) {
-        vkDestroyBuffer(_device, mesh.buffer, nullptr);
-        vkFreeMemory(_device, mesh.memory, nullptr);
-        vkDestroyDescriptorPool(_device, mesh.descriptorPool, nullptr);
-    }
+    vkDestroyBuffer(_device, _pipeline_model.buffer, nullptr);
+    vkFreeMemory(_device, _pipeline_model.memory, nullptr);
+    vkDestroyDescriptorPool(_device, _pipeline_model.descriptorPool, nullptr);
 }
 
 uint32_t
@@ -130,31 +119,32 @@ void
 VulkanModelPipeline::generateCommands(VkCommandBuffer cmdBuffer,
                                       size_t descriptorSetIndex)
 {
-    for (auto &it : _pipeline_meshes) {
-        // Vertex related values
-        VkBuffer vertex_buffer[] = { it.buffer, it.buffer };
-        VkDeviceSize offsets[] = { 0, it.instanceMatricesOffset };
+    // Vertex related values
+    VkBuffer vertex_buffer[] = { _pipeline_model.buffer,
+                                 _pipeline_model.buffer };
+    VkDeviceSize offsets[] = { 0, _pipeline_model.instanceMatricesOffset };
 
-        vkCmdBindPipeline(
-          cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphic_pipeline);
-        vkCmdBindVertexBuffers(cmdBuffer, 0, 2, vertex_buffer, offsets);
-        vkCmdBindIndexBuffer(
-          cmdBuffer, it.buffer, it.indicesOffset, VK_INDEX_TYPE_UINT32);
-        vkCmdBindDescriptorSets(cmdBuffer,
-                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                _pipeline_layout,
-                                0,
-                                1,
-                                &it.descriptorSets[descriptorSetIndex],
-                                0,
-                                nullptr);
-        vkCmdDrawIndexed(cmdBuffer,
-                         it.nbIndices,
-                         _instance_handler.getCurrentInstanceNb(),
-                         0,
-                         0,
-                         0);
-    }
+    vkCmdBindPipeline(
+      cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphic_pipeline);
+    vkCmdBindVertexBuffers(cmdBuffer, 0, 2, vertex_buffer, offsets);
+    vkCmdBindIndexBuffer(cmdBuffer,
+                         _pipeline_model.buffer,
+                         _pipeline_model.indicesOffset,
+                         VK_INDEX_TYPE_UINT32);
+    vkCmdBindDescriptorSets(cmdBuffer,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            _pipeline_layout,
+                            0,
+                            1,
+                            &_pipeline_model.descriptorSets[descriptorSetIndex],
+                            0,
+                            nullptr);
+    vkCmdDrawIndexed(cmdBuffer,
+                     _pipeline_model.nbIndices,
+                     _instance_handler.getCurrentInstanceNb(),
+                     0,
+                     0,
+                     0);
 }
 
 void
@@ -246,9 +236,9 @@ VulkanModelPipeline::_create_gfx_pipeline(VulkanRenderPass const &renderPass)
     // Vertex input
     VkPipelineVertexInputStateCreateInfo vertex_input_info{};
     auto binding_description =
-      VulkanModelPipelineMesh::getInputBindingDescription();
+      VulkanModelPipelineData::getInputBindingDescription();
     auto attribute_description =
-      VulkanModelPipelineMesh::getInputAttributeDescription();
+      VulkanModelPipelineData::getInputAttributeDescription();
     vertex_input_info.sType =
       VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertex_input_info.vertexBindingDescriptionCount =
@@ -384,21 +374,22 @@ VulkanModelPipeline::_create_gfx_pipeline(VulkanRenderPass const &renderPass)
     vkDestroyShaderModule(_device, frag_shader, nullptr);
 }
 
-VulkanModelPipelineMesh
-VulkanModelPipeline::_create_pipeline_mesh(Mesh const &mesh,
-                                           std::string const &modelFolder,
-                                           VulkanTextureManager &textureManager,
-                                           uint32_t currentSwapChainNbImg)
+VulkanModelPipelineData
+VulkanModelPipeline::_create_pipeline_model(
+  Model const &model,
+  std::string const &modelFolder,
+  VulkanTextureManager &textureManager,
+  uint32_t currentSwapChainNbImg)
 {
-    VulkanModelPipelineMesh pipeline_mesh{};
+    VulkanModelPipelineData pipeline_mesh{};
 
-    pipeline_mesh.meshCenter = mesh.center;
+    pipeline_mesh.meshCenter = model.getCenter();
     pipeline_mesh.diffuseTexture = textureManager.loadAndGetTexture(
-      modelFolder + "/" + mesh.material.tex_diffuse_name);
+      modelFolder + "/" + model.getMeshList()[0].material.tex_diffuse_name);
 
-    pipeline_mesh.verticesSize = sizeof(Vertex) * mesh.vertex_list.size();
-    pipeline_mesh.nbIndices = mesh.indices.size();
-    pipeline_mesh.indicesSize = sizeof(uint32_t) * mesh.indices.size();
+    pipeline_mesh.verticesSize = sizeof(Vertex) * model.getVertexList().size();
+    pipeline_mesh.nbIndices = model.getIndicesList().size();
+    pipeline_mesh.indicesSize = sizeof(uint32_t) * pipeline_mesh.nbIndices;
     VkDeviceSize instance_matrices_size =
       sizeof(glm::mat4) * _instance_handler.getMaxInstanceNb();
 
@@ -422,9 +413,9 @@ VulkanModelPipeline::_create_pipeline_mesh(Mesh const &mesh,
     VkDeviceSize total_size = pipeline_mesh.uboOffset + model_ubo_size;
 
     // Ubo values
-    ModelPipelineUbo m_ubo = { mesh.material.diffuse,
-                               mesh.material.specular,
-                               mesh.material.shininess };
+    ModelPipelineUbo m_ubo = { model.getMeshList()[0].material.diffuse,
+                               model.getMeshList()[0].material.specular,
+                               model.getMeshList()[0].material.shininess };
 
     // CPU => GPU transfer buffer
     VkBuffer staging_buffer{};
@@ -443,12 +434,12 @@ VulkanModelPipeline::_create_pipeline_mesh(Mesh const &mesh,
                             staging_buffer_memory,
                             0,
                             pipeline_mesh.verticesSize,
-                            mesh.vertex_list.data());
+                            model.getVertexList().data());
     copyOnCpuCoherentMemory(_device,
                             staging_buffer_memory,
                             pipeline_mesh.indicesOffset,
                             pipeline_mesh.indicesSize,
-                            mesh.indices.data());
+                            model.getIndicesList().data());
     for (size_t i = 0; i < currentSwapChainNbImg; ++i) {
         copyOnCpuCoherentMemory(_device,
                                 staging_buffer_memory,
@@ -486,7 +477,7 @@ VulkanModelPipeline::_create_pipeline_mesh(Mesh const &mesh,
 void
 VulkanModelPipeline::_create_descriptor_pool(
   VulkanRenderPass const &renderPass,
-  VulkanModelPipelineMesh &pipelineMesh)
+  VulkanModelPipelineData &pipelineMesh)
 {
     std::array<VkDescriptorPoolSize, 3> pool_size{};
     pool_size[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -513,7 +504,7 @@ VulkanModelPipeline::_create_descriptor_pool(
 void
 VulkanModelPipeline::_create_descriptor_sets(
   VulkanRenderPass const &renderPass,
-  VulkanModelPipelineMesh &pipelineMesh,
+  VulkanModelPipelineData &pipelineMesh,
   VkBuffer systemUbo)
 {
     std::vector<VkDescriptorSetLayout> layouts(renderPass.currentSwapChainNbImg,
@@ -594,22 +585,20 @@ void
 VulkanModelPipeline::_set_instance_matrix_on_gpu(uint32_t bufferIndex,
                                                  ModelInstanceInfo const &info)
 {
-    for (auto const &mesh : _pipeline_meshes) {
-        auto instance_mat =
-          computeInstanceMatrix(mesh.meshCenter, _model->getCenter(), info);
+    auto instance_mat =
+      computeInstanceMatrix(_pipeline_model.meshCenter, glm::vec3(0.0f), info);
 
-        VkBufferCopy copy_region{};
-        copy_region.size = sizeof(glm::mat4);
-        copy_region.dstOffset =
-          mesh.instanceMatricesOffset + sizeof(glm::mat4) * bufferIndex;
-        copy_region.srcOffset = 0;
+    VkBufferCopy copy_region{};
+    copy_region.size = sizeof(glm::mat4);
+    copy_region.dstOffset =
+      _pipeline_model.instanceMatricesOffset + sizeof(glm::mat4) * bufferIndex;
+    copy_region.srcOffset = 0;
 
-        copyCpuBufferToGpu(_device,
-                           _physical_device,
-                           _cmd_pool,
-                           _gfx_queue,
-                           mesh.buffer,
-                           &instance_mat,
-                           copy_region);
-    }
+    copyCpuBufferToGpu(_device,
+                       _physical_device,
+                       _cmd_pool,
+                       _gfx_queue,
+                       _pipeline_model.buffer,
+                       &instance_mat,
+                       copy_region);
 }

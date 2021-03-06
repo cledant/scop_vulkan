@@ -40,13 +40,13 @@ struct Mesh final
 {
     void printMesh() const;
 
-    std::vector<Vertex> vertex_list;
-    std::vector<uint32_t> indices;
     Material material{};
     glm::vec3 center{};
     glm::vec3 min_point{};
     glm::vec3 max_point{};
     uint32_t nb_faces{};
+    uint32_t nb_indices{};
+    uint32_t indices_offset{};
     std::string mesh_name;
 };
 
