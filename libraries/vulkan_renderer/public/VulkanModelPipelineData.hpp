@@ -14,17 +14,20 @@ struct VulkanModelPipelineData
 {
     VkBuffer buffer{};
     VkDeviceMemory memory{};
-    Texture diffuseTexture{};
     VkDeviceSize verticesSize{};
     VkDeviceSize indicesSize{};
-    VkDeviceSize nbIndices{};
     VkDeviceSize singleUboSize{};
+    VkDeviceSize singleSwapChainUboSize{};
     VkDeviceSize instanceMatricesOffset{};
     VkDeviceSize indicesOffset{};
     VkDeviceSize uboOffset{};
     VkDescriptorPool descriptorPool{};
     std::vector<VkDescriptorSet> descriptorSets;
-    glm::vec3 meshCenter{};
+    glm::vec3 modelCenter{};
+    VkDeviceSize nbMaterials{};
+    std::vector<Texture> diffuseTextures;
+    std::vector<VkDeviceSize> indicesDrawOffset;
+    std::vector<VkDeviceSize> indicesDrawNb;
 
     static std::array<VkVertexInputBindingDescription, 2>
     getInputBindingDescription();

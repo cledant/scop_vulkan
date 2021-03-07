@@ -53,7 +53,7 @@ struct Mesh final
 size_t constexpr hash_combine(size_t h1, size_t h2)
 {
     return (h1 ^ (h2 << 1));
-};
+}
 
 namespace std {
 template<>

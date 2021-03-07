@@ -71,8 +71,12 @@ assimpLoadMesh(aiMesh *mesh,
                std::vector<Mesh> &mesh_list)
 {
     assert(mesh && scene);
-    Mesh loaded_mesh;
-    loaded_mesh.indices_offset = unique_vertices.size();
+    Mesh loaded_mesh{};
+
+    if (!mesh_list.empty()) {
+        loaded_mesh.indices_offset =
+          mesh_list.back().indices_offset + mesh_list.back().nb_indices;
+    }
 
     // Init Min / Max point
     if (mesh->mNumVertices) {
@@ -107,11 +111,11 @@ assimpLoadMesh(aiMesh *mesh,
             unique_vertices[loaded_vertex] = model_indices;
             vertex_list.emplace_back(loaded_vertex);
             ++model_indices;
-            ++loaded_mesh.nb_indices;
         }
 
         // Indices
         indices_list.emplace_back(unique_vertices[loaded_vertex]);
+        ++loaded_mesh.nb_indices;
 
         // Min points
         loaded_mesh.min_point.x =

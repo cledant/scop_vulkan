@@ -131,20 +131,26 @@ VulkanModelPipeline::generateCommands(VkCommandBuffer cmdBuffer,
                          _pipeline_model.buffer,
                          _pipeline_model.indicesOffset,
                          VK_INDEX_TYPE_UINT32);
-    vkCmdBindDescriptorSets(cmdBuffer,
-                            VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            _pipeline_layout,
-                            0,
-                            1,
-                            &_pipeline_model.descriptorSets[descriptorSetIndex],
-                            0,
-                            nullptr);
-    vkCmdDrawIndexed(cmdBuffer,
-                     _pipeline_model.nbIndices,
-                     _instance_handler.getCurrentInstanceNb(),
-                     0,
-                     0,
-                     0);
+
+    for (size_t i = 0; i < _pipeline_model.nbMaterials; ++i) {
+        vkCmdBindDescriptorSets(
+          cmdBuffer,
+          VK_PIPELINE_BIND_POINT_GRAPHICS,
+          _pipeline_layout,
+          0,
+          1,
+          &_pipeline_model.descriptorSets[descriptorSetIndex +
+                                          i * _pipeline_model.nbMaterials],
+          0,
+          nullptr);
+
+        vkCmdDrawIndexed(cmdBuffer,
+                         _pipeline_model.indicesDrawNb[i],
+                         _instance_handler.getCurrentInstanceNb(),
+                         _pipeline_model.indicesDrawOffset[i],
+                         0,
+                         0);
+    }
 }
 
 void
@@ -381,43 +387,48 @@ VulkanModelPipeline::_create_pipeline_model(
   VulkanTextureManager &textureManager,
   uint32_t currentSwapChainNbImg)
 {
-    VulkanModelPipelineData pipeline_mesh{};
+    VulkanModelPipelineData pipeline_model{};
 
-    pipeline_mesh.meshCenter = model.getCenter();
-    pipeline_mesh.diffuseTexture = textureManager.loadAndGetTexture(
-      modelFolder + "/" + model.getMeshList()[0].material.tex_diffuse_name);
+    pipeline_model.modelCenter = model.getCenter();
 
-    pipeline_mesh.verticesSize = sizeof(Vertex) * model.getVertexList().size();
-    pipeline_mesh.nbIndices = model.getIndicesList().size();
-    pipeline_mesh.indicesSize = sizeof(uint32_t) * pipeline_mesh.nbIndices;
+    // Material + Texture related
+    pipeline_model.nbMaterials = model.getMeshList().size();
+    for (auto &it : model.getMeshList()) {
+        pipeline_model.indicesDrawNb.emplace_back(it.nb_indices);
+        pipeline_model.indicesDrawOffset.emplace_back(it.indices_offset);
+        pipeline_model.diffuseTextures.emplace_back(
+          textureManager.loadAndGetTexture(modelFolder + "/" +
+                                           it.material.tex_diffuse_name));
+    }
+
+    // Computing sizes and offsets
+    pipeline_model.verticesSize = sizeof(Vertex) * model.getVertexList().size();
+    pipeline_model.indicesSize =
+      sizeof(uint32_t) * model.getIndicesList().size();
     VkDeviceSize instance_matrices_size =
       sizeof(glm::mat4) * _instance_handler.getMaxInstanceNb();
-
-    pipeline_mesh.instanceMatricesOffset = pipeline_mesh.verticesSize;
-    pipeline_mesh.indicesOffset =
-      pipeline_mesh.verticesSize + instance_matrices_size;
-    pipeline_mesh.uboOffset = pipeline_mesh.verticesSize +
-                              instance_matrices_size +
-                              pipeline_mesh.indicesSize;
+    pipeline_model.instanceMatricesOffset = pipeline_model.verticesSize;
+    pipeline_model.indicesOffset =
+      pipeline_model.verticesSize + instance_matrices_size;
+    pipeline_model.uboOffset = pipeline_model.verticesSize +
+                               instance_matrices_size +
+                               pipeline_model.indicesSize;
     // UBO offset are required to be aligned with
     // minUniformBufferOffsetAlignment prop
     auto ubo_alignment = getMinUniformBufferOffsetAlignment(_physical_device);
-    pipeline_mesh.singleUboSize =
+    pipeline_model.singleUboSize =
       (sizeof(ModelPipelineUbo) > ubo_alignment)
         ? sizeof(ModelPipelineUbo) + sizeof(ModelPipelineUbo) % ubo_alignment
         : ubo_alignment;
-    VkDeviceSize model_ubo_size =
-      pipeline_mesh.singleUboSize * currentSwapChainNbImg;
-    pipeline_mesh.uboOffset +=
-      ubo_alignment - (pipeline_mesh.uboOffset % ubo_alignment);
-    VkDeviceSize total_size = pipeline_mesh.uboOffset + model_ubo_size;
+    pipeline_model.singleSwapChainUboSize =
+      pipeline_model.singleUboSize * currentSwapChainNbImg;
+    pipeline_model.uboOffset +=
+      ubo_alignment - (pipeline_model.uboOffset % ubo_alignment);
+    VkDeviceSize total_size =
+      pipeline_model.uboOffset +
+      pipeline_model.singleSwapChainUboSize * pipeline_model.nbMaterials;
 
-    // Ubo values
-    ModelPipelineUbo m_ubo = { model.getMeshList()[0].material.diffuse,
-                               model.getMeshList()[0].material.specular,
-                               model.getMeshList()[0].material.shininess };
-
-    // CPU => GPU transfer buffer
+    // Creating transfer buffer CPU to GPU
     VkBuffer staging_buffer{};
     VkDeviceMemory staging_buffer_memory{};
     createBuffer(
@@ -433,68 +444,82 @@ VulkanModelPipeline::_create_pipeline_model(
     copyOnCpuCoherentMemory(_device,
                             staging_buffer_memory,
                             0,
-                            pipeline_mesh.verticesSize,
+                            pipeline_model.verticesSize,
                             model.getVertexList().data());
     copyOnCpuCoherentMemory(_device,
                             staging_buffer_memory,
-                            pipeline_mesh.indicesOffset,
-                            pipeline_mesh.indicesSize,
+                            pipeline_model.indicesOffset,
+                            pipeline_model.indicesSize,
                             model.getIndicesList().data());
-    for (size_t i = 0; i < currentSwapChainNbImg; ++i) {
-        copyOnCpuCoherentMemory(_device,
-                                staging_buffer_memory,
-                                pipeline_mesh.uboOffset +
-                                  pipeline_mesh.singleUboSize * i,
-                                sizeof(ModelPipelineUbo),
-                                &m_ubo);
+    for (size_t j = 0; j < pipeline_model.nbMaterials; ++j) {
+        // Ubo values
+        ModelPipelineUbo m_ubo = { model.getMeshList()[j].material.diffuse,
+                                   model.getMeshList()[j].material.specular,
+                                   model.getMeshList()[j].material.shininess };
+
+        for (size_t i = 0; i < currentSwapChainNbImg; ++i) {
+            copyOnCpuCoherentMemory(_device,
+                                    staging_buffer_memory,
+                                    pipeline_model.uboOffset +
+                                      pipeline_model.singleUboSize * i +
+                                      pipeline_model.singleSwapChainUboSize * j,
+                                    sizeof(ModelPipelineUbo),
+                                    &m_ubo);
+        }
     }
 
-    // GPU only memory
+    // Creating GPU buffer + copying transfer buffer
     createBuffer(
       _device,
-      pipeline_mesh.buffer,
+      pipeline_model.buffer,
       total_size,
       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
         VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
     allocateBuffer(_physical_device,
                    _device,
-                   pipeline_mesh.buffer,
-                   pipeline_mesh.memory,
+                   pipeline_model.buffer,
+                   pipeline_model.memory,
                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     copyBufferOnGpu(_device,
                     _cmd_pool,
                     _gfx_queue,
-                    pipeline_mesh.buffer,
+                    pipeline_model.buffer,
                     staging_buffer,
                     total_size);
 
     vkDestroyBuffer(_device, staging_buffer, nullptr);
     vkFreeMemory(_device, staging_buffer_memory, nullptr);
 
-    return (pipeline_mesh);
+    return (pipeline_model);
 }
 
 void
 VulkanModelPipeline::_create_descriptor_pool(
   VulkanRenderPass const &renderPass,
-  VulkanModelPipelineData &pipelineMesh)
+  VulkanModelPipelineData &pipelineData)
 {
     std::array<VkDescriptorPoolSize, 3> pool_size{};
+    // System Ubo
     pool_size[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    pool_size[0].descriptorCount = renderPass.currentSwapChainNbImg;
+    pool_size[0].descriptorCount =
+      renderPass.currentSwapChainNbImg * pipelineData.nbMaterials;
+    // Material Ubo
     pool_size[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    pool_size[1].descriptorCount = renderPass.currentSwapChainNbImg;
+    pool_size[1].descriptorCount =
+      renderPass.currentSwapChainNbImg * pipelineData.nbMaterials;
     pool_size[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    pool_size[2].descriptorCount = renderPass.currentSwapChainNbImg;
+    pool_size[2].descriptorCount =
+      renderPass.currentSwapChainNbImg * pipelineData.nbMaterials;
 
     VkDescriptorPoolCreateInfo pool_info{};
     pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     pool_info.poolSizeCount = pool_size.size();
     pool_info.pPoolSizes = pool_size.data();
-    pool_info.maxSets = renderPass.currentSwapChainNbImg;
+    pool_info.maxSets =
+      renderPass.currentSwapChainNbImg * pipelineData.nbMaterials;
 
     if (vkCreateDescriptorPool(
-          _device, &pool_info, nullptr, &pipelineMesh.descriptorPool) !=
+          _device, &pool_info, nullptr, &pipelineData.descriptorPool) !=
         VK_SUCCESS) {
         throw std::runtime_error(
           "VulkanModelPipeline: failed to create descriptor pool");
@@ -504,80 +529,92 @@ VulkanModelPipeline::_create_descriptor_pool(
 void
 VulkanModelPipeline::_create_descriptor_sets(
   VulkanRenderPass const &renderPass,
-  VulkanModelPipelineData &pipelineMesh,
+  VulkanModelPipelineData &pipelineData,
   VkBuffer systemUbo)
 {
-    std::vector<VkDescriptorSetLayout> layouts(renderPass.currentSwapChainNbImg,
-                                               _descriptor_set_layout);
+    std::vector<VkDescriptorSetLayout> layouts(
+      renderPass.currentSwapChainNbImg * pipelineData.nbMaterials,
+      _descriptor_set_layout);
+
     VkDescriptorSetAllocateInfo alloc_info{};
     alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    alloc_info.descriptorPool = pipelineMesh.descriptorPool;
-    alloc_info.descriptorSetCount = renderPass.currentSwapChainNbImg;
+    alloc_info.descriptorPool = pipelineData.descriptorPool;
+    alloc_info.descriptorSetCount =
+      renderPass.currentSwapChainNbImg * pipelineData.nbMaterials;
     alloc_info.pSetLayouts = layouts.data();
 
-    pipelineMesh.descriptorSets.resize(renderPass.currentSwapChainNbImg);
+    pipelineData.descriptorSets.resize(renderPass.currentSwapChainNbImg *
+                                       pipelineData.nbMaterials);
     if (vkAllocateDescriptorSets(
-          _device, &alloc_info, pipelineMesh.descriptorSets.data()) !=
+          _device, &alloc_info, pipelineData.descriptorSets.data()) !=
         VK_SUCCESS) {
         throw std::runtime_error(
           "VulkanModelPipeline: failed to create descriptor sets");
     }
 
-    for (size_t i = 0; i < renderPass.currentSwapChainNbImg; ++i) {
-        std::array<VkWriteDescriptorSet, 3> descriptor_write{};
+    for (size_t j = 0; j < pipelineData.nbMaterials; ++j) {
+        for (size_t i = 0; i < renderPass.currentSwapChainNbImg; ++i) {
+            std::array<VkWriteDescriptorSet, 3> descriptor_write{};
 
-        // System UBO
-        VkDescriptorBufferInfo system_buffer_info{};
-        system_buffer_info.buffer = systemUbo;
-        system_buffer_info.offset = 0;
-        system_buffer_info.range = sizeof(SystemUbo);
-        descriptor_write[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptor_write[0].dstSet = pipelineMesh.descriptorSets[i];
-        descriptor_write[0].dstBinding = 0;
-        descriptor_write[0].dstArrayElement = 0;
-        descriptor_write[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptor_write[0].descriptorCount = 1;
-        descriptor_write[0].pBufferInfo = &system_buffer_info;
-        descriptor_write[0].pImageInfo = nullptr;
-        descriptor_write[0].pTexelBufferView = nullptr;
+            // System UBO
+            VkDescriptorBufferInfo system_buffer_info{};
+            system_buffer_info.buffer = systemUbo;
+            system_buffer_info.offset = 0;
+            system_buffer_info.range = sizeof(SystemUbo);
+            descriptor_write[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptor_write[0].dstSet =
+              pipelineData.descriptorSets[i + pipelineData.nbMaterials * j];
+            descriptor_write[0].dstBinding = 0;
+            descriptor_write[0].dstArrayElement = 0;
+            descriptor_write[0].descriptorType =
+              VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptor_write[0].descriptorCount = 1;
+            descriptor_write[0].pBufferInfo = &system_buffer_info;
+            descriptor_write[0].pImageInfo = nullptr;
+            descriptor_write[0].pTexelBufferView = nullptr;
 
-        // Model UBO
-        VkDescriptorBufferInfo model_buffer_info{};
-        model_buffer_info.buffer = pipelineMesh.buffer;
-        model_buffer_info.offset =
-          pipelineMesh.uboOffset + pipelineMesh.singleUboSize * i;
-        model_buffer_info.range = sizeof(ModelPipelineUbo);
-        descriptor_write[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptor_write[1].dstSet = pipelineMesh.descriptorSets[i];
-        descriptor_write[1].dstBinding = 1;
-        descriptor_write[1].dstArrayElement = 0;
-        descriptor_write[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptor_write[1].descriptorCount = 1;
-        descriptor_write[1].pBufferInfo = &model_buffer_info;
-        descriptor_write[1].pImageInfo = nullptr;
-        descriptor_write[1].pTexelBufferView = nullptr;
+            // Model UBO
+            VkDescriptorBufferInfo model_buffer_info{};
+            model_buffer_info.buffer = pipelineData.buffer;
+            model_buffer_info.offset =
+              pipelineData.uboOffset + pipelineData.singleUboSize * i;
+            model_buffer_info.range = sizeof(ModelPipelineUbo);
+            descriptor_write[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptor_write[1].dstSet =
+              pipelineData.descriptorSets[i + pipelineData.nbMaterials * j];
+            descriptor_write[1].dstBinding = 1;
+            descriptor_write[1].dstArrayElement = 0;
+            descriptor_write[1].descriptorType =
+              VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptor_write[1].descriptorCount = 1;
+            descriptor_write[1].pBufferInfo = &model_buffer_info;
+            descriptor_write[1].pImageInfo = nullptr;
+            descriptor_write[1].pTexelBufferView = nullptr;
 
-        // Texture
-        VkDescriptorImageInfo img_info{};
-        img_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        img_info.imageView = pipelineMesh.diffuseTexture.texture_img_view;
-        img_info.sampler = pipelineMesh.diffuseTexture.texture_sampler;
-        descriptor_write[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptor_write[2].dstSet = pipelineMesh.descriptorSets[i];
-        descriptor_write[2].dstBinding = 2;
-        descriptor_write[2].dstArrayElement = 0;
-        descriptor_write[2].descriptorType =
-          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptor_write[2].descriptorCount = 1;
-        descriptor_write[2].pBufferInfo = nullptr;
-        descriptor_write[2].pImageInfo = &img_info;
-        descriptor_write[2].pTexelBufferView = nullptr;
+            // Texture
+            VkDescriptorImageInfo img_info{};
+            img_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            img_info.imageView =
+              pipelineData.diffuseTextures[j].texture_img_view;
+            img_info.sampler = pipelineData.diffuseTextures[j].texture_sampler;
+            descriptor_write[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptor_write[2].dstSet =
+              pipelineData.descriptorSets[i + pipelineData.nbMaterials * j];
+            descriptor_write[2].dstBinding = 2;
+            descriptor_write[2].dstArrayElement = 0;
+            descriptor_write[2].descriptorType =
+              VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptor_write[2].descriptorCount = 1;
+            descriptor_write[2].pBufferInfo = nullptr;
+            descriptor_write[2].pImageInfo = &img_info;
+            descriptor_write[2].pTexelBufferView = nullptr;
 
-        vkUpdateDescriptorSets(_device,
-                               descriptor_write.size(),
-                               descriptor_write.data(),
-                               0,
-                               nullptr);
+            vkUpdateDescriptorSets(_device,
+                                   descriptor_write.size(),
+                                   descriptor_write.data(),
+                                   0,
+                                   nullptr);
+        }
     }
 }
 
@@ -586,7 +623,7 @@ VulkanModelPipeline::_set_instance_matrix_on_gpu(uint32_t bufferIndex,
                                                  ModelInstanceInfo const &info)
 {
     auto instance_mat =
-      computeInstanceMatrix(_pipeline_model.meshCenter, glm::vec3(0.0f), info);
+      computeInstanceMatrix(_pipeline_model.modelCenter, info);
 
     VkBufferCopy copy_region{};
     copy_region.size = sizeof(glm::mat4);

@@ -70,9 +70,9 @@ class VulkanModelPipeline final
       VulkanTextureManager &textureManager,
       uint32_t currentSwapChainNbImg);
     inline void _create_descriptor_pool(VulkanRenderPass const &renderPass,
-                                        VulkanModelPipelineData &pipelineMesh);
+                                        VulkanModelPipelineData &pipelineData);
     inline void _create_descriptor_sets(VulkanRenderPass const &renderPass,
-                                        VulkanModelPipelineData &pipelineMesh,
+                                        VulkanModelPipelineData &pipelineData,
                                         VkBuffer systemUbo);
     inline void _set_instance_matrix_on_gpu(uint32_t bufferIndex,
                                             ModelInstanceInfo const &info);
