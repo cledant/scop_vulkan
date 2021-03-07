@@ -396,9 +396,18 @@ VulkanModelPipeline::_create_pipeline_model(
     for (auto &it : model.getMeshList()) {
         pipeline_model.indicesDrawNb.emplace_back(it.nb_indices);
         pipeline_model.indicesDrawOffset.emplace_back(it.indices_offset);
-        pipeline_model.diffuseTextures.emplace_back(
-          textureManager.loadAndGetTexture(modelFolder + "/" +
-                                           it.material.tex_diffuse_name));
+        if (!it.material.tex_diffuse_name.empty()) {
+            pipeline_model.diffuseTextures.emplace_back(
+              textureManager.loadAndGetTexture(modelFolder + "/" +
+                                               it.material.tex_diffuse_name));
+        } else {
+            Texture def_tex{};
+            if (textureManager.getTexture(SCOP_DEFAULT_TEXTURE, def_tex)) {
+                throw std::runtime_error(
+                  "VulkanModelPipeline: Default texture not loaded");
+            }
+            pipeline_model.diffuseTextures.emplace_back(def_tex);
+        }
     }
 
     // Computing sizes and offsets

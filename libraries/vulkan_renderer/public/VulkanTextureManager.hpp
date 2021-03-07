@@ -19,6 +19,8 @@ struct Texture final
     uint32_t mip_level{};
 };
 
+static constexpr char const *SCOP_DEFAULT_TEXTURE = "SCOP_DEFAULT_TEXTURE";
+
 class VulkanTextureManager final
 {
   public:
@@ -50,6 +52,7 @@ class VulkanTextureManager final
     inline VkImageView _create_texture_image_view(VkImage texture_img,
                                                   uint32_t mip_level);
     inline VkSampler _create_texture_sampler(uint32_t mip_level);
+    inline void _load_default_texture();
 };
 
 #endif // SCOP_VULKAN_VULKANTEXTUREMANAGER_HPP
