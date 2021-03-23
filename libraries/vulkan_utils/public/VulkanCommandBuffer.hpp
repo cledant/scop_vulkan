@@ -9,5 +9,8 @@ void endSingleTimeCommands(VkDevice device,
                            VkCommandPool command_pool,
                            VkCommandBuffer command_buffer,
                            VkQueue gfx_queue);
+VkCommandPool createCommandPool(VkDevice device,
+                                uint32_t queueIndex,
+                                VkCommandPoolCreateFlags flags);
 
 #endif // SCOP_VULKAN_VULKANCOMMANDBUFFER_HPP

@@ -19,7 +19,7 @@ VulkanModelPipeline::init(VulkanInstance const &vkInstance,
     _instance_handler.setMaxInstanceNb(maxModelNb);
     _device = vkInstance.device;
     _physical_device = vkInstance.physicalDevice;
-    _cmd_pool = vkInstance.commandPool;
+    _cmd_pool = vkInstance.modelCommandPool;
     _gfx_queue = vkInstance.graphicQueue;
     _model = &model;
     _pipeline_render_pass.init(vkInstance, swapChain);

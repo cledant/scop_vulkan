@@ -203,14 +203,13 @@ VulkanRenderer::draw(glm::mat4 const &view_proj_mat)
     submit_info.pWaitDstStageMask = wait_stages;
     submit_info.signalSemaphoreCount = 1;
     submit_info.pSignalSemaphores = sig_sems;
-    /*    std::array<VkCommandBuffer, 2> cmd_buffers = {
-            _model_command_buffers[img_index], _ui_command_buffers[img_index]
-        };
-        submit_info.commandBufferCount = cmd_buffers.size();
-        submit_info.pCommandBuffers = cmd_buffers.data();
-    */
-    submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &_model_command_buffers[img_index];
+    auto &ui_cmd_buffer =
+      _ui.generateCommandBuffer(img_index, _swap_chain.swapChainExtent);
+    std::array<VkCommandBuffer, 2> cmd_buffers = {
+        _model_command_buffers[img_index], ui_cmd_buffer
+    };
+    submit_info.commandBufferCount = cmd_buffers.size();
+    submit_info.pCommandBuffers = cmd_buffers.data();
     vkResetFences(
       _vk_instance.device, 1, &_sync.inflightFence[_sync.currentFrame]);
     if (vkQueueSubmit(_vk_instance.graphicQueue,
@@ -249,14 +248,14 @@ VulkanRenderer::_create_model_command_buffers()
     VkCommandBufferAllocateInfo cb_allocate_info{};
     cb_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     cb_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    cb_allocate_info.commandPool = _vk_instance.commandPool;
+    cb_allocate_info.commandPool = _vk_instance.modelCommandPool;
     cb_allocate_info.commandBufferCount = _model_command_buffers.size();
 
     if (vkAllocateCommandBuffers(_vk_instance.device,
                                  &cb_allocate_info,
                                  _model_command_buffers.data()) != VK_SUCCESS) {
         throw std::runtime_error(
-          "VulkanRenderer: Failed to allocate command buffers");
+          "VulkanRenderer: Failed to allocate model command buffers");
     }
 
     size_t i = 0;
@@ -268,7 +267,7 @@ VulkanRenderer::_create_model_command_buffers()
         cb_begin_info.pInheritanceInfo = nullptr;
         if (vkBeginCommandBuffer(it, &cb_begin_info) != VK_SUCCESS) {
             throw std::runtime_error(
-              "VulkanRenderer: Failed to begin recording command buffer");
+              "VulkanRenderer: Failed to begin recording model command buffer");
         }
 
         // Begin render pass values
@@ -289,7 +288,7 @@ VulkanRenderer::_create_model_command_buffers()
         vkCmdEndRenderPass(it);
         if (vkEndCommandBuffer(it) != VK_SUCCESS) {
             throw std::runtime_error(
-              "VulkanRenderer: Failed to record command Buffer");
+              "VulkanRenderer: Failed to record model command Buffer");
         }
         ++i;
     }

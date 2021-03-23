@@ -52,7 +52,7 @@ Engine::run()
 {
     while (!_io_manager.shouldClose()) {
         _event_handler.processEvents(_io_manager.getEvents());
-        //_ui.drawUi();
+        _ui.drawUi();
         _vk_renderer.draw(_camera.getPerspectiveViewMatrix());
         _compute_fps();
     }

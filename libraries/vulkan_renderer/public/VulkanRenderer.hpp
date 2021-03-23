@@ -74,7 +74,6 @@ class VulkanRenderer final
 
     // Drawing related
     std::vector<VkCommandBuffer> _model_command_buffers;
-    std::vector<VkCommandBuffer> _ui_command_buffers;
 
     // Draw related fct
     inline void _create_model_command_buffers();

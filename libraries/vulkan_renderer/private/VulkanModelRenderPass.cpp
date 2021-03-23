@@ -12,7 +12,7 @@ VulkanModelRenderPass::init(VulkanInstance const &vkInstance,
 {
     _device = vkInstance.device;
     _physical_device = vkInstance.physicalDevice;
-    _command_pool = vkInstance.commandPool;
+    _command_pool = vkInstance.modelCommandPool;
     _gfx_queue = vkInstance.graphicQueue;
     _create_render_pass(swapChain);
     _create_depth_resources(swapChain);
@@ -54,7 +54,7 @@ VulkanModelRenderPass::_create_render_pass(VulkanSwapChain const &swapChain)
     color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    color_attachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     VkAttachmentReference color_attachment_ref{};
     color_attachment_ref.attachment = 0;

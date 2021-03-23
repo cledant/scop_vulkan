@@ -35,13 +35,12 @@ class VulkanInstance final
     uint32_t graphicQueueIndex{};
     VkQueue presentQueue{};
     uint32_t presentQueueIndex{};
-    VkCommandPool commandPool{};
+    VkCommandPool modelCommandPool{};
 
   private:
     inline void _setup_vk_debug_msg();
     inline void _select_physical_device();
     inline void _create_present_and_graphic_queue();
-    inline void _create_command_pool();
 
     // Dbg related
     static inline bool _check_validation_layer_support();

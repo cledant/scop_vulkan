@@ -8,6 +8,7 @@
 
 #include "VulkanDebug.hpp"
 #include "VulkanPhysicalDevice.hpp"
+#include "VulkanCommandBuffer.hpp"
 
 VkInstance
 VulkanInstance::createInstance(std::string const &app_name,
@@ -63,13 +64,13 @@ VulkanInstance::init(VkSurfaceKHR windowSurface)
     _setup_vk_debug_msg();
     _select_physical_device();
     _create_present_and_graphic_queue();
-    _create_command_pool();
+    modelCommandPool = createCommandPool(device, graphicQueueIndex, 0);
 }
 
 void
 VulkanInstance::clear()
 {
-    vkDestroyCommandPool(device, commandPool, nullptr);
+    vkDestroyCommandPool(device, modelCommandPool, nullptr);
     vkDestroyDevice(device, nullptr);
     if constexpr (ENABLE_VALIDATION_LAYER) {
         destroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
@@ -83,7 +84,7 @@ VulkanInstance::clear()
     device = nullptr;
     graphicQueue = nullptr;
     presentQueue = nullptr;
-    commandPool = nullptr;
+    modelCommandPool = nullptr;
 }
 
 void
@@ -166,24 +167,6 @@ VulkanInstance::_create_present_and_graphic_queue()
     vkGetDeviceQueue(device, dfr.present_queue_index.value(), 0, &presentQueue);
     graphicQueueIndex = dfr.graphic_queue_index.value();
     presentQueueIndex = dfr.present_queue_index.value();
-}
-
-void
-VulkanInstance::_create_command_pool()
-{
-    DeviceRequirement dr{};
-    getDeviceQueues(physicalDevice, surface, dr);
-
-    VkCommandPoolCreateInfo command_pool_info{};
-    command_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    command_pool_info.queueFamilyIndex = dr.graphic_queue_index.value();
-    command_pool_info.flags = 0;
-
-    if (vkCreateCommandPool(
-          device, &command_pool_info, nullptr, &commandPool) != VK_SUCCESS) {
-        throw std::runtime_error(
-          "VulkanInstance: Failed to create command pool");
-    }
 }
 
 // Dbg related

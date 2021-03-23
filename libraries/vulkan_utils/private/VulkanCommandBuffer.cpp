@@ -1,5 +1,7 @@
 #include "VulkanCommandBuffer.hpp"
 
+#include <stdexcept>
+
 VkCommandBuffer
 beginSingleTimeCommands(VkDevice device, VkCommandPool command_pool)
 {
@@ -38,4 +40,22 @@ endSingleTimeCommands(VkDevice device,
     vkQueueWaitIdle(gfx_queue);
 
     vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
+}
+
+VkCommandPool
+createCommandPool(VkDevice device,
+                  uint32_t queueIndex,
+                  VkCommandPoolCreateFlags flags)
+{
+    VkCommandPoolCreateInfo command_pool_info{};
+    command_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    command_pool_info.queueFamilyIndex = queueIndex;
+    command_pool_info.flags = flags;
+
+    VkCommandPool cmd_pool{};
+    if (vkCreateCommandPool(device, &command_pool_info, nullptr, &cmd_pool) !=
+        VK_SUCCESS) {
+        throw std::runtime_error("Vulkan: Failed to create command pool");
+    }
+    return (cmd_pool);
 }

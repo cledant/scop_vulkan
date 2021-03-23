@@ -11,6 +11,7 @@ add_library(vulkan_renderer STATIC
         private/VulkanModelPipeline.cpp
         private/VulkanModelPipelineData.cpp
         private/VulkanModelRenderPass.cpp
+        private/VulkanUiRenderPass.cpp
         private/VulkanUi.cpp)
 target_include_directories(vulkan_renderer
         PUBLIC
