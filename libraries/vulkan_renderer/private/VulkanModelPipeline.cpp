@@ -10,7 +10,7 @@
 
 void
 VulkanModelPipeline::init(VulkanInstance const &vkInstance,
-                          VulkanRenderPass const &renderPass,
+                          VulkanSwapChain const &swapChain,
                           Model const &model,
                           VulkanTextureManager &texManager,
                           VkBuffer systemUbo,
@@ -22,20 +22,19 @@ VulkanModelPipeline::init(VulkanInstance const &vkInstance,
     _cmd_pool = vkInstance.commandPool;
     _gfx_queue = vkInstance.graphicQueue;
     _model = &model;
+    _pipeline_render_pass.init(vkInstance, swapChain);
     _create_descriptor_layout();
     _create_pipeline_layout();
-    _create_gfx_pipeline(renderPass);
+    _create_gfx_pipeline(swapChain);
     auto mesh_list = model.getMeshList();
-    _pipeline_model = _create_pipeline_model(model,
-                                             model.getDirectory(),
-                                             texManager,
-                                             renderPass.currentSwapChainNbImg);
-    _create_descriptor_pool(renderPass, _pipeline_model);
-    _create_descriptor_sets(renderPass, _pipeline_model, systemUbo);
+    _pipeline_model = _create_pipeline_model(
+      model, model.getDirectory(), texManager, swapChain.currentSwapChainNbImg);
+    _create_descriptor_pool(swapChain, _pipeline_model);
+    _create_descriptor_sets(swapChain, _pipeline_model, systemUbo);
 }
 
 void
-VulkanModelPipeline::resize(VulkanRenderPass const &renderPass,
+VulkanModelPipeline::resize(VulkanSwapChain const &swapChain,
                             VulkanTextureManager &texManager,
                             VkBuffer systemUbo)
 {
@@ -43,18 +42,19 @@ VulkanModelPipeline::resize(VulkanRenderPass const &renderPass,
 
     vkDestroyPipeline(_device, _graphic_pipeline, nullptr);
     vkDestroyPipelineLayout(_device, _pipeline_layout, nullptr);
+    _pipeline_render_pass.resize(swapChain);
 
     _create_pipeline_layout();
-    _create_gfx_pipeline(renderPass);
+    _create_gfx_pipeline(swapChain);
     vkDestroyBuffer(_device, _pipeline_model.buffer, nullptr);
     vkFreeMemory(_device, _pipeline_model.memory, nullptr);
     vkDestroyDescriptorPool(_device, _pipeline_model.descriptorPool, nullptr);
     _pipeline_model = _create_pipeline_model(*_model,
                                              _model->getDirectory(),
                                              texManager,
-                                             renderPass.currentSwapChainNbImg);
-    _create_descriptor_pool(renderPass, _pipeline_model);
-    _create_descriptor_sets(renderPass, _pipeline_model, systemUbo);
+                                             swapChain.currentSwapChainNbImg);
+    _create_descriptor_pool(swapChain, _pipeline_model);
+    _create_descriptor_sets(swapChain, _pipeline_model, systemUbo);
 
     auto updater = [&](uint32_t index,
                        ModelInstanceInfo const &inst_info) -> void {
@@ -68,6 +68,7 @@ VulkanModelPipeline::clear()
 {
     vkDestroyPipeline(_device, _graphic_pipeline, nullptr);
     vkDestroyPipelineLayout(_device, _pipeline_layout, nullptr);
+    _pipeline_render_pass.clear();
     vkDestroyDescriptorSetLayout(_device, _descriptor_set_layout, nullptr);
     vkDestroyBuffer(_device, _pipeline_model.buffer, nullptr);
     vkFreeMemory(_device, _pipeline_model.memory, nullptr);
@@ -113,6 +114,12 @@ VulkanModelPipeline::getInstance(uint32_t instanceIndex,
                                  ModelInstanceInfo &info)
 {
     return (_instance_handler.getInstance(instanceIndex, info));
+}
+
+VulkanModelRenderPass const &
+VulkanModelPipeline::getVulkanModelRenderPass() const
+{
+    return (_pipeline_render_pass);
 }
 
 void
@@ -214,7 +221,7 @@ VulkanModelPipeline::_create_pipeline_layout()
 }
 
 void
-VulkanModelPipeline::_create_gfx_pipeline(VulkanRenderPass const &renderPass)
+VulkanModelPipeline::_create_gfx_pipeline(VulkanSwapChain const &swapChain)
 {
     // Shaders
     auto vert_shader =
@@ -265,15 +272,15 @@ VulkanModelPipeline::_create_gfx_pipeline(VulkanRenderPass const &renderPass)
     // Viewport
     VkViewport viewport{};
     viewport.x = 0.0f;
-    viewport.y = static_cast<float>(renderPass.swapChainExtent.height);
-    viewport.height = -static_cast<float>(renderPass.swapChainExtent.height);
-    viewport.width = renderPass.swapChainExtent.width;
+    viewport.y = static_cast<float>(swapChain.swapChainExtent.height);
+    viewport.height = -static_cast<float>(swapChain.swapChainExtent.height);
+    viewport.width = swapChain.swapChainExtent.width;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
     VkRect2D scissor{};
     scissor.offset = { 0, 0 };
-    scissor.extent = renderPass.swapChainExtent;
+    scissor.extent = swapChain.swapChainExtent;
 
     VkPipelineViewportStateCreateInfo viewport_state_info{};
     viewport_state_info.sType =
@@ -362,7 +369,7 @@ VulkanModelPipeline::_create_gfx_pipeline(VulkanRenderPass const &renderPass)
     gfx_pipeline_info.pColorBlendState = &color_blending_info;
     gfx_pipeline_info.pDynamicState = nullptr;
     gfx_pipeline_info.layout = _pipeline_layout;
-    gfx_pipeline_info.renderPass = renderPass.renderPass;
+    gfx_pipeline_info.renderPass = _pipeline_render_pass.renderPass;
     gfx_pipeline_info.subpass = 0;
     gfx_pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
     gfx_pipeline_info.basePipelineIndex = -1;
@@ -504,28 +511,28 @@ VulkanModelPipeline::_create_pipeline_model(
 
 void
 VulkanModelPipeline::_create_descriptor_pool(
-  VulkanRenderPass const &renderPass,
+  VulkanSwapChain const &swapChain,
   VulkanModelPipelineData &pipelineData)
 {
     std::array<VkDescriptorPoolSize, 3> pool_size{};
     // System Ubo
     pool_size[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     pool_size[0].descriptorCount =
-      renderPass.currentSwapChainNbImg * pipelineData.nbMaterials;
+      swapChain.currentSwapChainNbImg * pipelineData.nbMaterials;
     // Material Ubo
     pool_size[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     pool_size[1].descriptorCount =
-      renderPass.currentSwapChainNbImg * pipelineData.nbMaterials;
+      swapChain.currentSwapChainNbImg * pipelineData.nbMaterials;
     pool_size[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     pool_size[2].descriptorCount =
-      renderPass.currentSwapChainNbImg * pipelineData.nbMaterials;
+      swapChain.currentSwapChainNbImg * pipelineData.nbMaterials;
 
     VkDescriptorPoolCreateInfo pool_info{};
     pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     pool_info.poolSizeCount = pool_size.size();
     pool_info.pPoolSizes = pool_size.data();
     pool_info.maxSets =
-      renderPass.currentSwapChainNbImg * pipelineData.nbMaterials;
+      swapChain.currentSwapChainNbImg * pipelineData.nbMaterials;
 
     if (vkCreateDescriptorPool(
           _device, &pool_info, nullptr, &pipelineData.descriptorPool) !=
@@ -537,22 +544,22 @@ VulkanModelPipeline::_create_descriptor_pool(
 
 void
 VulkanModelPipeline::_create_descriptor_sets(
-  VulkanRenderPass const &renderPass,
+  VulkanSwapChain const &swapChain,
   VulkanModelPipelineData &pipelineData,
   VkBuffer systemUbo)
 {
-    std::vector<VkDescriptorSetLayout> layouts(
-      renderPass.currentSwapChainNbImg * pipelineData.nbMaterials,
-      _descriptor_set_layout);
+    std::vector<VkDescriptorSetLayout> layouts(swapChain.currentSwapChainNbImg *
+                                                 pipelineData.nbMaterials,
+                                               _descriptor_set_layout);
 
     VkDescriptorSetAllocateInfo alloc_info{};
     alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     alloc_info.descriptorPool = pipelineData.descriptorPool;
     alloc_info.descriptorSetCount =
-      renderPass.currentSwapChainNbImg * pipelineData.nbMaterials;
+      swapChain.currentSwapChainNbImg * pipelineData.nbMaterials;
     alloc_info.pSetLayouts = layouts.data();
 
-    pipelineData.descriptorSets.resize(renderPass.currentSwapChainNbImg *
+    pipelineData.descriptorSets.resize(swapChain.currentSwapChainNbImg *
                                        pipelineData.nbMaterials);
     if (vkAllocateDescriptorSets(
           _device, &alloc_info, pipelineData.descriptorSets.data()) !=
@@ -562,7 +569,7 @@ VulkanModelPipeline::_create_descriptor_sets(
     }
 
     for (size_t j = 0; j < pipelineData.nbMaterials; ++j) {
-        for (size_t i = 0; i < renderPass.currentSwapChainNbImg; ++i) {
+        for (size_t i = 0; i < swapChain.currentSwapChainNbImg; ++i) {
             std::array<VkWriteDescriptorSet, 3> descriptor_write{};
 
             // System UBO

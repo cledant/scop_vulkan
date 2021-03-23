@@ -164,6 +164,8 @@ VulkanInstance::_create_present_and_graphic_queue()
     }
     vkGetDeviceQueue(device, dfr.graphic_queue_index.value(), 0, &graphicQueue);
     vkGetDeviceQueue(device, dfr.present_queue_index.value(), 0, &presentQueue);
+    graphicQueueIndex = dfr.graphic_queue_index.value();
+    presentQueueIndex = dfr.present_queue_index.value();
 }
 
 void

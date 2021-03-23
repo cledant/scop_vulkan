@@ -6,7 +6,7 @@
 #include <cstring>
 
 #include "VulkanDebug.hpp"
-#include "VulkanSwapChain.hpp"
+#include "VulkanSwapChainUtils.hpp"
 #include "VulkanCommandBuffer.hpp"
 #include "VulkanMemory.hpp"
 #include "VulkanUboStructs.hpp"
@@ -46,31 +46,37 @@ VulkanRenderer::init(VkSurfaceKHR surface, uint32_t win_w, uint32_t win_h)
 
     _vk_instance.init(surface);
     _tex_manager.init(_vk_instance);
-    _render_pass.init(_vk_instance, win_w, win_h);
-    _sync.init(_vk_instance, _render_pass.swapChainFramebuffers.size());
+    _swap_chain.init(_vk_instance, win_w, win_h);
+    _sync.init(_vk_instance, _swap_chain.swapChainImageViews.size());
     _create_system_uniform_buffer();
+    _ui.init(_vk_instance, _swap_chain);
 }
 
 void
 VulkanRenderer::resize(uint32_t win_w, uint32_t win_h)
 {
+    if (win_w <= 0 || win_h <= 0) {
+        return;
+    }
     vkDeviceWaitIdle(_vk_instance.device);
 
-    _render_pass.resize(win_w, win_h);
-    _sync.resize(_render_pass.currentSwapChainNbImg);
+    _swap_chain.resize(win_w, win_h);
+    _sync.resize(_swap_chain.currentSwapChainNbImg);
     vkDestroyBuffer(_vk_instance.device, _system_uniform, nullptr);
     vkFreeMemory(_vk_instance.device, _system_uniform_memory, nullptr);
     _create_system_uniform_buffer();
-    _model_pipeline.resize(_render_pass, _tex_manager, _system_uniform);
-    _create_command_buffers();
+    _model_pipeline.resize(_swap_chain, _tex_manager, _system_uniform);
+    _create_model_command_buffers();
+    _ui.resize(_swap_chain);
 }
 
 void
 VulkanRenderer::clear()
 {
+    _ui.clear();
     _model_pipeline.clear();
     _sync.clear();
-    _render_pass.clear();
+    _swap_chain.clear();
     _tex_manager.clear();
     vkDestroyBuffer(_vk_instance.device, _system_uniform, nullptr);
     vkFreeMemory(_vk_instance.device, _system_uniform_memory, nullptr);
@@ -106,21 +112,21 @@ void
 VulkanRenderer::loadModel(Model const &model)
 {
     _model_pipeline.init(_vk_instance,
-                         _render_pass,
+                         _swap_chain,
                          model,
                          _tex_manager,
                          _system_uniform,
                          MAX_MODEL_INSTANCE);
 
     // Drawing related
-    _create_command_buffers();
+    _create_model_command_buffers();
 }
 
 uint32_t
 VulkanRenderer::addModelInstance(ModelInstanceInfo const &info)
 {
     auto index = _model_pipeline.addInstance(info);
-    _create_command_buffers();
+    _create_model_command_buffers();
     return (index);
 }
 
@@ -128,7 +134,7 @@ bool
 VulkanRenderer::removeModelInstance(uint32_t index)
 {
     auto ret = _model_pipeline.removeInstance(index);
-    _create_command_buffers();
+    _create_model_command_buffers();
     return (ret);
 }
 bool
@@ -157,7 +163,7 @@ VulkanRenderer::draw(glm::mat4 const &view_proj_mat)
     uint32_t img_index;
     auto result =
       vkAcquireNextImageKHR(_vk_instance.device,
-                            _render_pass.swapChain,
+                            _swap_chain.swapChain,
                             UINT64_MAX,
                             _sync.imageAvailableSem[_sync.currentFrame],
                             VK_NULL_HANDLE,
@@ -195,11 +201,16 @@ VulkanRenderer::draw(glm::mat4 const &view_proj_mat)
     submit_info.waitSemaphoreCount = 1;
     submit_info.pWaitSemaphores = wait_sems;
     submit_info.pWaitDstStageMask = wait_stages;
-    submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &_command_buffers[img_index];
     submit_info.signalSemaphoreCount = 1;
     submit_info.pSignalSemaphores = sig_sems;
-
+    /*    std::array<VkCommandBuffer, 2> cmd_buffers = {
+            _model_command_buffers[img_index], _ui_command_buffers[img_index]
+        };
+        submit_info.commandBufferCount = cmd_buffers.size();
+        submit_info.pCommandBuffers = cmd_buffers.data();
+    */
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &_model_command_buffers[img_index];
     vkResetFences(
       _vk_instance.device, 1, &_sync.inflightFence[_sync.currentFrame]);
     if (vkQueueSubmit(_vk_instance.graphicQueue,
@@ -210,7 +221,7 @@ VulkanRenderer::draw(glm::mat4 const &view_proj_mat)
           "VulkanRenderer: Failed to submit draw command buffer");
     }
 
-    VkSwapchainKHR swap_chains[] = { _render_pass.swapChain };
+    VkSwapchainKHR swap_chains[] = { _swap_chain.swapChain };
     VkPresentInfoKHR present_info{};
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     present_info.waitSemaphoreCount = 1;
@@ -231,25 +242,26 @@ VulkanRenderer::deviceWaitIdle() const
 }
 
 void
-VulkanRenderer::_create_command_buffers()
+VulkanRenderer::_create_model_command_buffers()
 {
-    _command_buffers.resize(_render_pass.swapChainFramebuffers.size());
+    _model_command_buffers.resize(_swap_chain.swapChainImageViews.size());
 
     VkCommandBufferAllocateInfo cb_allocate_info{};
     cb_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     cb_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     cb_allocate_info.commandPool = _vk_instance.commandPool;
-    cb_allocate_info.commandBufferCount = _command_buffers.size();
+    cb_allocate_info.commandBufferCount = _model_command_buffers.size();
 
     if (vkAllocateCommandBuffers(_vk_instance.device,
                                  &cb_allocate_info,
-                                 _command_buffers.data()) != VK_SUCCESS) {
+                                 _model_command_buffers.data()) != VK_SUCCESS) {
         throw std::runtime_error(
           "VulkanRenderer: Failed to allocate command buffers");
     }
 
     size_t i = 0;
-    for (auto &it : _command_buffers) {
+    auto const &model_render_pass = _model_pipeline.getVulkanModelRenderPass();
+    for (auto &it : _model_command_buffers) {
         VkCommandBufferBeginInfo cb_begin_info{};
         cb_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         cb_begin_info.flags = 0;
@@ -265,10 +277,10 @@ VulkanRenderer::_create_command_buffers()
         clear_vals[1].depthStencil = { 1.0f, 0 };
         VkRenderPassBeginInfo rp_begin_info{};
         rp_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        rp_begin_info.renderPass = _render_pass.renderPass;
-        rp_begin_info.framebuffer = _render_pass.swapChainFramebuffers[i];
+        rp_begin_info.renderPass = model_render_pass.renderPass;
+        rp_begin_info.framebuffer = model_render_pass.swapChainFramebuffers[i];
         rp_begin_info.renderArea.offset = { 0, 0 };
-        rp_begin_info.renderArea.extent = _render_pass.swapChainExtent;
+        rp_begin_info.renderArea.extent = _swap_chain.swapChainExtent;
         rp_begin_info.clearValueCount = clear_vals.size();
         rp_begin_info.pClearValues = clear_vals.data();
 
@@ -288,7 +300,7 @@ VulkanRenderer::_create_system_uniform_buffer()
 {
     createBuffer(_vk_instance.device,
                  _system_uniform,
-                 sizeof(SystemUbo) * _render_pass.currentSwapChainNbImg,
+                 sizeof(SystemUbo) * _swap_chain.currentSwapChainNbImg,
                  VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
     allocateBuffer(_vk_instance.physicalDevice,
                    _vk_instance.device,

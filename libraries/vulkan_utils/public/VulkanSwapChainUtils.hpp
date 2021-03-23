@@ -1,5 +1,5 @@
-#ifndef SCOP_VULKAN_VULKANSWAPCHAIN_HPP
-#define SCOP_VULKAN_VULKANSWAPCHAIN_HPP
+#ifndef SCOP_VULKAN_VULKANSWAPCHAINUTILS_HPP
+#define SCOP_VULKAN_VULKANSWAPCHAINUTILS_HPP
 
 #include <vector>
 #include <optional>
@@ -36,4 +36,4 @@ std::optional<VkPresentModeKHR> getSwapChainPresentMode(
 VkExtent2D getSwapChainExtent(VkSurfaceCapabilitiesKHR const &capabilities,
                               VkExtent2D actual_extent);
 
-#endif // SCOP_VULKAN_VULKANSWAPCHAIN_HPP
+#endif // SCOP_VULKAN_VULKANSWAPCHAINUTILS_HPP

@@ -10,11 +10,13 @@
 
 #include "Model.hpp"
 #include "VulkanInstance.hpp"
-#include "VulkanRenderPass.hpp"
+#include "VulkanSwapChain.hpp"
+#include "VulkanModelRenderPass.hpp"
 #include "VulkanTextureManager.hpp"
 #include "IndexedBuffer.hpp"
 #include "ModelInstanceInfo.hpp"
 #include "VulkanModelPipelineData.hpp"
+#include "VulkanModelRenderPass.hpp"
 
 class VulkanModelPipeline final
 {
@@ -27,12 +29,12 @@ class VulkanModelPipeline final
     VulkanModelPipeline &operator=(VulkanModelPipeline &&rhs) = delete;
 
     void init(VulkanInstance const &vkInstance,
-              VulkanRenderPass const &renderPass,
+              VulkanSwapChain const &swapChain,
               Model const &model,
               VulkanTextureManager &texManager,
               VkBuffer systemUbo,
               uint32_t maxModelNb);
-    void resize(VulkanRenderPass const &renderPass,
+    void resize(VulkanSwapChain const &swapChain,
                 VulkanTextureManager &texManager,
                 VkBuffer systemUbo);
     void clear();
@@ -41,6 +43,7 @@ class VulkanModelPipeline final
     bool removeInstance(uint32_t instanceIndex);
     bool updateInstance(uint32_t instanceIndex, ModelInstanceInfo const &info);
     bool getInstance(uint32_t instanceIndex, ModelInstanceInfo &info);
+    VulkanModelRenderPass const &getVulkanModelRenderPass() const;
 
     void generateCommands(VkCommandBuffer cmdBuffer, size_t descriptorSetIndex);
 
@@ -57,21 +60,22 @@ class VulkanModelPipeline final
     VkPipelineLayout _pipeline_layout{};
     VkPipeline _graphic_pipeline{};
     VulkanModelPipelineData _pipeline_model;
+    VulkanModelRenderPass _pipeline_render_pass;
 
     // Instance related
     IndexedBuffer<ModelInstanceInfo> _instance_handler;
 
     inline void _create_descriptor_layout();
     inline void _create_pipeline_layout();
-    inline void _create_gfx_pipeline(VulkanRenderPass const &renderPass);
+    inline void _create_gfx_pipeline(VulkanSwapChain const &swapChain);
     inline VulkanModelPipelineData _create_pipeline_model(
       Model const &model,
       std::string const &modelFolder,
       VulkanTextureManager &textureManager,
       uint32_t currentSwapChainNbImg);
-    inline void _create_descriptor_pool(VulkanRenderPass const &renderPass,
+    inline void _create_descriptor_pool(VulkanSwapChain const &swapChain,
                                         VulkanModelPipelineData &pipelineData);
-    inline void _create_descriptor_sets(VulkanRenderPass const &renderPass,
+    inline void _create_descriptor_sets(VulkanSwapChain const &swapChain,
                                         VulkanModelPipelineData &pipelineData,
                                         VkBuffer systemUbo);
     inline void _set_instance_matrix_on_gpu(uint32_t bufferIndex,

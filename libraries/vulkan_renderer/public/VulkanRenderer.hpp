@@ -10,9 +10,10 @@
 
 #include "VulkanInstance.hpp"
 #include "VulkanTextureManager.hpp"
-#include "VulkanRenderPass.hpp"
+#include "VulkanSwapChain.hpp"
 #include "VulkanSync.hpp"
 #include "VulkanModelPipeline.hpp"
+#include "VulkanUi.hpp"
 #include "IndexedBuffer.hpp"
 
 class VulkanRenderer final
@@ -62,19 +63,21 @@ class VulkanRenderer final
 
     VulkanInstance _vk_instance;
     VulkanTextureManager _tex_manager;
-    VulkanRenderPass _render_pass;
+    VulkanSwapChain _swap_chain;
     VulkanSync _sync;
     VulkanModelPipeline _model_pipeline;
+    VulkanUi _ui;
 
     // Renderer global uniform
     VkBuffer _system_uniform{};
     VkDeviceMemory _system_uniform_memory{};
 
     // Drawing related
-    std::vector<VkCommandBuffer> _command_buffers;
+    std::vector<VkCommandBuffer> _model_command_buffers;
+    std::vector<VkCommandBuffer> _ui_command_buffers;
 
     // Draw related fct
-    inline void _create_command_buffers();
+    inline void _create_model_command_buffers();
 
     // Renderer global uniform related fct
     inline void _create_system_uniform_buffer();

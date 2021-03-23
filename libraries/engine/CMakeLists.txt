@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.17)
 project(lib_engine)
 
 add_library(engine STATIC
@@ -10,8 +10,8 @@ target_include_directories(engine
         ${CMAKE_CURRENT_SOURCE_DIR}/public
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/private)
-add_dependencies(engine iomanager model)
-target_link_libraries(engine PUBLIC iomanager model)
+add_dependencies(engine iomanager model ui)
+target_link_libraries(engine PUBLIC iomanager model ui)
 set_target_properties(engine PROPERTIES
         CXX_STANDARD 20
         CXX_STANDARD_REQUIRED YES

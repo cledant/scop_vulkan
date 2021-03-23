@@ -29,6 +29,7 @@ class IOManager final
 
     // Window related
     void createWindow(IOManagerWindowCreationOption &&opts);
+    [[nodiscard]] GLFWwindow *getWindow() const;
     void deleteWindow();
     [[nodiscard]] bool wasResized();
     void toggleFullscreen();

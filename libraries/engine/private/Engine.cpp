@@ -20,6 +20,7 @@ Engine::init(EngineOptions const &opts)
     _model.printModel();
 #endif
     _io_manager.createWindow(std::move(win_opts));
+    _ui.init(_io_manager.getWindow());
     _vk_renderer.createInstance(std::move(cpy_app_name),
                                 cpy_app_name + "_engine",
                                 VK_MAKE_VERSION(1, 0, 0),
@@ -51,11 +52,13 @@ Engine::run()
 {
     while (!_io_manager.shouldClose()) {
         _event_handler.processEvents(_io_manager.getEvents());
+        //_ui.drawUi();
         _vk_renderer.draw(_camera.getPerspectiveViewMatrix());
         _compute_fps();
     }
     _vk_renderer.deviceWaitIdle();
     _vk_renderer.clear();
+    _ui.clear();
     _io_manager.deleteWindow();
 }
 

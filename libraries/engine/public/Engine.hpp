@@ -8,6 +8,7 @@
 #include "Perspective.hpp"
 #include "VulkanRenderer.hpp"
 #include "Model.hpp"
+#include "Ui.hpp"
 
 class Engine final
 {
@@ -38,6 +39,7 @@ class Engine final
     EventHandler _event_handler;
     Perspective _perspective_data{};
     Model _model;
+    Ui _ui;
 
     // Fps related
     uint64_t _nb_frame{};

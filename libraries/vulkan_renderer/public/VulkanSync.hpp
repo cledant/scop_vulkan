@@ -6,7 +6,7 @@
 #include <vulkan/vulkan.h>
 
 #include "VulkanInstance.hpp"
-#include <VulkanRenderPass.hpp>
+#include <VulkanSwapChain.hpp>
 
 class VulkanSync
 {

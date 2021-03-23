@@ -32,7 +32,9 @@ class VulkanInstance final
     VkDevice device{};
     char deviceName[VK_MAX_PHYSICAL_DEVICE_NAME_SIZE]{};
     VkQueue graphicQueue{};
+    uint32_t graphicQueueIndex{};
     VkQueue presentQueue{};
+    uint32_t presentQueueIndex{};
     VkCommandPool commandPool{};
 
   private:

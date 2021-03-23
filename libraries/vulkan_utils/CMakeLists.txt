@@ -1,9 +1,9 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.17)
 project(lib_vulkan_utils)
 
 add_library(vulkan_utils STATIC
         private/VulkanPhysicalDevice.cpp
-        private/VulkanSwapChain.cpp
+        private/VulkanSwapChainUtils.cpp
         private/VulkanShader.cpp
         private/VulkanImage.cpp
         private/VulkanMemory.cpp

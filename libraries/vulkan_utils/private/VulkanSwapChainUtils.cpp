@@ -1,4 +1,4 @@
-#include "VulkanSwapChain.hpp"
+#include "VulkanSwapChainUtils.hpp"
 
 SwapChainSupport
 getSwapChainSupport(VkPhysicalDevice device,

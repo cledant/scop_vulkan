@@ -6,14 +6,14 @@
 #include <set>
 #include <string>
 
-#include "VulkanSwapChain.hpp"
+#include "VulkanSwapChainUtils.hpp"
 
 bool
 DeviceRequirement::isValid() const
 {
     return (graphic_queue_index.has_value() &&
-            present_queue_index.has_value() && geometry_shader &&
-            sampler_aniso && all_extension_supported);
+            present_queue_index.has_value() && sampler_aniso &&
+            all_extension_supported);
 }
 
 VkPhysicalDevice

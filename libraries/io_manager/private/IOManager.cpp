@@ -47,6 +47,12 @@ IOManager::createWindow(IOManagerWindowCreationOption &&opts)
     }
 }
 
+GLFWwindow *
+IOManager::getWindow() const
+{
+    return (_win);
+}
+
 void
 IOManager::deleteWindow()
 {

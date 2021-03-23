@@ -77,6 +77,25 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/assimp ${CMAKE_BINARY_DIR}
 #Setup fmt
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/fmt ${CMAKE_BINARY_DIR}/external/fmt/build)
 
+#Setup imgui
+set(IMGUI_FOLDER ${CMAKE_SOURCE_DIR}/external/imgui)
+add_library(imgui_glfw_vulkan STATIC
+        ${IMGUI_FOLDER}/backends/imgui_impl_glfw.cpp
+        ${IMGUI_FOLDER}/backends/imgui_impl_vulkan.cpp
+        ${IMGUI_FOLDER}/imgui.cpp
+        ${IMGUI_FOLDER}/imgui_draw.cpp
+        ${IMGUI_FOLDER}/imgui_demo.cpp
+        ${IMGUI_FOLDER}/imgui_tables.cpp
+        ${IMGUI_FOLDER}/imgui_widgets.cpp)
+target_include_directories(imgui_glfw_vulkan
+        PUBLIC
+        ${IMGUI_FOLDER}
+        ${IMGUI_FOLDER}/backend)
+add_dependencies(imgui_glfw_vulkan
+        glfw)
+target_link_libraries(imgui_glfw_vulkan
+        glfw)
+
 #Project libs
 add_subdirectory(libraries/io_manager)
 add_subdirectory(libraries/engine)
@@ -84,6 +103,7 @@ add_subdirectory(libraries/vulkan_utils)
 add_subdirectory(libraries/vulkan_renderer)
 add_subdirectory(libraries/model)
 add_subdirectory(libraries/indexed_buffer)
+add_subdirectory(libraries/ui)
 
 #Shaders
 add_subdirectory(shaders/model)
@@ -96,7 +116,7 @@ target_include_directories(scop
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/binary/private)
 target_link_libraries(scop iomanager engine vulkan)
-add_dependencies(scop iomanager engine model_shader)
+add_dependencies(scop iomanager engine model_shader ui)
 set_target_properties(scop PROPERTIES
         CXX_STANDARD 20
         CXX_STANDARD_REQUIRED YES
