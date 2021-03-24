@@ -38,7 +38,7 @@ class VulkanUi final
 
     VulkanUiRenderPass _render_pass;
     VkDescriptorPool _descriptorPool{};
-    std::vector<VkCommandPool> _ui_command_pools;
+    VkCommandPool _ui_command_pools;
     std::vector<VkCommandBuffer> _ui_command_buffers;
 
     inline void _init_imgui(VulkanSwapChain const &swapChain);

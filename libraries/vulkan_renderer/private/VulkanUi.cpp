@@ -16,12 +16,10 @@ VulkanUi::init(VulkanInstance const &vkInstance,
     _graphicQueueIndex = vkInstance.graphicQueueIndex;
     _render_pass.init(vkInstance, swapChain);
     _init_imgui(swapChain);
-    _ui_command_pools.resize(swapChain.currentSwapChainNbImg);
-    for (auto &it : _ui_command_pools) {
-        it = createCommandPool(_device,
-                               _graphicQueueIndex,
-                               VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-    }
+    _ui_command_pools =
+      createCommandPool(_device,
+                        _graphicQueueIndex,
+                        VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
     _create_ui_command_buffers(swapChain.currentSwapChainNbImg);
     _load_fonts();
 }
@@ -32,17 +30,13 @@ VulkanUi::resize(VulkanSwapChain const &swapChain)
     vkDeviceWaitIdle(_device);
     ImGui_ImplVulkan_Shutdown();
     _render_pass.resize(swapChain);
-    for (auto &it : _ui_command_pools) {
-        vkDestroyCommandPool(_device, it, nullptr);
-    }
+    vkDestroyCommandPool(_device, _ui_command_pools, nullptr);
     vkDestroyDescriptorPool(_device, _descriptorPool, nullptr);
     _init_imgui(swapChain);
-    _ui_command_pools.resize(swapChain.currentSwapChainNbImg);
-    for (auto &it : _ui_command_pools) {
-        it = createCommandPool(_device,
-                               _graphicQueueIndex,
-                               VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-    }
+    _ui_command_pools =
+      createCommandPool(_device,
+                        _graphicQueueIndex,
+                        VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
     _create_ui_command_buffers(swapChain.currentSwapChainNbImg);
     _load_fonts();
 }
@@ -53,9 +47,7 @@ VulkanUi::clear()
     vkDeviceWaitIdle(_device);
     ImGui_ImplVulkan_Shutdown();
     _render_pass.clear();
-    for (auto &it : _ui_command_pools) {
-        vkDestroyCommandPool(_device, it, nullptr);
-    }
+    vkDestroyCommandPool(_device, _ui_command_pools, nullptr);
     vkDestroyDescriptorPool(_device, _descriptorPool, nullptr);
     _instance = nullptr;
     _physicalDevice = nullptr;
@@ -67,10 +59,6 @@ VulkanUi::clear()
 VkCommandBuffer
 VulkanUi::generateCommandBuffer(uint32_t frameIndex, VkExtent2D swapChainExtent)
 {
-    if (vkResetCommandPool(_device, _ui_command_pools[frameIndex], 0) !=
-        VK_SUCCESS) {
-        throw std::runtime_error("VulkanUi: failed to reset command pool");
-    }
     VkCommandBufferBeginInfo cb_begin_info{};
     cb_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     cb_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -151,13 +139,10 @@ VulkanUi::_init_imgui(VulkanSwapChain const &swapChain)
 void
 VulkanUi::_load_fonts()
 {
-    if (vkResetCommandPool(_device, _ui_command_pools[0], 0) != VK_SUCCESS) {
-        throw std::runtime_error("VulkanUi: failed to reset command pool");
-    }
-    auto cmd_buffer = beginSingleTimeCommands(_device, _ui_command_pools[0]);
+    auto cmd_buffer = beginSingleTimeCommands(_device, _ui_command_pools);
     ImGui_ImplVulkan_CreateFontsTexture(cmd_buffer);
     endSingleTimeCommands(
-      _device, _ui_command_pools[0], cmd_buffer, _graphicQueue);
+      _device, _ui_command_pools, cmd_buffer, _graphicQueue);
     ImGui_ImplVulkan_DestroyFontUploadObjects();
 }
 
@@ -166,18 +151,16 @@ VulkanUi::_create_ui_command_buffers(uint32_t nbSwapChainFrames)
 {
     _ui_command_buffers.resize(nbSwapChainFrames);
 
-    for (uint32_t i = 0; i < nbSwapChainFrames; ++i) {
-        VkCommandBufferAllocateInfo cb_allocate_info{};
-        cb_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        cb_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        cb_allocate_info.commandPool = _ui_command_pools[i];
-        cb_allocate_info.commandBufferCount = 1;
+    VkCommandBufferAllocateInfo cb_allocate_info{};
+    cb_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    cb_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    cb_allocate_info.commandPool = _ui_command_pools;
+    cb_allocate_info.commandBufferCount = nbSwapChainFrames;
 
-        if (vkAllocateCommandBuffers(_device,
-                                     &cb_allocate_info,
-                                     &_ui_command_buffers[i]) != VK_SUCCESS) {
-            throw std::runtime_error(
-              "VulkanRenderer: Failed to allocate ui command buffers");
-        }
+    if (vkAllocateCommandBuffers(_device,
+                                 &cb_allocate_info,
+                                 _ui_command_buffers.data()) != VK_SUCCESS) {
+        throw std::runtime_error(
+          "VulkanRenderer: Failed to allocate ui command buffers");
     }
 }
