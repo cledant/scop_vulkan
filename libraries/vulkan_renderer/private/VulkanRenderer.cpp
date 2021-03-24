@@ -191,19 +191,23 @@ VulkanRenderer::draw(glm::mat4 const &view_proj_mat)
                             sizeof(glm::mat4),
                             &view_proj_mat);
 
-    VkSemaphore wait_sems[] = { _sync.imageAvailableSem[_sync.currentFrame] };
-    VkPipelineStageFlags wait_stages[] = {
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+    VkSemaphore wait_img_sems[] = {
+        _sync.imageAvailableSem[_sync.currentFrame],
     };
-    VkSemaphore sig_sems[] = { _sync.renderFinishedSem[_sync.currentFrame] };
+    VkPipelineStageFlags wait_stages[] = {
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+    };
+    VkSemaphore finish_sig_sems[] = {
+        _sync.renderFinishedSem[_sync.currentFrame],
+    };
     VkSubmitInfo submit_info{};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_info.waitSemaphoreCount = 1;
-    submit_info.pWaitSemaphores = wait_sems;
+    submit_info.pWaitSemaphores = wait_img_sems;
     submit_info.pWaitDstStageMask = wait_stages;
     submit_info.signalSemaphoreCount = 1;
-    submit_info.pSignalSemaphores = sig_sems;
-    auto &ui_cmd_buffer =
+    submit_info.pSignalSemaphores = finish_sig_sems;
+    auto ui_cmd_buffer =
       _ui.generateCommandBuffer(img_index, _swap_chain.swapChainExtent);
     std::array<VkCommandBuffer, 2> cmd_buffers = {
         _model_command_buffers[img_index], ui_cmd_buffer
@@ -224,7 +228,7 @@ VulkanRenderer::draw(glm::mat4 const &view_proj_mat)
     VkPresentInfoKHR present_info{};
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     present_info.waitSemaphoreCount = 1;
-    present_info.pWaitSemaphores = sig_sems;
+    present_info.pWaitSemaphores = finish_sig_sems;
     present_info.swapchainCount = 1;
     present_info.pSwapchains = swap_chains;
     present_info.pImageIndices = &img_index;
@@ -277,7 +281,7 @@ VulkanRenderer::_create_model_command_buffers()
         VkRenderPassBeginInfo rp_begin_info{};
         rp_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         rp_begin_info.renderPass = model_render_pass.renderPass;
-        rp_begin_info.framebuffer = model_render_pass.swapChainFramebuffers[i];
+        rp_begin_info.framebuffer = model_render_pass.framebuffers[i];
         rp_begin_info.renderArea.offset = { 0, 0 };
         rp_begin_info.renderArea.extent = _swap_chain.swapChainExtent;
         rp_begin_info.clearValueCount = clear_vals.size();

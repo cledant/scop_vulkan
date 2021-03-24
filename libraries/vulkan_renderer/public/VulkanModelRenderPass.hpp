@@ -23,7 +23,7 @@ class VulkanModelRenderPass final
     void resize(VulkanSwapChain const &swapChain);
     void clear();
 
-    std::vector<VkFramebuffer> swapChainFramebuffers;
+    std::vector<VkFramebuffer> framebuffers;
     VkFormat depthFormat{};
     VkImage depthImage{};
     VkDeviceMemory depthImgMemory{};

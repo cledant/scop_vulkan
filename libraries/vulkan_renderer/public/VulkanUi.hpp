@@ -26,8 +26,8 @@ class VulkanUi final
     void resize(VulkanSwapChain const &swapChain);
     void clear();
 
-    VkCommandBuffer &generateCommandBuffer(uint32_t frameIndex,
-                                           VkExtent2D swapChainExtent);
+    VkCommandBuffer generateCommandBuffer(uint32_t frameIndex,
+                                          VkExtent2D swapChainExtent);
 
   private:
     VkInstance _instance{};

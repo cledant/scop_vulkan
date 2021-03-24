@@ -26,7 +26,7 @@ void
 VulkanUiRenderPass::clear()
 {
     size_t i = 0;
-    for (auto &it : swapChainFramebuffers) {
+    for (auto &it : framebuffers) {
         vkDestroyFramebuffer(_device, it, nullptr);
         ++i;
     }
@@ -61,7 +61,7 @@ VulkanUiRenderPass::_create_render_pass(VulkanSwapChain const &swapChain)
     sub_dep.srcSubpass = VK_SUBPASS_EXTERNAL;
     sub_dep.dstSubpass = 0;
     sub_dep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    sub_dep.srcAccessMask = 0;
+    sub_dep.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     sub_dep.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     sub_dep.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
@@ -87,7 +87,7 @@ VulkanUiRenderPass::_create_render_pass(VulkanSwapChain const &swapChain)
 void
 VulkanUiRenderPass::_create_framebuffers(VulkanSwapChain const &swapChain)
 {
-    swapChainFramebuffers.resize(swapChain.swapChainImageViews.size());
+    framebuffers.resize(swapChain.swapChainImageViews.size());
 
     size_t i = 0;
     for (auto const &it : swapChain.swapChainImageViews) {
@@ -103,7 +103,7 @@ VulkanUiRenderPass::_create_framebuffers(VulkanSwapChain const &swapChain)
         framebuffer_info.layers = 1;
 
         if (vkCreateFramebuffer(
-              _device, &framebuffer_info, nullptr, &swapChainFramebuffers[i]) !=
+              _device, &framebuffer_info, nullptr, &framebuffers[i]) !=
             VK_SUCCESS) {
             throw std::runtime_error(
               "VulkanUiRenderPass: Failed to create framebuffer");

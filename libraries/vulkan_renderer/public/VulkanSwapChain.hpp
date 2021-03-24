@@ -17,9 +17,7 @@ class VulkanSwapChain final
     VulkanSwapChain(VulkanSwapChain &&src) = delete;
     VulkanSwapChain &operator=(VulkanSwapChain &&rhs) = delete;
 
-    void init(VulkanInstance const &vkInstance,
-                        uint32_t fb_w,
-                        uint32_t fb_h);
+    void init(VulkanInstance const &vkInstance, uint32_t fb_w, uint32_t fb_h);
     void resize(uint32_t fb_w, uint32_t fb_h);
     void clear();
 

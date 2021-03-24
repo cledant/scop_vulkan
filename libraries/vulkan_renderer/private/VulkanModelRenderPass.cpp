@@ -35,7 +35,7 @@ VulkanModelRenderPass::clear()
     vkDestroyImageView(_device, depthImgView, nullptr);
     vkDestroyImage(_device, depthImage, nullptr);
     vkFreeMemory(_device, depthImgMemory, nullptr);
-    for (auto &it : swapChainFramebuffers) {
+    for (auto &it : framebuffers) {
         vkDestroyFramebuffer(_device, it, nullptr);
         ++i;
     }
@@ -149,7 +149,7 @@ VulkanModelRenderPass::_create_depth_resources(VulkanSwapChain const &swapChain)
 void
 VulkanModelRenderPass::_create_framebuffers(VulkanSwapChain const &swapChain)
 {
-    swapChainFramebuffers.resize(swapChain.swapChainImageViews.size());
+    framebuffers.resize(swapChain.swapChainImageViews.size());
 
     size_t i = 0;
     for (auto const &it : swapChain.swapChainImageViews) {
@@ -165,7 +165,7 @@ VulkanModelRenderPass::_create_framebuffers(VulkanSwapChain const &swapChain)
         framebuffer_info.layers = 1;
 
         if (vkCreateFramebuffer(
-              _device, &framebuffer_info, nullptr, &swapChainFramebuffers[i]) !=
+              _device, &framebuffer_info, nullptr, &framebuffers[i]) !=
             VK_SUCCESS) {
             throw std::runtime_error(
               "VulkanModelRenderPass: Failed to create framebuffer");

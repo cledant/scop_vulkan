@@ -23,7 +23,7 @@ class VulkanUiRenderPass final
     void resize(VulkanSwapChain const &swapChain);
     void clear();
 
-    std::vector<VkFramebuffer> swapChainFramebuffers;
+    std::vector<VkFramebuffer> framebuffers;
     VkRenderPass renderPass{};
 
   private:
