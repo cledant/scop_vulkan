@@ -192,24 +192,24 @@ VulkanRenderer::draw(glm::mat4 const &view_proj_mat)
                             &view_proj_mat);
 
     // Send Model rendering
-    VkSemaphore wait_img_sems[] = {
+    VkSemaphore wait_model_sems[] = {
         _sync.imageAvailableSem[_sync.currentFrame],
-    };
-    VkSemaphore finish_model_sig_sems[] = {
-        _sync.modelRenderFinishedSem[_sync.currentFrame],
     };
     VkPipelineStageFlags model_wait_stages[] = {
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
     };
+    VkSemaphore finish_model_sig_sems[] = {
+        _sync.modelRenderFinishedSem[_sync.currentFrame],
+    };
     VkSubmitInfo submit_info{};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.waitSemaphoreCount = 1;
-    submit_info.pWaitSemaphores = wait_img_sems;
+    submit_info.pWaitSemaphores = wait_model_sems;
     submit_info.pWaitDstStageMask = model_wait_stages;
-    submit_info.signalSemaphoreCount = 1;
+    submit_info.waitSemaphoreCount = 1;
     submit_info.pSignalSemaphores = finish_model_sig_sems;
-    submit_info.commandBufferCount = 1;
+    submit_info.signalSemaphoreCount = 1;
     submit_info.pCommandBuffers = &_model_command_buffers[img_index];
+    submit_info.commandBufferCount = 1;
     if (vkQueueSubmit(
           _vk_instance.graphicQueue, 1, &submit_info, VK_NULL_HANDLE) !=
         VK_SUCCESS) {
@@ -218,26 +218,31 @@ VulkanRenderer::draw(glm::mat4 const &view_proj_mat)
     }
 
     // Send Ui rendering
-    VkSemaphore wait_model_sems[] = {
+    VkSemaphore wait_ui_sems[] = {
         _sync.modelRenderFinishedSem[_sync.currentFrame],
-    };
-    VkSemaphore finish_ui_sig_sems[] = {
-        _sync.uiRenderFinishedSem[_sync.currentFrame],
     };
     VkPipelineStageFlags ui_wait_stages[] = {
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
     };
+    VkSemaphore finish_ui_sig_sems[] = {
+        _sync.uiRenderFinishedSem[_sync.currentFrame],
+    };
+    VkSubmitInfo ui_submit_info{};
+    ui_submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    ui_submit_info.pWaitSemaphores = wait_ui_sems;
+    ui_submit_info.pWaitDstStageMask = ui_wait_stages;
+    ui_submit_info.waitSemaphoreCount = 1;
+    ui_submit_info.pSignalSemaphores = finish_ui_sig_sems;
+    ui_submit_info.signalSemaphoreCount = 1;
     auto ui_cmd_buffer =
       _ui.generateCommandBuffer(img_index, _swap_chain.swapChainExtent);
-    submit_info.pWaitSemaphores = wait_model_sems;
-    submit_info.pWaitDstStageMask = ui_wait_stages;
-    submit_info.pSignalSemaphores = finish_ui_sig_sems;
-    submit_info.pCommandBuffers = &ui_cmd_buffer;
+    ui_submit_info.commandBufferCount = 1;
+    ui_submit_info.pCommandBuffers = &ui_cmd_buffer;
     vkResetFences(
       _vk_instance.device, 1, &_sync.inflightFence[_sync.currentFrame]);
     if (vkQueueSubmit(_vk_instance.graphicQueue,
                       1,
-                      &submit_info,
+                      &ui_submit_info,
                       _sync.inflightFence[_sync.currentFrame]) != VK_SUCCESS) {
         throw std::runtime_error(
           "VulkanRenderer: Failed to submit draw command buffer");
