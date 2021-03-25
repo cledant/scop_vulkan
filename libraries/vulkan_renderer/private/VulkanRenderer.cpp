@@ -191,29 +191,48 @@ VulkanRenderer::draw(glm::mat4 const &view_proj_mat)
                             sizeof(glm::mat4),
                             &view_proj_mat);
 
+    // Send Model rendering
     VkSemaphore wait_img_sems[] = {
         _sync.imageAvailableSem[_sync.currentFrame],
     };
-    VkPipelineStageFlags wait_stages[] = {
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+    VkSemaphore finish_model_sig_sems[] = {
+        _sync.modelRenderFinishedSem[_sync.currentFrame],
     };
-    VkSemaphore finish_sig_sems[] = {
-        _sync.renderFinishedSem[_sync.currentFrame],
+    VkPipelineStageFlags model_wait_stages[] = {
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
     };
     VkSubmitInfo submit_info{};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_info.waitSemaphoreCount = 1;
     submit_info.pWaitSemaphores = wait_img_sems;
-    submit_info.pWaitDstStageMask = wait_stages;
+    submit_info.pWaitDstStageMask = model_wait_stages;
     submit_info.signalSemaphoreCount = 1;
-    submit_info.pSignalSemaphores = finish_sig_sems;
+    submit_info.pSignalSemaphores = finish_model_sig_sems;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &_model_command_buffers[img_index];
+    if (vkQueueSubmit(
+          _vk_instance.graphicQueue, 1, &submit_info, VK_NULL_HANDLE) !=
+        VK_SUCCESS) {
+        throw std::runtime_error(
+          "VulkanRenderer: Failed to submit draw command buffer");
+    }
+
+    // Send Ui rendering
+    VkSemaphore wait_model_sems[] = {
+        _sync.modelRenderFinishedSem[_sync.currentFrame],
+    };
+    VkSemaphore finish_ui_sig_sems[] = {
+        _sync.uiRenderFinishedSem[_sync.currentFrame],
+    };
+    VkPipelineStageFlags ui_wait_stages[] = {
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+    };
     auto ui_cmd_buffer =
       _ui.generateCommandBuffer(img_index, _swap_chain.swapChainExtent);
-    std::array<VkCommandBuffer, 2> cmd_buffers = {
-        _model_command_buffers[img_index], ui_cmd_buffer
-    };
-    submit_info.commandBufferCount = cmd_buffers.size();
-    submit_info.pCommandBuffers = cmd_buffers.data();
+    submit_info.pWaitSemaphores = wait_model_sems;
+    submit_info.pWaitDstStageMask = ui_wait_stages;
+    submit_info.pSignalSemaphores = finish_ui_sig_sems;
+    submit_info.pCommandBuffers = &ui_cmd_buffer;
     vkResetFences(
       _vk_instance.device, 1, &_sync.inflightFence[_sync.currentFrame]);
     if (vkQueueSubmit(_vk_instance.graphicQueue,
@@ -225,10 +244,13 @@ VulkanRenderer::draw(glm::mat4 const &view_proj_mat)
     }
 
     VkSwapchainKHR swap_chains[] = { _swap_chain.swapChain };
+    VkSemaphore present_wait_sems[] = {
+        _sync.uiRenderFinishedSem[_sync.currentFrame],
+    };
     VkPresentInfoKHR present_info{};
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     present_info.waitSemaphoreCount = 1;
-    present_info.pWaitSemaphores = finish_sig_sems;
+    present_info.pWaitSemaphores = present_wait_sems;
     present_info.swapchainCount = 1;
     present_info.pSwapchains = swap_chains;
     present_info.pImageIndices = &img_index;

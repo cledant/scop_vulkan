@@ -26,7 +26,8 @@ class VulkanSync
 
     size_t currentFrame{};
     std::vector<VkSemaphore> imageAvailableSem;
-    std::vector<VkSemaphore> renderFinishedSem;
+    std::vector<VkSemaphore> modelRenderFinishedSem;
+    std::vector<VkSemaphore> uiRenderFinishedSem;
     std::vector<VkFence> inflightFence;
     std::vector<VkFence> imgsInflightFence;
 

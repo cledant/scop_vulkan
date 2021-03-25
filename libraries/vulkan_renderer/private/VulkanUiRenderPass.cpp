@@ -61,8 +61,8 @@ VulkanUiRenderPass::_create_render_pass(VulkanSwapChain const &swapChain)
     sub_dep.srcSubpass = VK_SUBPASS_EXTERNAL;
     sub_dep.dstSubpass = 0;
     sub_dep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    sub_dep.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     sub_dep.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    sub_dep.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     sub_dep.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
     std::array<VkAttachmentDescription, 1> attachments = {
