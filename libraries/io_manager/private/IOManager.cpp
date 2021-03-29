@@ -111,11 +111,14 @@ IOManager::triggerClose() const
     glfwSetWindowShouldClose(_win, 1);
 }
 
-void
+glm::vec2
 IOManager::toggleMouseExclusive()
 {
     _mouse_exclusive = !_mouse_exclusive;
     _apply_mouse_visibility();
+    auto pos = glm::vec2(_win_size.x / 2.0, _win_size.y / 2.0);
+    glfwSetCursorPos(_win, pos.x, pos.y);
+    return (pos);
 }
 
 void
@@ -156,9 +159,9 @@ IOManager::getEvents() const
     IOEvents io{};
 
     glfwPollEvents();
-    io.events[MOUSE_EXCLUSIVE] = _keys[GLFW_KEY_F3];
+    io.events[MOUSE_EXCLUSIVE] = _keys[GLFW_KEY_F4];
     io.events[QUIT] = _keys[GLFW_KEY_F12];
-    io.events[FULLSCREEN] = _keys[GLFW_KEY_F5];
+    io.events[FULLSCREEN] = _keys[GLFW_KEY_F8];
     io.events[JUMP] = _keys[GLFW_KEY_LEFT_SHIFT];
     io.events[CROUCH] = _keys[GLFW_KEY_SPACE];
     io.events[FRONT] = _keys[GLFW_KEY_W];
@@ -169,11 +172,12 @@ IOManager::getEvents() const
     io.events[MIDDLE_MOUSE] = _mouse_button[GLFW_MOUSE_BUTTON_MIDDLE];
     io.events[RIGHT_MOUSE] = _mouse_button[GLFW_MOUSE_BUTTON_RIGHT];
     io.events[OPEN_MODEL] = _keys[GLFW_KEY_F2];
-    io.events[SHOW_FPS] = _keys[GLFW_KEY_F6];
-    io.events[MODEL_PARAMETERS_EDIT] = _keys[GLFW_KEY_F4];
-    io.events[MODEL_INFO] = _keys[GLFW_KEY_F5];
-    io.events[DISPLAY_UI] = _keys[GLFW_KEY_F8];
+    io.events[SHOW_FPS] = _keys[GLFW_KEY_F7];
+    io.events[MODEL_PARAMETERS_EDIT] = _keys[GLFW_KEY_F3];
+    io.events[MODEL_INFO] = _keys[GLFW_KEY_F6];
+    io.events[DISPLAY_UI] = _keys[GLFW_KEY_F9];
     io.events[ABOUT] = _keys[GLFW_KEY_F1];
+    io.events[INVERSE_Y_AXIS] = _keys[GLFW_KEY_F5];
     io.mouse_position = _mouse_position;
     io.mouse_scroll = _mouse_scroll;
     return (io);
@@ -268,7 +272,7 @@ IOManager::_initCallbacks()
 
         THIS_WIN_PTR->_win_size = glm::ivec2(w, h);
         if (prev_size != THIS_WIN_PTR->_win_size) {
-            THIS_WIN_PTR->_resized = 1;
+            THIS_WIN_PTR->_resized = true;
         }
     };
     glfwSetWindowSizeCallback(_win, window_size_callback);

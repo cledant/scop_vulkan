@@ -32,7 +32,18 @@ class Ui final
     static void clear();
 
     UiEvent getUiEvent() const;
+
+    // Trigger from keyboard
+    void toggleModelInfo();
+    void toggleShowFps();
+    void toggleAbout();
+    void toggleControl();
     void toggleDisplayUi();
+    void toggleSelectModel();
+    void toggleFullscreen();
+    void toggleCameraMvt();
+    void toggleModelParam();
+    void toggleInvertCameraYAxis();
 
     void drawUi();
 
@@ -45,8 +56,9 @@ class Ui final
     bool _display_ui = true;
     bool _select_model = false;
     bool _close_app = false;
-    bool _toogle_camera_mvt = false;
+    bool _toggle_camera_mvt = false;
     bool _model_params = false;
+    bool _invert_camera_y_axis = false;
 
     UiEvent _events{};
 

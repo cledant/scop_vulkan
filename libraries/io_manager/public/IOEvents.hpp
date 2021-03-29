@@ -26,6 +26,7 @@ enum IOEventsTypes
     MODEL_INFO,
     DISPLAY_UI,
     ABOUT,
+    INVERSE_Y_AXIS,
     NB_IO_EVENTS,
 };
 

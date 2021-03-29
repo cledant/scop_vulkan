@@ -66,6 +66,13 @@ EventHandler::processEvents(IOEvents const &events)
           &EventHandler::_left_mouse,
           &EventHandler::_middle_mouse,
           &EventHandler::_right_mouse,
+          &EventHandler::_open_model,
+          &EventHandler::_show_fps,
+          &EventHandler::_model_parameter_edit,
+          &EventHandler::_model_info,
+          &EventHandler::_display_ui,
+          &EventHandler::_about,
+          &EventHandler::_invert_camera_y_axis,
       };
 
     // Checking Timers
@@ -85,7 +92,7 @@ EventHandler::processEvents(IOEvents const &events)
 
     // Camera updating
     if (_io_manager->isMouseExclusive()) {
-        _updateCamera(events.mouse_position);
+        _update_camera(events.mouse_position);
     }
     _timers.updated[ET_CAMERA] = 1;
 
@@ -145,8 +152,10 @@ void
 EventHandler::_mouse_exclusive()
 {
     if (_timers.accept_event[ET_SYSTEM]) {
+        _mouse_pos = _io_manager->toggleMouseExclusive();
         _previous_mouse_pos = _mouse_pos;
-        _io_manager->toggleMouseExclusive();
+        _mouse_pos_skip = true;
+        _ui->toggleCameraMvt();
         _timers.accept_event[ET_SYSTEM] = 0;
         _timers.updated[ET_SYSTEM] = 1;
     }
@@ -167,6 +176,7 @@ EventHandler::_toggle_fullscreen()
 {
     if (_timers.accept_event[ET_SYSTEM]) {
         _io_manager->toggleFullscreen();
+        _ui->toggleFullscreen();
         _timers.accept_event[ET_SYSTEM] = 0;
         _timers.updated[ET_SYSTEM] = 1;
     }
@@ -236,17 +246,86 @@ EventHandler::_right_mouse()
 }
 
 void
-EventHandler::_updateCamera(glm::vec2 const &mouse_pos)
+EventHandler::_open_model()
 {
-    static bool first_run = true;
+    if (_timers.accept_event[ET_SYSTEM]) {
+        _ui->toggleSelectModel();
+        _timers.accept_event[ET_SYSTEM] = 0;
+        _timers.updated[ET_SYSTEM] = 1;
+    }
+}
 
-    _mouse_pos = mouse_pos;
+void
+EventHandler::_show_fps()
+{
+    if (_timers.accept_event[ET_SYSTEM]) {
+        _ui->toggleShowFps();
+        _timers.accept_event[ET_SYSTEM] = 0;
+        _timers.updated[ET_SYSTEM] = 1;
+    }
+}
+
+void
+EventHandler::_model_parameter_edit()
+{
+    if (_timers.accept_event[ET_SYSTEM]) {
+        _ui->toggleModelParam();
+        _timers.accept_event[ET_SYSTEM] = 0;
+        _timers.updated[ET_SYSTEM] = 1;
+    }
+}
+
+void
+EventHandler::_model_info()
+{
+    if (_timers.accept_event[ET_SYSTEM]) {
+        _ui->toggleModelInfo();
+        _timers.accept_event[ET_SYSTEM] = 0;
+        _timers.updated[ET_SYSTEM] = 1;
+    }
+}
+
+void
+EventHandler::_display_ui()
+{
+    if (_timers.accept_event[ET_SYSTEM]) {
+        _ui->toggleDisplayUi();
+        _timers.accept_event[ET_SYSTEM] = 0;
+        _timers.updated[ET_SYSTEM] = 1;
+    }
+}
+
+void
+EventHandler::_about()
+{
+    if (_timers.accept_event[ET_SYSTEM]) {
+        _ui->toggleAbout();
+        _timers.accept_event[ET_SYSTEM] = 0;
+        _timers.updated[ET_SYSTEM] = 1;
+    }
+}
+
+void
+EventHandler::_invert_camera_y_axis()
+{
+    if (_timers.accept_event[ET_SYSTEM]) {
+        _ui->toggleInvertCameraYAxis();
+        _invert_y_axis = !_invert_y_axis;
+        _timers.accept_event[ET_SYSTEM] = 0;
+        _timers.updated[ET_SYSTEM] = 1;
+    }
+}
+
+void
+EventHandler::_update_camera(glm::vec2 const &mouse_pos)
+{
+    if (!_mouse_pos_skip) {
+        _mouse_pos = mouse_pos;
+    }
+    _mouse_pos_skip = false;
+
     if (_invert_y_axis) {
         _mouse_pos.y = -mouse_pos.y;
-    }
-    if (first_run) {
-        _previous_mouse_pos = _mouse_pos;
-        first_run = false;
     }
     glm::vec2 offset = _mouse_pos - _previous_mouse_pos;
 

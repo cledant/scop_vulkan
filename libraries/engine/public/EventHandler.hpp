@@ -9,7 +9,6 @@
 #include "Perspective.hpp"
 #include "VulkanRenderer.hpp"
 #include "Ui.hpp"
-#include "EngineOptions.hpp"
 
 class EventHandler final
 {
@@ -32,7 +31,7 @@ class EventHandler final
 
   private:
     static constexpr double const TARGET_PLAYER_TICK = 20.0f;
-    static constexpr float const SCALING_PER_SCROLL = MINIMAL_MODEL_SCALE;
+    static constexpr float const SCALING_PER_SCROLL = 1.0f;
 
     // Timer related
     static constexpr double const SYSTEM_TIMER_SECONDS = 1.0;
@@ -80,9 +79,16 @@ class EventHandler final
     inline void _left_mouse();
     inline void _middle_mouse();
     inline void _right_mouse();
+    inline void _open_model();
+    inline void _show_fps();
+    inline void _model_parameter_edit();
+    inline void _model_info();
+    inline void _display_ui();
+    inline void _about();
+    inline void _invert_camera_y_axis();
 
     // Camera Related
-    inline void _updateCamera(glm::vec2 const &mouse_pos);
+    inline void _update_camera(glm::vec2 const &mouse_pos);
 
     Camera *_camera{};
     IOManager *_io_manager{};
@@ -95,8 +101,8 @@ class EventHandler final
     glm::ivec3 _movements{};
     glm::vec2 _mouse_pos{};
     glm::vec2 _previous_mouse_pos{};
+    bool _mouse_pos_skip = true;
 
-    bool _print_ui = true;
     bool _invert_y_axis = false;
 };
 

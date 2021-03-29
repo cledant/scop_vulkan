@@ -18,9 +18,63 @@ Ui::clear()
 }
 
 void
+Ui::toggleModelInfo()
+{
+    _show_info_model = !_show_info_model;
+}
+
+void
+Ui::toggleShowFps()
+{
+    _show_info_fps = !_show_info_fps;
+}
+
+void
+Ui::toggleAbout()
+{
+    _about = !_about;
+}
+
+void
+Ui::toggleControl()
+{
+    _controls = !_controls;
+}
+
+void
 Ui::toggleDisplayUi()
 {
     _display_ui = !_display_ui;
+}
+
+void
+Ui::toggleSelectModel()
+{
+    _select_model = !_select_model;
+}
+
+void
+Ui::toggleFullscreen()
+{
+    _fullscreen = !_fullscreen;
+}
+
+void
+Ui::toggleCameraMvt()
+{
+    _toggle_camera_mvt = !_toggle_camera_mvt;
+}
+
+void
+Ui::toggleModelParam()
+{
+    _model_params = !_model_params;
+}
+
+void
+Ui::toggleInvertCameraYAxis()
+{
+    _invert_camera_y_axis = !_invert_camera_y_axis;
 }
 
 void
@@ -99,21 +153,20 @@ Ui::_draw_menu_bar()
         }
         if (ImGui::BeginMenu("Controls")) {
             ImGui::MenuItem(
-              "Toggle Camera Movement", "F4", &_toogle_camera_mvt);
+              "Toggle Camera Movement", "F4", &_toggle_camera_mvt);
             ImGui::Separator();
-            if (ImGui::MenuItem("Inverse ", "F5")) {
-                _model_params = !_model_params;
-            }
+            ImGui::MenuItem(
+              "Inverse Mouse Y Axis", "F5", &_invert_camera_y_axis);
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
-            ImGui::MenuItem("Model Info", "F5", &_show_info_model);
+            ImGui::MenuItem("Model Info", "F6", &_show_info_model);
             ImGui::Separator();
-            ImGui::MenuItem("Show Fps", "F6", &_show_info_fps);
+            ImGui::MenuItem("Show Fps", "F7", &_show_info_fps);
             ImGui::Separator();
-            ImGui::MenuItem("Fullscreen", "F7", &_fullscreen);
+            ImGui::MenuItem("Fullscreen", "F8", &_fullscreen);
             ImGui::Separator();
-            ImGui::MenuItem("Display UI", "F8", &_display_ui);
+            ImGui::MenuItem("Display UI", "F9", &_display_ui);
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Help")) {
