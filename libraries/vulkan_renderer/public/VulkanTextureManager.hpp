@@ -34,6 +34,7 @@ class VulkanTextureManager final
     void init(VulkanInstance const &vkInstance);
     void clear();
     void loadTexture(std::string const &texturePath);
+    void unloadAllTextures();
     bool getTexture(std::string const &texturePath, Texture &tex);
     Texture loadAndGetTexture(std::string const &texturePath);
 

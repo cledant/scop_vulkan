@@ -27,7 +27,8 @@ class VulkanUi final
     void clear();
 
     VkCommandBuffer generateCommandBuffer(uint32_t frameIndex,
-                                          VkExtent2D swapChainExtent);
+                                          VkExtent2D swapChainExtent,
+                                          bool noModel = true);
 
   private:
     VkInstance _instance{};

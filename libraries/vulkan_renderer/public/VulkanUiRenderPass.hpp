@@ -25,11 +25,13 @@ class VulkanUiRenderPass final
 
     std::vector<VkFramebuffer> framebuffers;
     VkRenderPass renderPass{};
+    VkRenderPass noModelRenderPass{};
 
   private:
     VkDevice _device{};
 
     inline void _create_render_pass(VulkanSwapChain const &swapChain);
+    inline void _create_no_model_render_pass(VulkanSwapChain const &swapChain);
     inline void _create_framebuffers(VulkanSwapChain const &swapChain);
 };
 

@@ -1,7 +1,6 @@
 #ifndef SCOP_VULKAN_ENGINE_HPP
 #define SCOP_VULKAN_ENGINE_HPP
 
-#include "EngineOptions.hpp"
 #include "IOManager.hpp"
 #include "Camera.hpp"
 #include "EventHandler.hpp"
@@ -20,7 +19,7 @@ class Engine final
     Engine(Engine &&src) = delete;
     Engine &operator=(Engine &&rhs) = delete;
 
-    void init(EngineOptions const &opts);
+    void init(char const *appName);
     void run();
 
   private:
@@ -31,8 +30,6 @@ class Engine final
     static constexpr float const START_YAW = -90.0f;
     static constexpr float const START_PITCH = 0.0f;
 
-    inline void _compute_fps();
-
     IOManager _io_manager;
     VulkanRenderer _vk_renderer;
     Camera _camera;
@@ -40,11 +37,6 @@ class Engine final
     Perspective _perspective_data{};
     Model _model;
     Ui _ui;
-
-    // Fps related
-    uint64_t _nb_frame{};
-    std::chrono::steady_clock::time_point _fps_count_timeref{};
-    std::string _str_fps = "0";
 };
 
 #endif // SCOP_VULKAN_ENGINE_HPP

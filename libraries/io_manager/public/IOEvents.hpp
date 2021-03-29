@@ -9,7 +9,7 @@
 enum IOEventsTypes
 {
     MOUSE_EXCLUSIVE = 0,
-    ESCAPE,
+    QUIT,
     FULLSCREEN,
     JUMP,
     CROUCH,
@@ -20,6 +20,12 @@ enum IOEventsTypes
     LEFT_MOUSE,
     MIDDLE_MOUSE,
     RIGHT_MOUSE,
+    OPEN_MODEL,
+    SHOW_FPS,
+    MODEL_PARAMETERS_EDIT,
+    MODEL_INFO,
+    DISPLAY_UI,
+    ABOUT,
     NB_IO_EVENTS,
 };
 

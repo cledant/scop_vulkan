@@ -44,6 +44,7 @@ class VulkanModelPipeline final
     bool updateInstance(uint32_t instanceIndex, ModelInstanceInfo const &info);
     bool getInstance(uint32_t instanceIndex, ModelInstanceInfo &info);
     VulkanModelRenderPass const &getVulkanModelRenderPass() const;
+    bool isInit() const;
 
     void generateCommands(VkCommandBuffer cmdBuffer, size_t descriptorSetIndex);
 

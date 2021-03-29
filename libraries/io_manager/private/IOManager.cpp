@@ -156,11 +156,11 @@ IOManager::getEvents() const
     IOEvents io{};
 
     glfwPollEvents();
-    io.events[MOUSE_EXCLUSIVE] = _keys[GLFW_KEY_P];
-    io.events[ESCAPE] = _keys[GLFW_KEY_ESCAPE];
+    io.events[MOUSE_EXCLUSIVE] = _keys[GLFW_KEY_F3];
+    io.events[QUIT] = _keys[GLFW_KEY_F12];
     io.events[FULLSCREEN] = _keys[GLFW_KEY_F5];
-    io.events[JUMP] = _keys[GLFW_KEY_E];
-    io.events[CROUCH] = _keys[GLFW_KEY_Q];
+    io.events[JUMP] = _keys[GLFW_KEY_LEFT_SHIFT];
+    io.events[CROUCH] = _keys[GLFW_KEY_SPACE];
     io.events[FRONT] = _keys[GLFW_KEY_W];
     io.events[BACK] = _keys[GLFW_KEY_S];
     io.events[RIGHT] = _keys[GLFW_KEY_D];
@@ -168,6 +168,12 @@ IOManager::getEvents() const
     io.events[LEFT_MOUSE] = _mouse_button[GLFW_MOUSE_BUTTON_LEFT];
     io.events[MIDDLE_MOUSE] = _mouse_button[GLFW_MOUSE_BUTTON_MIDDLE];
     io.events[RIGHT_MOUSE] = _mouse_button[GLFW_MOUSE_BUTTON_RIGHT];
+    io.events[OPEN_MODEL] = _keys[GLFW_KEY_F2];
+    io.events[SHOW_FPS] = _keys[GLFW_KEY_F6];
+    io.events[MODEL_PARAMETERS_EDIT] = _keys[GLFW_KEY_F4];
+    io.events[MODEL_INFO] = _keys[GLFW_KEY_F5];
+    io.events[DISPLAY_UI] = _keys[GLFW_KEY_F8];
+    io.events[ABOUT] = _keys[GLFW_KEY_F1];
     io.mouse_position = _mouse_position;
     io.mouse_scroll = _mouse_scroll;
     return (io);

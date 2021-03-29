@@ -8,6 +8,7 @@
 #include "IOManager.hpp"
 #include "Perspective.hpp"
 #include "VulkanRenderer.hpp"
+#include "Ui.hpp"
 #include "EngineOptions.hpp"
 
 class EventHandler final
@@ -24,6 +25,7 @@ class EventHandler final
     void setIOManager(IOManager *io_manager);
     void setPerspectiveData(Perspective *perspective);
     void setVkRenderer(VulkanRenderer *renderer);
+    void setUi(Ui *ui);
     void setInvertYAxis(bool val);
 
     void processEvents(IOEvents const &events);
@@ -86,6 +88,7 @@ class EventHandler final
     IOManager *_io_manager{};
     Perspective *_perspective{};
     VulkanRenderer *_renderer{};
+    Ui *_ui{};
 
     EventTimers _timers;
 

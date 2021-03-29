@@ -29,6 +29,12 @@ EventHandler::setVkRenderer(VulkanRenderer *renderer)
 }
 
 void
+EventHandler::setUi(Ui *ui)
+{
+    _ui = ui;
+}
+
+void
 EventHandler::setInvertYAxis(bool val)
 {
     _invert_y_axis = val;
@@ -41,6 +47,7 @@ EventHandler::processEvents(IOEvents const &events)
     assert(_io_manager);
     assert(_perspective);
     assert(_renderer);
+    assert(_ui);
 
     // Resetting movement tracking
     _movements = glm::ivec3(0);

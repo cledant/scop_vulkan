@@ -19,6 +19,7 @@ class IndexedBuffer
     void setMaxInstanceNb(uint32_t maxInstanceNb);
     uint32_t getCurrentInstanceNb() const;
     uint32_t getMaxInstanceNb() const;
+    void clear();
 
     uint32_t addInstance(InstanceType const &info,
                          InsatnceUpdateFct<InstanceType> update = nullptr);
@@ -32,12 +33,12 @@ class IndexedBuffer
       InsatnceUpdateFct<InstanceType> update) const;
 
   private:
-    uint32_t instance_index = 1;
+    uint32_t _instance_index = 1;
     uint32_t _max_instance_nb{};
     uint32_t _current_instance_nb{};
     std::unordered_map<uint32_t, uint32_t> _index_to_buffer_pairing;
     std::vector<InstanceType> _instance_info;
-    std::vector<uint32_t> _instance_index;
+    std::vector<uint32_t> _instance_indices;
 };
 
 template<typename InstanceType>
@@ -47,7 +48,7 @@ IndexedBuffer<InstanceType>::setMaxInstanceNb(uint32_t maxInstanceNb)
     auto prev_max_model_nb = _max_instance_nb;
     _max_instance_nb = maxInstanceNb;
     _instance_info.reserve(maxInstanceNb);
-    _instance_index.reserve(maxInstanceNb);
+    _instance_indices.reserve(maxInstanceNb);
 
     if (prev_max_model_nb > _max_instance_nb) {
         for (auto &it : _index_to_buffer_pairing) {
@@ -55,7 +56,7 @@ IndexedBuffer<InstanceType>::setMaxInstanceNb(uint32_t maxInstanceNb)
                 _index_to_buffer_pairing.erase(it.first);
             }
         }
-        _instance_index.shrink_to_fit();
+        _instance_indices.shrink_to_fit();
         _instance_info.shrink_to_fit();
     }
 }
@@ -75,6 +76,18 @@ IndexedBuffer<InstanceType>::getMaxInstanceNb() const
 }
 
 template<typename InstanceType>
+void
+IndexedBuffer<InstanceType>::clear()
+{
+    _instance_index = 1;
+    _max_instance_nb = 0;
+    _current_instance_nb = 0;
+    _index_to_buffer_pairing.clear();
+    _instance_info.clear();
+    _instance_indices.clear();
+}
+
+template<typename InstanceType>
 uint32_t
 IndexedBuffer<InstanceType>::addInstance(InstanceType const &info,
                                          InsatnceUpdateFct<InstanceType> update)
@@ -83,18 +96,18 @@ IndexedBuffer<InstanceType>::addInstance(InstanceType const &info,
         return (0);
     }
 
-    _index_to_buffer_pairing.insert({ instance_index, _current_instance_nb });
+    _index_to_buffer_pairing.insert({ _instance_index, _current_instance_nb });
     _instance_info.emplace_back(info);
-    _instance_index.emplace_back(_current_instance_nb);
+    _instance_indices.emplace_back(_current_instance_nb);
     if (update) {
         update(_current_instance_nb, info);
     }
     ++_current_instance_nb;
-    ++instance_index;
-    if (!instance_index) {
-        instance_index = 1;
+    ++_instance_index;
+    if (!_instance_index) {
+        _instance_index = 1;
     }
-    return (instance_index);
+    return (_instance_index);
 }
 
 template<typename InstanceType>
@@ -109,13 +122,13 @@ IndexedBuffer<InstanceType>::removeInstance(
 
     auto bufferIndex = _index_to_buffer_pairing[instanceIndex];
     auto infoIt = _instance_info.begin() + bufferIndex;
-    auto indexIt = _instance_index.begin() + bufferIndex;
+    auto indexIt = _instance_indices.begin() + bufferIndex;
     _index_to_buffer_pairing.erase(instanceIndex);
     _index_to_buffer_pairing.insert_or_assign(*indexIt, bufferIndex);
     *infoIt = _instance_info.back();
     *indexIt = bufferIndex;
     _instance_info.pop_back();
-    _instance_index.pop_back();
+    _instance_indices.pop_back();
     --_current_instance_nb;
     if (update) {
         update(bufferIndex, _instance_info[bufferIndex]);

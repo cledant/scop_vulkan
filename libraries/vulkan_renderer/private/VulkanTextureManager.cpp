@@ -20,13 +20,11 @@ VulkanTextureManager::init(VulkanInstance const &vkInstance)
 void
 VulkanTextureManager::clear()
 {
-    for (auto &it : _textures) {
-        vkDestroySampler(_device, it.second.texture_sampler, nullptr);
-        vkDestroyImageView(_device, it.second.texture_img_view, nullptr);
-        vkDestroyImage(_device, it.second.texture_img, nullptr);
-        vkFreeMemory(_device, it.second.texture_img_memory, nullptr);
-    }
-    _textures.clear();
+    unloadAllTextures();
+    _device = nullptr;
+    _physical_device = nullptr;
+    _gfx_queue = nullptr;
+    _command_pool = nullptr;
 }
 
 void
@@ -48,6 +46,18 @@ VulkanTextureManager::loadTexture(std::string const &texturePath)
       _create_texture_image_view(tex.texture_img, tex.mip_level);
     tex.texture_sampler = _create_texture_sampler(tex.mip_level);
     _textures.emplace(texturePath, tex);
+}
+
+void
+VulkanTextureManager::unloadAllTextures()
+{
+    for (auto &it : _textures) {
+        vkDestroySampler(_device, it.second.texture_sampler, nullptr);
+        vkDestroyImageView(_device, it.second.texture_img_view, nullptr);
+        vkDestroyImage(_device, it.second.texture_img, nullptr);
+        vkFreeMemory(_device, it.second.texture_img_memory, nullptr);
+    }
+    _textures.clear();
 }
 
 bool

@@ -110,8 +110,7 @@ add_subdirectory(shaders/model)
 
 #Main binary
 add_executable(scop
-        ${CMAKE_CURRENT_SOURCE_DIR}/binary/private/scop.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/binary/private/ArgsParsing.cpp)
+        ${CMAKE_CURRENT_SOURCE_DIR}/binary/private/scop.cpp)
 target_include_directories(scop
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/binary/private)

@@ -80,6 +80,11 @@ class VulkanRenderer final
 
     // Renderer global uniform related fct
     inline void _create_system_uniform_buffer();
+
+    // Draw command emission related
+    inline void _emit_model_ui_cmds(uint32_t img_index,
+                                    glm::mat4 const &view_proj_mat);
+    inline void _emit_ui_cmds(uint32_t img_index);
 };
 
 #endif // SCOP_VULKAN_VULKANRENDERER_HPP

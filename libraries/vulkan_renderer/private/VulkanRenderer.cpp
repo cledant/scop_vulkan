@@ -55,26 +55,30 @@ VulkanRenderer::init(VkSurfaceKHR surface, uint32_t win_w, uint32_t win_h)
 void
 VulkanRenderer::resize(uint32_t win_w, uint32_t win_h)
 {
+    vkDeviceWaitIdle(_vk_instance.device);
     if (win_w <= 0 || win_h <= 0) {
         return;
     }
-    vkDeviceWaitIdle(_vk_instance.device);
 
     _swap_chain.resize(win_w, win_h);
     _sync.resize(_swap_chain.currentSwapChainNbImg);
     vkDestroyBuffer(_vk_instance.device, _system_uniform, nullptr);
     vkFreeMemory(_vk_instance.device, _system_uniform_memory, nullptr);
     _create_system_uniform_buffer();
-    _model_pipeline.resize(_swap_chain, _tex_manager, _system_uniform);
-    _create_model_command_buffers();
     _ui.resize(_swap_chain);
+    if (_model_pipeline.isInit()) {
+        _model_pipeline.resize(_swap_chain, _tex_manager, _system_uniform);
+        _create_model_command_buffers();
+    }
 }
 
 void
 VulkanRenderer::clear()
 {
     _ui.clear();
-    _model_pipeline.clear();
+    if (_model_pipeline.isInit()) {
+        _model_pipeline.clear();
+    }
     _sync.clear();
     _swap_chain.clear();
     _tex_manager.clear();
@@ -111,6 +115,11 @@ VulkanRenderer::getEngineVersion() const
 void
 VulkanRenderer::loadModel(Model const &model)
 {
+    deviceWaitIdle();
+    if (_model_pipeline.isInit()) {
+        _model_pipeline.clear();
+    }
+    _tex_manager.unloadAllTextures();
     _model_pipeline.init(_vk_instance,
                          _swap_chain,
                          model,
@@ -183,69 +192,10 @@ VulkanRenderer::draw(glm::mat4 const &view_proj_mat)
     _sync.imgsInflightFence[img_index] =
       _sync.inflightFence[_sync.currentFrame];
 
-    // Update view_proj matrix
-    copyOnCpuCoherentMemory(_vk_instance.device,
-                            _system_uniform_memory,
-                            img_index * sizeof(SystemUbo) +
-                              offsetof(SystemUbo, view_proj),
-                            sizeof(glm::mat4),
-                            &view_proj_mat);
-
-    // Send Model rendering
-    VkSemaphore wait_model_sems[] = {
-        _sync.imageAvailableSem[_sync.currentFrame],
-    };
-    VkPipelineStageFlags model_wait_stages[] = {
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-    };
-    VkSemaphore finish_model_sig_sems[] = {
-        _sync.modelRenderFinishedSem[_sync.currentFrame],
-    };
-    VkSubmitInfo submit_info{};
-    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.pWaitSemaphores = wait_model_sems;
-    submit_info.pWaitDstStageMask = model_wait_stages;
-    submit_info.waitSemaphoreCount = 1;
-    submit_info.pSignalSemaphores = finish_model_sig_sems;
-    submit_info.signalSemaphoreCount = 1;
-    submit_info.pCommandBuffers = &_model_command_buffers[img_index];
-    submit_info.commandBufferCount = 1;
-    if (vkQueueSubmit(
-          _vk_instance.graphicQueue, 1, &submit_info, VK_NULL_HANDLE) !=
-        VK_SUCCESS) {
-        throw std::runtime_error(
-          "VulkanRenderer: Failed to submit draw command buffer");
-    }
-
-    // Send Ui rendering
-    VkSemaphore wait_ui_sems[] = {
-        _sync.modelRenderFinishedSem[_sync.currentFrame],
-    };
-    VkPipelineStageFlags ui_wait_stages[] = {
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-    };
-    VkSemaphore finish_ui_sig_sems[] = {
-        _sync.uiRenderFinishedSem[_sync.currentFrame],
-    };
-    VkSubmitInfo ui_submit_info{};
-    ui_submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    ui_submit_info.pWaitSemaphores = wait_ui_sems;
-    ui_submit_info.pWaitDstStageMask = ui_wait_stages;
-    ui_submit_info.waitSemaphoreCount = 1;
-    ui_submit_info.pSignalSemaphores = finish_ui_sig_sems;
-    ui_submit_info.signalSemaphoreCount = 1;
-    auto ui_cmd_buffer =
-      _ui.generateCommandBuffer(img_index, _swap_chain.swapChainExtent);
-    ui_submit_info.commandBufferCount = 1;
-    ui_submit_info.pCommandBuffers = &ui_cmd_buffer;
-    vkResetFences(
-      _vk_instance.device, 1, &_sync.inflightFence[_sync.currentFrame]);
-    if (vkQueueSubmit(_vk_instance.graphicQueue,
-                      1,
-                      &ui_submit_info,
-                      _sync.inflightFence[_sync.currentFrame]) != VK_SUCCESS) {
-        throw std::runtime_error(
-          "VulkanRenderer: Failed to submit draw command buffer");
+    if (_model_pipeline.isInit()) {
+        _emit_model_ui_cmds(img_index, view_proj_mat);
+    } else {
+        _emit_ui_cmds(img_index);
     }
 
     VkSwapchainKHR swap_chains[] = { _swap_chain.swapChain };
@@ -338,4 +288,108 @@ VulkanRenderer::_create_system_uniform_buffer()
                    _system_uniform_memory,
                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                      VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+}
+void
+VulkanRenderer::_emit_model_ui_cmds(uint32_t img_index,
+                                    glm::mat4 const &view_proj_mat)
+{
+    // Update view_proj matrix
+    copyOnCpuCoherentMemory(_vk_instance.device,
+                            _system_uniform_memory,
+                            img_index * sizeof(SystemUbo) +
+                              offsetof(SystemUbo, view_proj),
+                            sizeof(glm::mat4),
+                            &view_proj_mat);
+
+    // Send Model rendering
+    VkSemaphore wait_model_sems[] = {
+        _sync.imageAvailableSem[_sync.currentFrame],
+    };
+    VkPipelineStageFlags model_wait_stages[] = {
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+    };
+    VkSemaphore finish_model_sig_sems[] = {
+        _sync.modelRenderFinishedSem[_sync.currentFrame],
+    };
+    VkSubmitInfo submit_info{};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.pWaitSemaphores = wait_model_sems;
+    submit_info.pWaitDstStageMask = model_wait_stages;
+    submit_info.waitSemaphoreCount = 1;
+    submit_info.pSignalSemaphores = finish_model_sig_sems;
+    submit_info.signalSemaphoreCount = 1;
+    submit_info.pCommandBuffers = &_model_command_buffers[img_index];
+    submit_info.commandBufferCount = 1;
+    if (vkQueueSubmit(
+          _vk_instance.graphicQueue, 1, &submit_info, VK_NULL_HANDLE) !=
+        VK_SUCCESS) {
+        throw std::runtime_error(
+          "VulkanRenderer: Failed to submit draw command buffer");
+    }
+
+    // Send Ui rendering
+    VkSemaphore wait_ui_sems[] = {
+        _sync.modelRenderFinishedSem[_sync.currentFrame],
+    };
+    VkPipelineStageFlags ui_wait_stages[] = {
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+    };
+    VkSemaphore finish_ui_sig_sems[] = {
+        _sync.uiRenderFinishedSem[_sync.currentFrame],
+    };
+    VkSubmitInfo ui_submit_info{};
+    ui_submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    ui_submit_info.pWaitSemaphores = wait_ui_sems;
+    ui_submit_info.pWaitDstStageMask = ui_wait_stages;
+    ui_submit_info.waitSemaphoreCount = 1;
+    ui_submit_info.pSignalSemaphores = finish_ui_sig_sems;
+    ui_submit_info.signalSemaphoreCount = 1;
+    auto ui_cmd_buffer =
+      _ui.generateCommandBuffer(img_index, _swap_chain.swapChainExtent, false);
+    ui_submit_info.commandBufferCount = 1;
+    ui_submit_info.pCommandBuffers = &ui_cmd_buffer;
+    vkResetFences(
+      _vk_instance.device, 1, &_sync.inflightFence[_sync.currentFrame]);
+    if (vkQueueSubmit(_vk_instance.graphicQueue,
+                      1,
+                      &ui_submit_info,
+                      _sync.inflightFence[_sync.currentFrame]) != VK_SUCCESS) {
+        throw std::runtime_error(
+          "VulkanRenderer: Failed to submit draw command buffer");
+    }
+}
+
+void
+VulkanRenderer::_emit_ui_cmds(uint32_t img_index)
+{
+    // Send Ui rendering
+    VkSemaphore wait_ui_sems[] = {
+        _sync.imageAvailableSem[_sync.currentFrame],
+    };
+    VkPipelineStageFlags ui_wait_stages[] = {
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+    };
+    VkSemaphore finish_ui_sig_sems[] = {
+        _sync.uiRenderFinishedSem[_sync.currentFrame],
+    };
+    VkSubmitInfo ui_submit_info{};
+    ui_submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    ui_submit_info.pWaitSemaphores = wait_ui_sems;
+    ui_submit_info.pWaitDstStageMask = ui_wait_stages;
+    ui_submit_info.waitSemaphoreCount = 1;
+    ui_submit_info.pSignalSemaphores = finish_ui_sig_sems;
+    ui_submit_info.signalSemaphoreCount = 1;
+    auto ui_cmd_buffer =
+      _ui.generateCommandBuffer(img_index, _swap_chain.swapChainExtent);
+    ui_submit_info.commandBufferCount = 1;
+    ui_submit_info.pCommandBuffers = &ui_cmd_buffer;
+    vkResetFences(
+      _vk_instance.device, 1, &_sync.inflightFence[_sync.currentFrame]);
+    if (vkQueueSubmit(_vk_instance.graphicQueue,
+                      1,
+                      &ui_submit_info,
+                      _sync.inflightFence[_sync.currentFrame]) != VK_SUCCESS) {
+        throw std::runtime_error(
+          "VulkanRenderer: Failed to submit draw command buffer");
+    }
 }

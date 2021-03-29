@@ -33,6 +33,8 @@ struct VulkanModelPipelineData
     getInputBindingDescription();
     static std::array<VkVertexInputAttributeDescription, 9>
     getInputAttributeDescription();
+
+    void clear();
 };
 
 #endif // SCOP_VULKAN_VULKANMODELPIPELINEDATA_HPP

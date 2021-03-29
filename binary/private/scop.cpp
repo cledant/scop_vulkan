@@ -1,15 +1,14 @@
-#include "ArgsParsing.hpp"
 #include "Engine.hpp"
 
 int
-main(int argc, char const **argv)
+main()
 {
+    static constexpr char const *APP_NAME = "scop";
+
     try {
-        auto options = parseArgs(argc, argv);
-        options.app_name = "scop";
         Engine engine;
 
-        engine.init(options);
+        engine.init(APP_NAME);
         engine.run();
     } catch (std::exception const &e) {
         std::cout << e.what() << std::endl;

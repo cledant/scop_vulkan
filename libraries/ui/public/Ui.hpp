@@ -1,6 +1,8 @@
 #ifndef SCOP_VULKAN_UI_HPP
 #define SCOP_VULKAN_UI_HPP
 
+#include <optional>
+
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 #include "imgui.h"
@@ -9,6 +11,12 @@
 
 #include "VulkanInstance.hpp"
 #include "VulkanSwapChain.hpp"
+
+struct UiEvent
+{
+    bool newModel = false;
+    bool updatedCurrentModel = false;
+};
 
 class Ui final
 {
@@ -20,10 +28,34 @@ class Ui final
     Ui(Ui &&src) = delete;
     Ui &operator=(Ui &&rhs) = delete;
 
-    void init(GLFWwindow *win);
-    void clear() const;
+    static void init(GLFWwindow *win);
+    static void clear();
+
+    UiEvent getUiEvent() const;
+    void toggleDisplayUi();
 
     void drawUi();
+
+  private:
+    bool _show_info_model = false;
+    bool _show_info_fps = false;
+    bool _about = false;
+    bool _controls = false;
+    bool _fullscreen = false;
+    bool _display_ui = true;
+    bool _select_model = false;
+    bool _close_app = false;
+    bool _toogle_camera_mvt = false;
+    bool _model_params = false;
+
+    UiEvent _events{};
+
+    // Menu Bar
+    void _draw_menu_bar();
+
+    // Windows
+    void _about_window();
+    void _info_overview() const;
 };
 
 #endif // SCOP_VULKAN_UI_HPP

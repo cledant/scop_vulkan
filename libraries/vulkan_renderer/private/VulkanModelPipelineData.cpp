@@ -68,3 +68,25 @@ VulkanModelPipelineData::getInputAttributeDescription()
     attribute_description[8].format = VK_FORMAT_R32G32B32A32_SFLOAT;
     return (attribute_description);
 }
+
+void
+VulkanModelPipelineData::clear()
+{
+    buffer = nullptr;
+    memory = nullptr;
+    descriptorPool = nullptr;
+    verticesSize = 0;
+    indicesSize = 0;
+    singleUboSize = 0;
+    singleSwapChainUboSize = 0;
+    instanceMatricesOffset = 0;
+    indicesOffset = 0;
+    uboOffset = 0;
+    verticesSize = 0;
+    descriptorSets.clear();
+    diffuseTextures.clear();
+    indicesDrawOffset.clear();
+    indicesDrawNb.clear();
+    nbMaterials = 0;
+    modelCenter = glm::vec3(0.0f);
+}

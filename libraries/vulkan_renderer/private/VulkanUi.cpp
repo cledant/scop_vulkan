@@ -57,7 +57,9 @@ VulkanUi::clear()
 }
 
 VkCommandBuffer
-VulkanUi::generateCommandBuffer(uint32_t frameIndex, VkExtent2D swapChainExtent)
+VulkanUi::generateCommandBuffer(uint32_t frameIndex,
+                                VkExtent2D swapChainExtent,
+                                bool noModel)
 {
     VkCommandBufferBeginInfo cb_begin_info{};
     cb_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -69,11 +71,16 @@ VulkanUi::generateCommandBuffer(uint32_t frameIndex, VkExtent2D swapChainExtent)
           "VulkanUi: Failed to begin recording ui command buffer");
     }
 
-    std::array<VkClearValue, 1> clear_vals{};
-    clear_vals[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
     VkRenderPassBeginInfo rp_begin_info{};
+    std::array<VkClearValue, 1> clear_vals{};
+    if (noModel) {
+        clear_vals[0].color = { { 0.2f, 0.2f, 0.2f, 1.0f } };
+        rp_begin_info.renderPass = _render_pass.noModelRenderPass;
+    } else {
+        clear_vals[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+        rp_begin_info.renderPass = _render_pass.renderPass;
+    }
     rp_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    rp_begin_info.renderPass = _render_pass.renderPass;
     rp_begin_info.framebuffer = _render_pass.framebuffers[frameIndex];
     rp_begin_info.renderArea.extent = swapChainExtent;
     rp_begin_info.clearValueCount = clear_vals.size();

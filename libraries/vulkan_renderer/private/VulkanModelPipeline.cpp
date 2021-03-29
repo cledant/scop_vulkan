@@ -73,6 +73,16 @@ VulkanModelPipeline::clear()
     vkDestroyBuffer(_device, _pipeline_model.buffer, nullptr);
     vkFreeMemory(_device, _pipeline_model.memory, nullptr);
     vkDestroyDescriptorPool(_device, _pipeline_model.descriptorPool, nullptr);
+    _instance_handler.clear();
+    _model = nullptr;
+    _device = nullptr;
+    _physical_device = nullptr;
+    _cmd_pool = nullptr;
+    _gfx_queue = nullptr;
+    _descriptor_set_layout = nullptr;
+    _pipeline_layout = nullptr;
+    _graphic_pipeline = nullptr;
+    _pipeline_model.clear();
 }
 
 uint32_t
@@ -120,6 +130,15 @@ VulkanModelRenderPass const &
 VulkanModelPipeline::getVulkanModelRenderPass() const
 {
     return (_pipeline_render_pass);
+}
+
+bool
+VulkanModelPipeline::isInit() const
+{
+    if (_model) {
+        return (true);
+    }
+    return (false);
 }
 
 void
