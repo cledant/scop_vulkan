@@ -1,7 +1,7 @@
 #ifndef SCOP_VULKAN_UI_HPP
 #define SCOP_VULKAN_UI_HPP
 
-#include <optional>
+#include <chrono>
 
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
@@ -40,8 +40,8 @@ class Ui final
     Ui(Ui &&src) = delete;
     Ui &operator=(Ui &&rhs) = delete;
 
-    static void init(GLFWwindow *win);
-    static void clear();
+    void init(GLFWwindow *win);
+    void clear();
 
     [[nodiscard]] UiEvent getUiEvent() const;
 
@@ -82,6 +82,12 @@ class Ui final
 
     // Menu Bar
     void _draw_menu_bar();
+
+    // Compute fps
+    void _compute_fps();
+    uint64_t _nb_frame{};
+    std::chrono::steady_clock::time_point _avg_fps_time_ref;
+    std::chrono::steady_clock::time_point _prev_frame_time_ref;
 
     // Windows
     void _about_window();

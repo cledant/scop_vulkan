@@ -13,7 +13,7 @@ class UiInfoOverview final
     UiInfoOverview(UiInfoOverview &&src) = delete;
     UiInfoOverview &operator=(UiInfoOverview &&rhs) = delete;
 
-    void draw(bool &fps, bool &model_info);
+    void draw(bool &fps, bool &model_info) const;
     void setAvgFps(float avgFps);
     void setCurrentFps(float currentFps);
     void setModelInfo(uint32_t nbVertices,

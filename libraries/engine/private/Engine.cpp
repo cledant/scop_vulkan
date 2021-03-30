@@ -21,7 +21,7 @@ Engine::init(char const *appName)
     _event_handler.setUi(&_ui);
     _event_handler.setModel(&_model);
     _io_manager.createWindow(std::move(win_opts));
-    Ui::init(_io_manager.getWindow());
+    _ui.init(_io_manager.getWindow());
     _vk_renderer.createInstance(appName,
                                 engine_name,
                                 VK_MAKE_VERSION(1, 0, 0),
@@ -54,6 +54,6 @@ Engine::run()
     }
     _vk_renderer.deviceWaitIdle();
     _vk_renderer.clear();
-    Ui::clear();
+    _ui.clear();
     _io_manager.deleteWindow();
 }

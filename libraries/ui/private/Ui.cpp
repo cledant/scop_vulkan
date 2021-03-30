@@ -1,5 +1,7 @@
 #include "Ui.hpp"
 
+#include <chrono>
+
 void
 Ui::init(GLFWwindow *win)
 {
@@ -8,6 +10,7 @@ Ui::init(GLFWwindow *win)
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui_ImplGlfw_InitForVulkan(win, true);
+    _avg_fps_time_ref = std::chrono::steady_clock::now();
 }
 
 void
@@ -86,6 +89,7 @@ Ui::toggleInvertCameraYAxis()
 void
 Ui::drawUi()
 {
+    _compute_fps();
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -163,6 +167,23 @@ Ui::_draw_menu_bar()
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
+    }
+}
+
+void
+Ui::_compute_fps()
+{
+    ++_nb_frame;
+    auto now = std::chrono::steady_clock::now();
+    std::chrono::duration<double> diff_frame = now - _prev_frame_time_ref;
+    _info_overview.setCurrentFps(1.0f / diff_frame.count());
+    _prev_frame_time_ref = now;
+
+    std::chrono::duration<double> diff_avg = now - _avg_fps_time_ref;
+    if (diff_avg.count() > 1.0f) {
+        _info_overview.setAvgFps(_nb_frame);
+        _nb_frame = 0;
+        _avg_fps_time_ref = now;
     }
 }
 
