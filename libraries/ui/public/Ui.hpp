@@ -11,11 +11,22 @@
 
 #include "VulkanInstance.hpp"
 #include "VulkanSwapChain.hpp"
+#include "UiOpenModel.hpp"
+
+enum UiEventTypes
+{
+    UET_NEW_MODEL,
+    UET_UPDATE_MODEL_PARAMS,
+    UET_EXIT,
+    UET_MOUSE_EXCLUSIVE,
+    UET_INVERT_MOUSE_AXIS,
+    UET_FULLSCREEN,
+    UET_TOTAL_NB,
+};
 
 struct UiEvent
 {
-    bool newModel = false;
-    bool updatedCurrentModel = false;
+    bool events[UET_TOTAL_NB] = { false };
 };
 
 class Ui final
@@ -31,7 +42,7 @@ class Ui final
     static void init(GLFWwindow *win);
     static void clear();
 
-    UiEvent getUiEvent() const;
+    [[nodiscard]] UiEvent getUiEvent() const;
 
     // Trigger from keyboard
     void toggleModelInfo();
@@ -46,6 +57,7 @@ class Ui final
     void toggleInvertCameraYAxis();
 
     void drawUi();
+    [[nodiscard]] std::string getModelFilepath() const;
 
   private:
     bool _show_info_model = false;
@@ -60,7 +72,7 @@ class Ui final
     bool _model_params = false;
     bool _invert_camera_y_axis = false;
 
-    UiEvent _events{};
+    UiEvent _ui_events{};
 
     // Menu Bar
     void _draw_menu_bar();
@@ -68,6 +80,7 @@ class Ui final
     // Windows
     void _about_window();
     void _info_overview() const;
+    UiOpenModel _open_model_window;
 };
 
 #endif // SCOP_VULKAN_UI_HPP

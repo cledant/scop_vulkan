@@ -17,6 +17,12 @@ Ui::clear()
     ImGui::DestroyContext();
 }
 
+UiEvent
+Ui::getUiEvent() const
+{
+    return (_ui_events);
+}
+
 void
 Ui::toggleModelInfo()
 {
@@ -92,55 +98,29 @@ Ui::drawUi()
     _draw_menu_bar();
     _about_window();
     _info_overview();
-
-    if (_select_model) {
-        static char filepath[2048] = { 0 };
-        auto win_size = ImVec2(400, 80);
-        ImGui::SetNextWindowSize(win_size);
-        ImGuiWindowFlags window_flags =
-          ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
-          ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove;
-        ImGuiViewport const *viewport = ImGui::GetMainViewport();
-        auto viewport_center = viewport->GetCenter();
-        ImVec2 window_pos, window_pos_pivot;
-        window_pos.x = viewport_center.x;
-        window_pos.y = viewport_center.y;
-        window_pos_pivot.x = 0.5f;
-        window_pos_pivot.y = 0.5f;
-        ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
-        ImGui::Begin("Open Model", &_select_model, window_flags);
-        ImGuiInputTextFlags input_text_flags =
-          ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_NoUndoRedo;
-        bool ret = ImGui::InputText(
-          "Model Filepath", filepath, IM_ARRAYSIZE(filepath), input_text_flags);
-        if (ImGui::IsItemDeactivated() &&
-            ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape))) {
-            _select_model = false;
-        }
-        bool ret2 = ImGui::Button("Ok");
-        ImGui::SameLine();
-        if (ImGui::Button("Cancel")) {
-            _select_model = false;
-        }
-        if (ret || ret2) {
-            _select_model = false;
-        }
-        ImGui::End();
-    }
+    _ui_events.events[UET_NEW_MODEL] = _open_model_window.draw(_select_model);
 
     ImGui::Render();
+}
+
+std::string
+Ui::getModelFilepath() const
+{
+    return (_open_model_window.getModelFilepath());
 }
 
 void
 Ui::_draw_menu_bar()
 {
+    _ui_events = {};
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Open Model", "F2")) {
                 _select_model = !_select_model;
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Exit", "F12")) {
+            if ((_ui_events.events[UET_EXIT] =
+                   ImGui::MenuItem("Exit", "F12"))) {
                 _close_app = !_close_app;
             }
             ImGui::EndMenu();
@@ -152,10 +132,10 @@ Ui::_draw_menu_bar()
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Controls")) {
-            ImGui::MenuItem(
+            _ui_events.events[UET_MOUSE_EXCLUSIVE] = ImGui::MenuItem(
               "Toggle Camera Movement", "F4", &_toggle_camera_mvt);
             ImGui::Separator();
-            ImGui::MenuItem(
+            _ui_events.events[UET_INVERT_MOUSE_AXIS] = ImGui::MenuItem(
               "Inverse Mouse Y Axis", "F5", &_invert_camera_y_axis);
             ImGui::EndMenu();
         }
@@ -164,7 +144,8 @@ Ui::_draw_menu_bar()
             ImGui::Separator();
             ImGui::MenuItem("Show Fps", "F7", &_show_info_fps);
             ImGui::Separator();
-            ImGui::MenuItem("Fullscreen", "F8", &_fullscreen);
+            _ui_events.events[UET_FULLSCREEN] =
+              ImGui::MenuItem("Fullscreen", "F8", &_fullscreen);
             ImGui::Separator();
             ImGui::MenuItem("Display UI", "F9", &_display_ui);
             ImGui::EndMenu();

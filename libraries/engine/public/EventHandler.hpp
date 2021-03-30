@@ -8,6 +8,7 @@
 #include "IOManager.hpp"
 #include "Perspective.hpp"
 #include "VulkanRenderer.hpp"
+#include "Model.hpp"
 #include "Ui.hpp"
 
 class EventHandler final
@@ -25,13 +26,13 @@ class EventHandler final
     void setPerspectiveData(Perspective *perspective);
     void setVkRenderer(VulkanRenderer *renderer);
     void setUi(Ui *ui);
-    void setInvertYAxis(bool val);
+    void setModel(Model *model);
 
-    void processEvents(IOEvents const &events);
+    void processEvents(IOEvents const &ioEvents, UiEvent const &uiEvent);
 
   private:
     static constexpr double const TARGET_PLAYER_TICK = 20.0f;
-    static constexpr float const SCALING_PER_SCROLL = 1.0f;
+    static constexpr float const SCALING_PER_SCROLL = 0.05f;
 
     // Timer related
     static constexpr double const SYSTEM_TIMER_SECONDS = 1.0;
@@ -66,7 +67,7 @@ class EventHandler final
         std::array<double, ET_NB_EVENT_TIMER_TYPES> timer_values;
     };
 
-    // Event handling functions
+    // IO Event handling functions
     inline void _mouse_exclusive();
     inline void _close_win_event();
     inline void _toggle_fullscreen();
@@ -87,6 +88,14 @@ class EventHandler final
     inline void _about();
     inline void _invert_camera_y_axis();
 
+    // UI Event handling functions
+    inline void _ui_load_model();
+    inline void _ui_update_model_params();
+    inline void _ui_close_app();
+    inline void _ui_mouse_exclusive();
+    inline void _ui_invert_mouse_y_axis();
+    inline void _ui_fullscreen();
+
     // Camera Related
     inline void _update_camera(glm::vec2 const &mouse_pos);
 
@@ -94,6 +103,7 @@ class EventHandler final
     IOManager *_io_manager{};
     Perspective *_perspective{};
     VulkanRenderer *_renderer{};
+    Model *_model{};
     Ui *_ui{};
 
     EventTimers _timers;

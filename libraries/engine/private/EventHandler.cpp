@@ -1,6 +1,7 @@
 #include "EventHandler.hpp"
 
 #include "glm/gtc/matrix_transform.hpp"
+#include "fmt/core.h"
 
 #include <functional>
 
@@ -35,19 +36,20 @@ EventHandler::setUi(Ui *ui)
 }
 
 void
-EventHandler::setInvertYAxis(bool val)
+EventHandler::setModel(Model *model)
 {
-    _invert_y_axis = val;
+    _model = model;
 }
 
 void
-EventHandler::processEvents(IOEvents const &events)
+EventHandler::processEvents(IOEvents const &ioEvents, UiEvent const &uiEvent)
 {
     assert(_camera);
     assert(_io_manager);
     assert(_perspective);
     assert(_renderer);
     assert(_ui);
+    assert(_model);
 
     // Resetting movement tracking
     _movements = glm::ivec3(0);
@@ -75,6 +77,16 @@ EventHandler::processEvents(IOEvents const &events)
           &EventHandler::_invert_camera_y_axis,
       };
 
+    static const std::array<void (EventHandler::*)(), UET_TOTAL_NB>
+      ui_events = {
+          &EventHandler::_ui_load_model,
+          &EventHandler::_ui_update_model_params,
+          &EventHandler::_ui_close_app,
+          &EventHandler::_ui_mouse_exclusive,
+          &EventHandler::_ui_invert_mouse_y_axis,
+          &EventHandler::_ui_fullscreen,
+      };
+
     // Checking Timers
     auto now = std::chrono::steady_clock::now();
     for (uint32_t i = 0; i < ET_NB_EVENT_TIMER_TYPES; ++i) {
@@ -83,16 +95,23 @@ EventHandler::processEvents(IOEvents const &events)
         _timers.accept_event[i] = (time_diff.count() > _timers.timer_values[i]);
     }
 
-    // Looping over events types
+    // Looping over io events types
     for (uint32_t i = 0; i < NB_IO_EVENTS; ++i) {
-        if (events.events[i]) {
+        if (ioEvents.events[i]) {
             std::invoke(keyboard_events[i], this);
+        }
+    }
+
+    // Looping over ui events type
+    for (uint32_t i = 0; i < UET_TOTAL_NB; ++i) {
+        if (uiEvent.events[i]) {
+            std::invoke(ui_events[i], this);
         }
     }
 
     // Camera updating
     if (_io_manager->isMouseExclusive()) {
-        _update_camera(events.mouse_position);
+        _update_camera(ioEvents.mouse_position);
     }
     _timers.updated[ET_CAMERA] = 1;
 
@@ -112,11 +131,12 @@ EventHandler::processEvents(IOEvents const &events)
     }
 
     // Update model size
-    if (events.mouse_scroll != 0.0f) {
+    if (ioEvents.mouse_scroll != 0.0f) {
         ModelInstanceInfo model_info{};
 
         _renderer->getModelInstance(1, model_info);
-        model_info.scale += SCALING_PER_SCROLL * glm::vec3(events.mouse_scroll);
+        model_info.scale +=
+          SCALING_PER_SCROLL * glm::vec3(ioEvents.mouse_scroll);
         if (model_info.scale.x < SCALING_PER_SCROLL) {
             model_info.scale = glm::vec3(SCALING_PER_SCROLL);
         }
@@ -314,6 +334,51 @@ EventHandler::_invert_camera_y_axis()
         _timers.accept_event[ET_SYSTEM] = 0;
         _timers.updated[ET_SYSTEM] = 1;
     }
+}
+
+void
+EventHandler::_ui_load_model()
+{
+    Model tmp;
+
+    try {
+        tmp.loadModel(_ui->getModelFilepath());
+        *_model = std::move(tmp);
+        _renderer->loadModel(*_model);
+        _renderer->addModelInstance({});
+    } catch (std::exception const &e) {
+        fmt::print("Failed to load model\n");
+    }
+}
+
+void
+EventHandler::_ui_update_model_params()
+{}
+
+void
+EventHandler::_ui_close_app()
+{
+    _io_manager->triggerClose();
+}
+
+void
+EventHandler::_ui_mouse_exclusive()
+{
+    _mouse_pos = _io_manager->toggleMouseExclusive();
+    _previous_mouse_pos = _mouse_pos;
+    _mouse_pos_skip = true;
+}
+
+void
+EventHandler::_ui_invert_mouse_y_axis()
+{
+    _invert_y_axis = !_invert_y_axis;
+}
+
+void
+EventHandler::_ui_fullscreen()
+{
+    _io_manager->toggleFullscreen();
 }
 
 void

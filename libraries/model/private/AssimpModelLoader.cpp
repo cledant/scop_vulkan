@@ -24,9 +24,10 @@ assimpLoadModel(char const *model_path,
                         aiProcess_Triangulate | aiProcess_GenSmoothNormals |
                           aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
-        !scene->mRootNode)
+        !scene->mRootNode) {
         throw std::runtime_error("AssimpLoader: Failed to load: " +
                                  std::string(model_path));
+    }
     assimpLoadNode(scene->mRootNode,
                    scene,
                    unique_vertices,

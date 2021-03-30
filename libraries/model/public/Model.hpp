@@ -7,14 +7,21 @@
 
 #include "Mesh.hpp"
 
+struct ModelInfo
+{
+    uint32_t nbVertices{};
+    uint32_t nbIndices{};
+    uint32_t nbFaces{};
+};
+
 class Model final
 {
   public:
     Model() = default;
     explicit Model(std::string const &model_path);
     explicit Model(char const *model_path);
-    Model(Model const &src) = delete;
-    Model &operator=(Model const &rhs) = delete;
+    Model(Model const &src) = default;
+    Model &operator=(Model const &rhs) = default;
     Model(Model &&src) noexcept = default;
     Model &operator=(Model &&rhs) noexcept = default;
     ~Model() = default;
@@ -22,6 +29,7 @@ class Model final
     void loadModel(std::string const &model_path);
     void loadModel(char const *model_path);
     void printModel() const;
+    [[nodiscard]] ModelInfo getModelInfo() const;
 
     [[nodiscard]] std::vector<Vertex> const &getVertexList() const;
     [[nodiscard]] std::vector<uint32_t> const &getIndicesList() const;

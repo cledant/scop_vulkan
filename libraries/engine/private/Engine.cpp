@@ -19,7 +19,7 @@ Engine::init(char const *appName)
     _event_handler.setPerspectiveData(&_perspective_data);
     _event_handler.setVkRenderer(&_vk_renderer);
     _event_handler.setUi(&_ui);
-    _event_handler.setInvertYAxis(true);
+    _event_handler.setModel(&_model);
     _io_manager.createWindow(std::move(win_opts));
     Ui::init(_io_manager.getWindow());
     _vk_renderer.createInstance(appName,
@@ -48,7 +48,7 @@ void
 Engine::run()
 {
     while (!_io_manager.shouldClose()) {
-        _event_handler.processEvents(_io_manager.getEvents());
+        _event_handler.processEvents(_io_manager.getEvents(), _ui.getUiEvent());
         _ui.drawUi();
         _vk_renderer.draw(_camera.getPerspectiveViewMatrix());
     }

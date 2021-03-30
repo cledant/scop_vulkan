@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.17)
 project(lib_ui)
 
 add_library(ui STATIC
-        private/Ui.cpp)
+        private/Ui.cpp
+        private/UiOpenModel.cpp)
 target_include_directories(ui
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/public)

@@ -70,6 +70,15 @@ Model::printModel() const
     fmt::print("===== END MODEL =====\n");
 }
 
+ModelInfo
+Model::getModelInfo() const
+{
+    ModelInfo info = { static_cast<uint32_t>(_vertex_list.size()),
+                       static_cast<uint32_t>(_indices_list.size()),
+                       _nb_faces };
+    return (info);
+}
+
 std::vector<Vertex> const &
 Model::getVertexList() const
 {
