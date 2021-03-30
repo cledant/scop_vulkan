@@ -12,6 +12,7 @@
 #include "VulkanInstance.hpp"
 #include "VulkanSwapChain.hpp"
 #include "UiOpenModel.hpp"
+#include "UiInfoOverview.hpp"
 
 enum UiEventTypes
 {
@@ -57,6 +58,11 @@ class Ui final
     void toggleInvertCameraYAxis();
 
     void drawUi();
+
+    void setModelInfo(uint32_t nbVertices,
+                      uint32_t nbIndices,
+                      uint32_t nbFaces);
+
     [[nodiscard]] std::string getModelFilepath() const;
 
   private:
@@ -79,7 +85,7 @@ class Ui final
 
     // Windows
     void _about_window();
-    void _info_overview() const;
+    UiInfoOverview _info_overview;
     UiOpenModel _open_model_window;
 };
 

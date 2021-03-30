@@ -346,6 +346,9 @@ EventHandler::_ui_load_model()
         *_model = std::move(tmp);
         _renderer->loadModel(*_model);
         _renderer->addModelInstance({});
+        auto model_info = _model->getModelInfo();
+        _ui->setModelInfo(
+          model_info.nbVertices, model_info.nbIndices, model_info.nbFaces);
     } catch (std::exception const &e) {
         fmt::print("Failed to load model\n");
     }

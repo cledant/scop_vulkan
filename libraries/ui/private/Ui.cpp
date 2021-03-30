@@ -97,10 +97,16 @@ Ui::drawUi()
 
     _draw_menu_bar();
     _about_window();
-    _info_overview();
+    _info_overview.draw(_show_info_fps, _show_info_model);
     _ui_events.events[UET_NEW_MODEL] = _open_model_window.draw(_select_model);
 
     ImGui::Render();
+}
+
+void
+Ui::setModelInfo(uint32_t nbVertices, uint32_t nbIndices, uint32_t nbFaces)
+{
+    _info_overview.setModelInfo(nbVertices, nbIndices, nbFaces);
 }
 
 std::string
@@ -181,40 +187,5 @@ Ui::_about_window()
         ImGui::Separator();
         ImGui::Text("Version / Commit");
         ImGui::End();
-    }
-}
-
-void
-Ui::_info_overview() const
-{
-    static constexpr float const PADDING = 10.0f;
-    static constexpr ImGuiWindowFlags const WIN_FLAGS =
-      ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
-      ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
-      ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove;
-    static ImVec2 const WIN_POS_PIVOT = { 1.0f, 0.0f };
-    static constexpr float const WIN_ALPHA = 0.35f;
-
-    if (_show_info_model || _show_info_fps) {
-        ImGuiViewport const *viewport = ImGui::GetMainViewport();
-        ImVec2 work_pos = viewport->WorkPos;
-        ImVec2 work_size = viewport->WorkSize;
-        ImVec2 window_pos{ (work_pos.x + work_size.x - PADDING),
-                           (work_pos.y + PADDING) };
-
-        ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, WIN_POS_PIVOT);
-        ImGui::SetNextWindowBgAlpha(WIN_ALPHA);
-        if (ImGui::Begin("Info Overview", nullptr, WIN_FLAGS)) {
-            if (_show_info_fps) {
-                ImGui::Text("Put Avg and current fps here");
-            }
-            if (_show_info_fps && _show_info_model) {
-                ImGui::Separator();
-            }
-            if (_show_info_model) {
-                ImGui::Text("Put Model info here");
-            }
-            ImGui::End();
-        }
     }
 }
