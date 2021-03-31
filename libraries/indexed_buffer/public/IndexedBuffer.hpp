@@ -79,7 +79,6 @@ template<typename InstanceType>
 void
 IndexedBuffer<InstanceType>::clear()
 {
-    _instance_index = 1;
     _max_instance_nb = 0;
     _current_instance_nb = 0;
     _index_to_buffer_pairing.clear();

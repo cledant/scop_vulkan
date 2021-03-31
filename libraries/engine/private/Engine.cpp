@@ -11,6 +11,7 @@ Engine::init(char const *appName)
 {
     assert(appName);
     char engine_name[128] = { 0 };
+    std::strcat(engine_name, appName);
     std::strcat(engine_name, "_engine");
     IOManagerWindowCreationOption win_opts{
         false, false, false, false, DEFAULT_WIN_SIZE, appName

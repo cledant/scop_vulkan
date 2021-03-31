@@ -143,7 +143,7 @@ Ui::_draw_menu_bar()
             }
             ImGui::Separator();
             if ((_ui_events.events[UET_EXIT] =
-                   ImGui::MenuItem("Exit", "F12"))) {
+                   ImGui::MenuItem("Exit", "F10"))) {
                 _close_app = !_close_app;
             }
             ImGui::EndMenu();

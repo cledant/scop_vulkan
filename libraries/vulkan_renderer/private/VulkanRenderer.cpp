@@ -120,12 +120,17 @@ VulkanRenderer::loadModel(Model const &model)
         _model_pipeline.clear();
     }
     _tex_manager.unloadAllTextures();
-    _model_pipeline.init(_vk_instance,
-                         _swap_chain,
-                         model,
-                         _tex_manager,
-                         _system_uniform,
-                         MAX_MODEL_INSTANCE);
+    try {
+        _model_pipeline.init(_vk_instance,
+                             _swap_chain,
+                             model,
+                             _tex_manager,
+                             _system_uniform,
+                             MAX_MODEL_INSTANCE);
+    } catch (std::exception const &e) {
+        _model_pipeline.clear();
+        throw;
+    }
 
     // Drawing related
     _create_model_command_buffers();

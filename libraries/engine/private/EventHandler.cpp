@@ -4,6 +4,8 @@
 
 #include <functional>
 
+#include "fmt/core.h"
+
 void
 EventHandler::setCamera(Camera *camera)
 {
@@ -349,6 +351,8 @@ EventHandler::_ui_load_model()
         _ui->setModelInfo(
           model_info.nbVertices, model_info.nbIndices, model_info.nbFaces);
     } catch (std::exception const &e) {
+        fmt::print("{}\n", e.what());
+        _ui->setModelInfo(0, 0, 0);
         _ui->setModelLoadingError();
     }
 }

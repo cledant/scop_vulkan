@@ -20,7 +20,13 @@ VulkanTextureManager::init(VulkanInstance const &vkInstance)
 void
 VulkanTextureManager::clear()
 {
-    unloadAllTextures();
+    for (auto &it : _textures) {
+        vkDestroySampler(_device, it.second.texture_sampler, nullptr);
+        vkDestroyImageView(_device, it.second.texture_img_view, nullptr);
+        vkDestroyImage(_device, it.second.texture_img, nullptr);
+        vkFreeMemory(_device, it.second.texture_img_memory, nullptr);
+    }
+    _textures.clear();
     _device = nullptr;
     _physical_device = nullptr;
     _gfx_queue = nullptr;
@@ -58,6 +64,7 @@ VulkanTextureManager::unloadAllTextures()
         vkFreeMemory(_device, it.second.texture_img_memory, nullptr);
     }
     _textures.clear();
+    _load_default_texture();
 }
 
 bool

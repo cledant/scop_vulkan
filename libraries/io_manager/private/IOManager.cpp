@@ -160,10 +160,10 @@ IOManager::getEvents() const
 
     glfwPollEvents();
     io.events[MOUSE_EXCLUSIVE] = _keys[GLFW_KEY_F4];
-    io.events[QUIT] = _keys[GLFW_KEY_F12];
+    io.events[QUIT] = _keys[GLFW_KEY_F10];
     io.events[FULLSCREEN] = _keys[GLFW_KEY_F8];
-    io.events[JUMP] = _keys[GLFW_KEY_LEFT_SHIFT];
-    io.events[CROUCH] = _keys[GLFW_KEY_SPACE];
+    io.events[JUMP] = _keys[GLFW_KEY_SPACE];
+    io.events[CROUCH] = _keys[GLFW_KEY_LEFT_SHIFT];
     io.events[FRONT] = _keys[GLFW_KEY_W];
     io.events[BACK] = _keys[GLFW_KEY_S];
     io.events[RIGHT] = _keys[GLFW_KEY_D];
