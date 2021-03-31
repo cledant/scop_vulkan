@@ -3,7 +3,7 @@
 #include "imgui.h"
 
 bool
-UiOpenModel::draw(bool &open)
+UiOpenModel::drawFilepathWindow(bool &open)
 {
     static constexpr ImGuiWindowFlags const WIN_FLAGS =
       ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
@@ -50,6 +50,27 @@ UiOpenModel::draw(bool &open)
         ImGui::End();
     }
     return (trigger);
+}
+
+void
+UiOpenModel::drawErrorWindow(bool &open)
+{
+    static constexpr ImGuiWindowFlags const WIN_FLAGS =
+      ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
+      ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
+      ImGuiWindowFlags_NoMove;
+    static ImVec2 const WIN_POS_PIVOT = { 0.5f, 0.5f };
+
+    if (open) {
+        ImGuiViewport const *viewport = ImGui::GetMainViewport();
+        auto viewport_center = viewport->GetCenter();
+        ImVec2 window_pos{ viewport_center.x, viewport_center.y };
+
+        ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, WIN_POS_PIVOT);
+        ImGui::Begin("Error", &open, WIN_FLAGS);
+        ImGui::Text("Failed to load: %s", _filepath);
+        ImGui::End();
+    }
 }
 
 std::string

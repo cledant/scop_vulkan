@@ -1,7 +1,6 @@
 #include "EventHandler.hpp"
 
 #include "glm/gtc/matrix_transform.hpp"
-#include "fmt/core.h"
 
 #include <functional>
 
@@ -350,7 +349,7 @@ EventHandler::_ui_load_model()
         _ui->setModelInfo(
           model_info.nbVertices, model_info.nbIndices, model_info.nbFaces);
     } catch (std::exception const &e) {
-        fmt::print("Failed to load model\n");
+        _ui->setModelLoadingError();
     }
 }
 

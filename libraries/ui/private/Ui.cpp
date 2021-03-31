@@ -99,10 +99,15 @@ Ui::drawUi()
         return;
     }
 
+    if (_select_model) {
+        _model_loading_error = false;
+    }
     _draw_menu_bar();
     _about_window();
     _info_overview.draw(_show_info_fps, _show_info_model);
-    _ui_events.events[UET_NEW_MODEL] = _open_model_window.draw(_select_model);
+    _ui_events.events[UET_NEW_MODEL] =
+      _open_model_window.drawFilepathWindow(_select_model);
+    _open_model_window.drawErrorWindow(_model_loading_error);
 
     ImGui::Render();
 }
@@ -111,6 +116,12 @@ void
 Ui::setModelInfo(uint32_t nbVertices, uint32_t nbIndices, uint32_t nbFaces)
 {
     _info_overview.setModelInfo(nbVertices, nbIndices, nbFaces);
+}
+
+void
+Ui::setModelLoadingError()
+{
+    _model_loading_error = true;
 }
 
 std::string

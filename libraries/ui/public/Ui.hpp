@@ -62,6 +62,7 @@ class Ui final
     void setModelInfo(uint32_t nbVertices,
                       uint32_t nbIndices,
                       uint32_t nbFaces);
+    void setModelLoadingError();
 
     [[nodiscard]] std::string getModelFilepath() const;
 
@@ -73,6 +74,7 @@ class Ui final
     bool _fullscreen = false;
     bool _display_ui = true;
     bool _select_model = false;
+    bool _model_loading_error = false;
     bool _close_app = false;
     bool _toggle_camera_mvt = false;
     bool _model_params = false;

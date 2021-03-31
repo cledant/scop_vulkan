@@ -13,7 +13,8 @@ class UiOpenModel final
     UiOpenModel(UiOpenModel &&src) = delete;
     UiOpenModel &operator=(UiOpenModel &&rhs) = delete;
 
-    bool draw(bool &open);
+    bool drawFilepathWindow(bool &open);
+    void drawErrorWindow(bool &open);
     [[nodiscard]] std::string getModelFilepath() const;
 
   private:
