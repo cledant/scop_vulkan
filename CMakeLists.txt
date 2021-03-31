@@ -104,6 +104,7 @@ add_subdirectory(libraries/vulkan_renderer)
 add_subdirectory(libraries/model)
 add_subdirectory(libraries/indexed_buffer)
 add_subdirectory(libraries/ui)
+add_subdirectory(libraries/app_version)
 
 #Shaders
 add_subdirectory(shaders/model)

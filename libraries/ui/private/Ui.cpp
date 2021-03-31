@@ -2,6 +2,8 @@
 
 #include <chrono>
 
+#include "AppVersion.hpp"
+
 void
 Ui::init(GLFWwindow *win)
 {
@@ -203,8 +205,8 @@ Ui::_about_window()
 {
     static constexpr ImGuiWindowFlags const WIN_FLAGS =
       ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
-      ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove;
-    static ImVec2 const WIN_SIZE = ImVec2(200, 80);
+      ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
+      ImGuiWindowFlags_NoMove;
     static ImVec2 const WIN_POS_PIVOT = { 0.5f, 0.5f };
 
     if (_about) {
@@ -212,12 +214,16 @@ Ui::_about_window()
         auto viewport_center = viewport->GetCenter();
         ImVec2 window_pos{ viewport_center.x, viewport_center.y };
 
-        ImGui::SetNextWindowSize(WIN_SIZE);
         ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, WIN_POS_PIVOT);
         ImGui::Begin("About", &_about, WIN_FLAGS);
-        ImGui::Text("Scop Vulkan");
+        ImGui::Text("Scop");
         ImGui::Separator();
-        ImGui::Text("Version / Commit");
+        ImGui::Text("Version: %d.%d.%d",
+                    scop::APP_VERSION_MAJOR,
+                    scop::APP_VERSION_MINOR,
+                    scop::APP_VERSION_PATCH);
+        ImGui::Separator();
+        ImGui::Text("Commit: %s", scop::APP_COMMIT_HASH);
         ImGui::End();
     }
 }

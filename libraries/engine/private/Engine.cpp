@@ -4,6 +4,8 @@
 
 #include "glm/gtc/matrix_transform.hpp"
 
+#include "AppVersion.hpp"
+
 void
 Engine::init(char const *appName)
 {
@@ -24,8 +26,12 @@ Engine::init(char const *appName)
     _ui.init(_io_manager.getWindow());
     _vk_renderer.createInstance(appName,
                                 engine_name,
-                                VK_MAKE_VERSION(1, 0, 0),
-                                VK_MAKE_VERSION(1, 0, 0),
+                                VK_MAKE_VERSION(scop::APP_VERSION_MAJOR,
+                                                scop::APP_VERSION_MINOR,
+                                                scop::APP_VERSION_PATCH),
+                                VK_MAKE_VERSION(scop::APP_VERSION_MAJOR,
+                                                scop::APP_VERSION_MINOR,
+                                                scop::APP_VERSION_PATCH),
                                 IOManager::getRequiredInstanceExtension());
     auto fb_size = _io_manager.getFramebufferSize();
     _vk_renderer.init(
