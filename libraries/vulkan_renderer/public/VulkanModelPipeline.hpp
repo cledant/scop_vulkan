@@ -46,7 +46,9 @@ class VulkanModelPipeline final
     VulkanModelRenderPass const &getVulkanModelRenderPass() const;
     bool isInit() const;
 
-    void generateCommands(VkCommandBuffer cmdBuffer, size_t descriptorSetIndex);
+    void generateCommands(VkCommandBuffer cmdBuffer,
+                          size_t descriptorSetIndex,
+                          uint32_t currentSwapChainNbImg);
 
   private:
     // Model related

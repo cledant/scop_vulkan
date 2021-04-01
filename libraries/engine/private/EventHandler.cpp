@@ -341,18 +341,23 @@ void
 EventHandler::_ui_load_model()
 {
     Model tmp;
+    bool model_parsed = false;
 
     try {
         tmp.loadModel(_ui->getModelFilepath());
         *_model = std::move(tmp);
+        model_parsed = true;
         _renderer->loadModel(*_model);
-        _renderer->addModelInstance({});
+        _model_index = _renderer->addModelInstance({});
         auto model_info = _model->getModelInfo();
         _ui->setModelInfo(
           model_info.nbVertices, model_info.nbIndices, model_info.nbFaces);
     } catch (std::exception const &e) {
         fmt::print("{}\n", e.what());
-        _ui->setModelInfo(0, 0, 0);
+        if (model_parsed) {
+            _model_index = 0;
+            _ui->setModelInfo(0, 0, 0);
+        }
         _ui->setModelLoadingError();
     }
 }

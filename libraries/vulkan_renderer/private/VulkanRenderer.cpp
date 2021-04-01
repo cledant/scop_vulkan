@@ -270,7 +270,8 @@ VulkanRenderer::_create_model_command_buffers()
         rp_begin_info.pClearValues = clear_vals.data();
 
         vkCmdBeginRenderPass(it, &rp_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-        _model_pipeline.generateCommands(it, i);
+        _model_pipeline.generateCommands(
+          it, i, _swap_chain.currentSwapChainNbImg);
         vkCmdEndRenderPass(it);
         if (vkEndCommandBuffer(it) != VK_SUCCESS) {
             throw std::runtime_error(

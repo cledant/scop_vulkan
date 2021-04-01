@@ -143,7 +143,8 @@ VulkanModelPipeline::isInit() const
 
 void
 VulkanModelPipeline::generateCommands(VkCommandBuffer cmdBuffer,
-                                      size_t descriptorSetIndex)
+                                      size_t descriptorSetIndex,
+                                      uint32_t currentSwapChainNbImg)
 {
     // Vertex related values
     VkBuffer vertex_buffer[] = { _pipeline_model.buffer,
@@ -165,8 +166,8 @@ VulkanModelPipeline::generateCommands(VkCommandBuffer cmdBuffer,
           _pipeline_layout,
           0,
           1,
-          &_pipeline_model.descriptorSets[descriptorSetIndex +
-                                          i * _pipeline_model.nbMaterials],
+          &_pipeline_model
+             .descriptorSets[descriptorSetIndex + i * currentSwapChainNbImg],
           0,
           nullptr);
 
@@ -542,6 +543,7 @@ VulkanModelPipeline::_create_descriptor_pool(
     pool_size[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     pool_size[1].descriptorCount =
       swapChain.currentSwapChainNbImg * pipelineData.nbMaterials;
+    // Texture Sampler
     pool_size[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     pool_size[2].descriptorCount =
       swapChain.currentSwapChainNbImg * pipelineData.nbMaterials;
@@ -590,6 +592,7 @@ VulkanModelPipeline::_create_descriptor_sets(
     for (size_t j = 0; j < pipelineData.nbMaterials; ++j) {
         for (size_t i = 0; i < swapChain.currentSwapChainNbImg; ++i) {
             std::array<VkWriteDescriptorSet, 3> descriptor_write{};
+            uint32_t ds_index = i + swapChain.currentSwapChainNbImg * j;
 
             // System UBO
             VkDescriptorBufferInfo system_buffer_info{};
@@ -597,8 +600,7 @@ VulkanModelPipeline::_create_descriptor_sets(
             system_buffer_info.offset = 0;
             system_buffer_info.range = sizeof(SystemUbo);
             descriptor_write[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptor_write[0].dstSet =
-              pipelineData.descriptorSets[i + pipelineData.nbMaterials * j];
+            descriptor_write[0].dstSet = pipelineData.descriptorSets[ds_index];
             descriptor_write[0].dstBinding = 0;
             descriptor_write[0].dstArrayElement = 0;
             descriptor_write[0].descriptorType =
@@ -615,8 +617,7 @@ VulkanModelPipeline::_create_descriptor_sets(
               pipelineData.uboOffset + pipelineData.singleUboSize * i;
             model_buffer_info.range = sizeof(ModelPipelineUbo);
             descriptor_write[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptor_write[1].dstSet =
-              pipelineData.descriptorSets[i + pipelineData.nbMaterials * j];
+            descriptor_write[1].dstSet = pipelineData.descriptorSets[ds_index];
             descriptor_write[1].dstBinding = 1;
             descriptor_write[1].dstArrayElement = 0;
             descriptor_write[1].descriptorType =
@@ -633,8 +634,7 @@ VulkanModelPipeline::_create_descriptor_sets(
               pipelineData.diffuseTextures[j].texture_img_view;
             img_info.sampler = pipelineData.diffuseTextures[j].texture_sampler;
             descriptor_write[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptor_write[2].dstSet =
-              pipelineData.descriptorSets[i + pipelineData.nbMaterials * j];
+            descriptor_write[2].dstSet = pipelineData.descriptorSets[ds_index];
             descriptor_write[2].dstBinding = 2;
             descriptor_write[2].dstArrayElement = 0;
             descriptor_write[2].descriptorType =

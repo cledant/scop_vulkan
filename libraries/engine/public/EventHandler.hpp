@@ -105,6 +105,7 @@ class EventHandler final
     VulkanRenderer *_renderer{};
     Model *_model{};
     Ui *_ui{};
+    uint32_t _model_index{};
 
     EventTimers _timers;
 
