@@ -13,6 +13,7 @@
 #include "VulkanSwapChain.hpp"
 #include "UiOpenModel.hpp"
 #include "UiInfoOverview.hpp"
+#include "UiModelParameters.hpp"
 
 enum UiEventTypes
 {
@@ -62,8 +63,13 @@ class Ui final
     void setModelInfo(uint32_t nbVertices,
                       uint32_t nbIndices,
                       uint32_t nbFaces);
+    void resetModelParams();
     void setModelLoadingError();
 
+    [[nodiscard]] float getModelYaw() const;
+    [[nodiscard]] float getModelPitch() const;
+    [[nodiscard]] float getModelRoll() const;
+    [[nodiscard]] float getModelScale() const;
     [[nodiscard]] std::string getModelFilepath() const;
 
   private:
@@ -77,7 +83,7 @@ class Ui final
     bool _model_loading_error = false;
     bool _close_app = false;
     bool _toggle_camera_mvt = false;
-    bool _model_params = false;
+    bool _model_orientation = false;
     bool _invert_camera_y_axis = false;
 
     UiEvent _ui_events{};
@@ -95,6 +101,7 @@ class Ui final
     void _about_window();
     UiInfoOverview _info_overview;
     UiOpenModel _open_model_window;
+    UiModelParameters _model_param_window;
 };
 
 #endif // SCOP_VULKAN_UI_HPP

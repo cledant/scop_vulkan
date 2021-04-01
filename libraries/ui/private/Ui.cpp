@@ -79,7 +79,7 @@ Ui::toggleCameraMvt()
 void
 Ui::toggleModelParam()
 {
-    _model_params = !_model_params;
+    _model_orientation = !_model_orientation;
 }
 
 void
@@ -110,6 +110,8 @@ Ui::drawUi()
     _ui_events.events[UET_NEW_MODEL] =
       _open_model_window.drawFilepathWindow(_select_model);
     _open_model_window.drawErrorWindow(_model_loading_error);
+    _ui_events.events[UET_UPDATE_MODEL_PARAMS] =
+      _model_param_window.draw(_model_orientation);
 
     ImGui::Render();
 }
@@ -124,6 +126,36 @@ void
 Ui::setModelLoadingError()
 {
     _model_loading_error = true;
+}
+
+void
+Ui::resetModelParams()
+{
+    _model_param_window.resetAllParams();
+}
+
+float
+Ui::getModelYaw() const
+{
+    return (_model_param_window.getYaw());
+}
+
+float
+Ui::getModelPitch() const
+{
+    return (_model_param_window.getPitch());
+}
+
+float
+Ui::getModelRoll() const
+{
+    return (_model_param_window.getRoll());
+}
+
+float
+Ui::getModelScale() const
+{
+    return (_model_param_window.getScale());
 }
 
 std::string
@@ -150,7 +182,7 @@ Ui::_draw_menu_bar()
         }
         if (ImGui::BeginMenu("Edit")) {
             if (ImGui::MenuItem("Model Parameters", "F3")) {
-                _model_params = !_model_params;
+                _model_orientation = !_model_orientation;
             }
             ImGui::EndMenu();
         }

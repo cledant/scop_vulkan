@@ -102,11 +102,11 @@ IndexedBuffer<InstanceType>::addInstance(InstanceType const &info,
         update(_current_instance_nb, info);
     }
     ++_current_instance_nb;
-    ++_instance_index;
+    auto tmp = _instance_index++;
     if (!_instance_index) {
         _instance_index = 1;
     }
-    return (_instance_index);
+    return (tmp);
 }
 
 template<typename InstanceType>

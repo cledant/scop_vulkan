@@ -131,20 +131,6 @@ EventHandler::processEvents(IOEvents const &ioEvents, UiEvent const &uiEvent)
                            _perspective->near_far.y));
     }
 
-    // Update model size
-    if (ioEvents.mouse_scroll != 0.0f) {
-        ModelInstanceInfo model_info{};
-
-        _renderer->getModelInstance(1, model_info);
-        model_info.scale +=
-          SCALING_PER_SCROLL * glm::vec3(ioEvents.mouse_scroll);
-        if (model_info.scale.x < SCALING_PER_SCROLL) {
-            model_info.scale = glm::vec3(SCALING_PER_SCROLL);
-        }
-        _renderer->updateModelInstance(1, model_info);
-        _io_manager->resetMouseScroll();
-    }
-
     // Setting timers origin
     for (uint32_t i = 0; i < ET_NB_EVENT_TIMER_TYPES; ++i) {
         if (_timers.updated[i]) {
@@ -352,6 +338,7 @@ EventHandler::_ui_load_model()
         auto model_info = _model->getModelInfo();
         _ui->setModelInfo(
           model_info.nbVertices, model_info.nbIndices, model_info.nbFaces);
+        _ui->resetModelParams();
     } catch (std::exception const &e) {
         fmt::print("{}\n", e.what());
         if (model_parsed) {
@@ -364,7 +351,14 @@ EventHandler::_ui_load_model()
 
 void
 EventHandler::_ui_update_model_params()
-{}
+{
+    ModelInstanceInfo mi{};
+    mi.yaw = _ui->getModelYaw();
+    mi.pitch = _ui->getModelPitch();
+    mi.roll = _ui->getModelRoll();
+    mi.scale = glm::vec3(_ui->getModelScale());
+    _renderer->updateModelInstance(_model_index, mi);
+}
 
 void
 EventHandler::_ui_close_app()
