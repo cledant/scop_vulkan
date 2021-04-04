@@ -21,14 +21,7 @@ Thumbs.db
 
 # CLION FOLDERS #
 #################
-cmake-build-debug
-cmake-build-release
-cmake-build-relwithdebinfo
-cmake-build-release-cppcheck
-cmake-build-debug-clang
-cmake-build-release-clang
-cmake-build-release_avx2
-cmake-build-release_sse4
+cmake-build-*
 .idea
 
 # CMAKE BUILD DIR #

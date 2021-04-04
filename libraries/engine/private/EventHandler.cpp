@@ -159,8 +159,7 @@ void
 EventHandler::_mouse_exclusive()
 {
     if (_timers.accept_event[ET_SYSTEM]) {
-        _mouse_pos = _io_manager->toggleMouseExclusive();
-        _previous_mouse_pos = _mouse_pos;
+        _io_manager->toggleMouseExclusive();
         _mouse_pos_skip = true;
         _ui->toggleCameraMvt();
         _timers.accept_event[ET_SYSTEM] = 0;
@@ -369,8 +368,7 @@ EventHandler::_ui_close_app()
 void
 EventHandler::_ui_mouse_exclusive()
 {
-    _mouse_pos = _io_manager->toggleMouseExclusive();
-    _previous_mouse_pos = _mouse_pos;
+    _io_manager->toggleMouseExclusive();
     _mouse_pos_skip = true;
 }
 
@@ -389,16 +387,16 @@ EventHandler::_ui_fullscreen()
 void
 EventHandler::_update_camera(glm::vec2 const &mouse_pos)
 {
-    if (!_mouse_pos_skip) {
-        _mouse_pos = mouse_pos;
+    _mouse_pos = mouse_pos;
+    if (_mouse_pos_skip) {
+        _previous_mouse_pos = _mouse_pos;
+        _mouse_pos_skip = false;
     }
-    _mouse_pos_skip = false;
 
-    if (_invert_y_axis) {
-        _mouse_pos.y = -mouse_pos.y;
-    }
     glm::vec2 offset = _mouse_pos - _previous_mouse_pos;
-
+    if (_invert_y_axis) {
+        offset.y = -offset.y;
+    }
     if (_movements != glm::ivec3(0)) {
         _camera->updatePosition(_movements,
                                 _timers.timer_diff[ET_CAMERA] /

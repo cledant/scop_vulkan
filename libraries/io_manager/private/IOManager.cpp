@@ -111,14 +111,11 @@ IOManager::triggerClose() const
     glfwSetWindowShouldClose(_win, 1);
 }
 
-glm::vec2
+void
 IOManager::toggleMouseExclusive()
 {
     _mouse_exclusive = !_mouse_exclusive;
     _apply_mouse_visibility();
-    auto pos = glm::vec2(_win_size.x / 2.0, _win_size.y / 2.0);
-    glfwSetCursorPos(_win, pos.x, pos.y);
-    return (pos);
 }
 
 void

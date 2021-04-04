@@ -35,7 +35,7 @@ class IOManager final
     void toggleFullscreen();
     [[nodiscard]] bool shouldClose() const;
     void triggerClose() const;
-    [[nodiscard]] glm::vec2 toggleMouseExclusive();
+    void toggleMouseExclusive();
     void toggleMouseVisibility();
     [[nodiscard]] bool isMouseExclusive() const;
     [[nodiscard]] float getWindowRatio() const;
