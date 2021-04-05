@@ -21,7 +21,7 @@ foreach (SHADER COMPILED_SHADER IN ZIP_LISTS SHADERS COMPILED_SHADERS)
             OUTPUT ${COMPILED_SHADER}
             DEPENDS ${SHADER}
             COMMAND
-            glslc
+            "${GLSLC_PROGRAM}"
             -o ${COMPILED_SHADER} -mfmt=bin -O
             --target-env=vulkan1.2
             ${SHADER}
