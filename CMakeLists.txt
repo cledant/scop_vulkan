@@ -19,7 +19,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 #Checking Vulkan
 find_package(Vulkan REQUIRED FATAL_ERROR)
-find_program(glslc REQUIRED FATAL_ERROR)
+find_program(GLSLC_PROGRAM glslc REQUIRED FATAL_ERROR)
 
 #Setting global C/CXX compile options
 set(OPTIMIZATION_TYPE NATIVE CACHE STRING "")
