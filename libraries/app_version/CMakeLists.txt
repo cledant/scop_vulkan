@@ -14,5 +14,5 @@ target_include_directories(app_version
 target_compile_definitions(app_version INTERFACE
         VERSION_MAJOR=1
         VERSION_MINOR=0
-        VERSION_PATCH=0
+        VERSION_PATCH=2
         COMMIT_HASH="${GIT_COMMIT_HASH}")

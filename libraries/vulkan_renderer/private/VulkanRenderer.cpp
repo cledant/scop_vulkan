@@ -308,20 +308,14 @@ VulkanRenderer::_emit_model_ui_cmds(uint32_t img_index,
                             &view_proj_mat);
 
     // Send Model rendering
-    VkSemaphore wait_model_sems[] = {
-        _sync.imageAvailableSem[_sync.currentFrame],
-    };
-    VkPipelineStageFlags model_wait_stages[] = {
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-    };
     VkSemaphore finish_model_sig_sems[] = {
         _sync.modelRenderFinishedSem[_sync.currentFrame],
     };
     VkSubmitInfo submit_info{};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.pWaitSemaphores = wait_model_sems;
-    submit_info.pWaitDstStageMask = model_wait_stages;
-    submit_info.waitSemaphoreCount = 1;
+    submit_info.pWaitSemaphores = nullptr;
+    submit_info.pWaitDstStageMask = nullptr;
+    submit_info.waitSemaphoreCount = 0;
     submit_info.pSignalSemaphores = finish_model_sig_sems;
     submit_info.signalSemaphoreCount = 1;
     submit_info.pCommandBuffers = &_model_command_buffers[img_index];
@@ -335,9 +329,11 @@ VulkanRenderer::_emit_model_ui_cmds(uint32_t img_index,
 
     // Send Ui rendering
     VkSemaphore wait_ui_sems[] = {
+        _sync.imageAvailableSem[_sync.currentFrame],
         _sync.modelRenderFinishedSem[_sync.currentFrame],
     };
     VkPipelineStageFlags ui_wait_stages[] = {
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
     };
     VkSemaphore finish_ui_sig_sems[] = {
@@ -347,7 +343,7 @@ VulkanRenderer::_emit_model_ui_cmds(uint32_t img_index,
     ui_submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     ui_submit_info.pWaitSemaphores = wait_ui_sems;
     ui_submit_info.pWaitDstStageMask = ui_wait_stages;
-    ui_submit_info.waitSemaphoreCount = 1;
+    ui_submit_info.waitSemaphoreCount = 2;
     ui_submit_info.pSignalSemaphores = finish_ui_sig_sems;
     ui_submit_info.signalSemaphoreCount = 1;
     auto ui_cmd_buffer =
